@@ -1623,8 +1623,8 @@ function launchQuiz() {
       const fill = shuffle(used).slice(0, count - unused.length);
       drawn = shuffle([...unused, ...fill]);
     }
-    // Mark newly drawn as used
-    drawn.forEach(q => S.usedQIds.add(String(q.id)));
+    // NOTE: usedQIds is marked in finishQuiz() only after quiz completion
+    // (not here) so abandoned quizzes don't consume questions
   } else {
     // review / wrong modes: shuffle normally, no no-repeat tracking
     drawn = [...pool].sort(() => Math.random() - 0.5).slice(0, count);
@@ -1783,6 +1783,13 @@ function nextQuestion() {
 
 function finishQuiz() {
   const score = S.activeQs.filter((q,i) => S.answers[i].selected === q.answer).length;
+
+  // ── Mark questions as used ONLY on completion (not on launch) ──
+  // quizConfig.mode is set during launchQuiz
+  if (S.quizConfig && S.quizConfig.mode === 'new') {
+    S.activeQs.forEach(q => S.usedQIds.add(String(q.id)));
+  }
+
   // Track wrong answers
   S.activeQs.forEach((q,i) => {
     if (S.answers[i].selected !== q.answer) S.wrongQs.add(String(q.id));
