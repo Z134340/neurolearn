@@ -653,103 +653,130 @@ const FT = {
   csv:  {emoji:'📊', color:'#4ADE80', bg:'rgba(74,222,128,.1)',   border:'rgba(74,222,128,.25)'},
 };
 
-function datasetsHTML() {
-  const allTags     = [...new Set(S.files.flatMap(f => f.tags || []))];
-  const displayFiles = S.tagFilter ? S.files.filter(f => (f.tags||[]).includes(S.tagFilter)) : S.files;
+/* ── Single file card HTML (extracted for targeted refresh) ── */
+function fileCardHTML(f) {
+  const t    = FT[f.type] || {emoji:'📎',color:'var(--text-2)',bg:'rgba(255,255,255,.05)',border:'var(--border)'};
+  const isImportable = ['csv','xlsx'].includes(f.type);
+  const isAIPending  = ['pdf','docx'].includes(f.type);
 
-  const filesHTML = displayFiles.map(f => {
-    const t    = FT[f.type] || {emoji:'📎',color:'var(--text-2)',bg:'rgba(255,255,255,.05)',border:'var(--border)'};
-    const isImportable = ['csv','xlsx'].includes(f.type);
-    const isAIPending  = ['pdf','docx'].includes(f.type);
+  const badge = f.status === 'ready'
+    ? `<span class="badge badge-gr">✓ 就緒</span>`
+    : `<span class="badge badge-a">⏳ 處理中</span>`;
 
-    const badge = f.status === 'ready'
-      ? `<span class="badge badge-gr">✓ 就緒</span>`
-      : `<span class="badge badge-a">⏳ 處理中</span>`;
-
-    const tagChips = (f.tags||[]).map(tag => {
-      const tc = tagColor(tag);
-      return `<span style="display:inline-flex;align-items:center;gap:.22rem;background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .48rem .1rem .52rem;font-size:.68rem;font-weight:600;letter-spacing:.01em;">
-        ${tag}
-        <span data-fid="${f.id}" data-tag="${tag.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();const el=this;removeTag(+el.dataset.fid,el.dataset.tag)" style="cursor:pointer;opacity:.6;font-size:.75rem;line-height:1;margin-left:.05rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.6'">×</span>
-      </span>`;
-    }).join('');
-
-    const addBtn = (f.tags||[]).length < 5 ? `
-      <button onclick="event.stopPropagation();toggleTagEdit(${f.id})"
-        style="background:transparent;border:1px dashed ${S.editingTagFid===f.id ? 'var(--accent)' : 'var(--border)'};color:${S.editingTagFid===f.id ? 'var(--accent)' : 'var(--text-3)'};border-radius:20px;padding:.1rem .42rem;font-size:.67rem;cursor:pointer;display:inline-flex;align-items:center;gap:.2rem;transition:all .15s;"
-        onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
-        onmouseout="this.style.borderColor='${S.editingTagFid===f.id ? 'var(--accent)' : 'var(--border)'}';this.style.color='${S.editingTagFid===f.id ? 'var(--accent)' : 'var(--text-3)'}'">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        貼標
-      </button>` : '';
-
-    // Quick-select: all tags used on any file, excluding tags already on this file
-    const allUsedTags = [...new Set(S.files.flatMap(x => x.tags||[]))];
-    const unusedPresets = allUsedTags.filter(p => !(f.tags||[]).includes(p));
-    const editPanel = S.editingTagFid === f.id ? `
-      <div style="margin-top:.65rem;padding:.75rem .85rem;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:10px;">
-        <div style="display:flex;gap:.45rem;margin-bottom:.55rem;">
-          <input id="tagInp-${f.id}" type="text" placeholder="輸入自訂標籤（最多10字）…" maxlength="10"
-            style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:.3rem .6rem;font-size:.78rem;color:var(--text-1);outline:none;font-family:inherit;transition:border-color .15s;"
-            onkeydown="if(event.key==='Enter'){addTag(${f.id},this.value)}"
-            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-          <button onclick="addTag(${f.id},document.getElementById('tagInp-${f.id}').value)"
-            style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.3rem .75rem;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;">確認</button>
-          <button onclick="toggleTagEdit(${f.id})"
-            style="background:transparent;border:1px solid var(--border);color:var(--text-3);border-radius:8px;padding:.3rem .55rem;font-size:.78rem;cursor:pointer;">取消</button>
-        </div>
-        ${unusedPresets.length > 0 ? `
-        <div style="display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;">
-          <span style="font-size:.66rem;color:var(--text-3);margin-right:.15rem;">快速選擇：</span>
-          ${unusedPresets.map(p => {
-            const tc = tagColor(p);
-            return `<span onclick="addTag(${f.id},'${p}')"
-              style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;transition:opacity .15s;"
-              onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">${p}</span>`;
-          }).join('')}
-        </div>` : '<span style="font-size:.7rem;color:var(--text-3);">尚未有其他標籤可快速選取，請輸入後確認加入</span>'}
-      </div>` : '';
-
-    // Action area - differs by file type
-    const actionArea = f.importing
-      ? `<span style="font-size:.72rem;color:var(--accent);">⏳ 解析中…</span>`
-      : f.imported > 0
-        ? `<span style="font-size:.72rem;color:#4ADE80;font-weight:600;">✓ ${f.imported} 題</span>`
-        : isImportable && f.status === 'ready'
-          ? `<span style="font-size:.7rem;color:var(--text-3);font-style:italic;">等待匯入…</span>`
-          : isAIPending && f.status === 'ready'
-            ? `<span style="background:rgba(123,111,224,.12);color:var(--accent);border:1px solid var(--accent-border);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:600;">AI 待串接</span>`
-            : '';
-
-    return `
-    <div class="g-card" style="padding:1rem 1.2rem;margin-bottom:.65rem;cursor:default;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
-      <div style="display:flex;align-items:center;gap:1rem;">
-        <div style="width:38px;height:38px;border-radius:10px;background:${t.bg};border:1px solid ${t.border};display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">${t.emoji}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:.9rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
-          <div style="display:flex;gap:.6rem;margin-top:.2rem;">
-            <span style="font-size:.72rem;color:var(--text-3)">${f.size}</span>
-            <span style="color:var(--text-3)">·</span>
-            <span style="font-size:.72rem;color:var(--text-3)">${f.date}</span>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:.55rem;flex-shrink:0;">
-          ${badge}
-          ${actionArea}
-          <button onclick="removeFile(${f.id})" style="background:transparent;border:none;color:var(--text-3);cursor:pointer;display:flex;align-items:center;padding:.2rem;border-radius:6px;transition:color .15s" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-3)'" title="移除">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:.32rem;margin-top:.6rem;align-items:center;min-height:1.5rem;">
-        ${tagChips}
-        ${addBtn}
-      </div>
-      ${editPanel}
-    </div>`;
+  const tagChips = (f.tags||[]).map(tag => {
+    const tc = tagColor(tag);
+    return `<span style="display:inline-flex;align-items:center;gap:.22rem;background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .48rem .1rem .52rem;font-size:.68rem;font-weight:600;letter-spacing:.01em;">
+      ${tag}
+      <span data-fid="${f.id}" data-tag="${tag.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();removeTag(+this.dataset.fid,this.dataset.tag)" style="cursor:pointer;opacity:.6;font-size:.75rem;line-height:1;margin-left:.05rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.6'">×</span>
+    </span>`;
   }).join('');
 
-  // Importable summary
+  const addBtn = (f.tags||[]).length < 5 ? `
+    <button onclick="event.stopPropagation();toggleTagEdit(${f.id})"
+      style="background:transparent;border:1px dashed ${S.editingTagFid===f.id?'var(--accent)':'var(--border)'};color:${S.editingTagFid===f.id?'var(--accent)':'var(--text-3)'};border-radius:20px;padding:.1rem .42rem;font-size:.67rem;cursor:pointer;display:inline-flex;align-items:center;gap:.2rem;transition:all .15s;"
+      onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+      onmouseout="this.style.borderColor='${S.editingTagFid===f.id?'var(--accent)':'var(--border)'}';this.style.color='${S.editingTagFid===f.id?'var(--accent)':'var(--text-3)'}'">
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      貼標
+    </button>` : '';
+
+  const allUsedTags = [...new Set(S.files.flatMap(x => x.tags||[]))];
+  const unusedPresets = allUsedTags.filter(p => !(f.tags||[]).includes(p));
+
+  const editPanel = S.editingTagFid === f.id ? `
+    <div style="margin-top:.65rem;padding:.75rem .85rem;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:10px;">
+      <div style="display:flex;gap:.45rem;margin-bottom:.55rem;">
+        <input id="tagInp-${f.id}" type="text" placeholder="輸入標籤名稱（最多10字）…" maxlength="10"
+          style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:.3rem .6rem;font-size:.78rem;color:var(--text-1);outline:none;font-family:inherit;transition:border-color .15s;"
+          onkeydown="if(event.key==='Enter'){addTag(${f.id},this.value)}"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        <button onclick="addTag(${f.id},document.getElementById('tagInp-${f.id}').value)"
+          style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.3rem .75rem;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;">確認</button>
+        <button onclick="toggleTagEdit(${f.id})"
+          style="background:transparent;border:1px solid var(--border);color:var(--text-3);border-radius:8px;padding:.3rem .55rem;font-size:.78rem;cursor:pointer;">取消</button>
+      </div>
+      ${unusedPresets.length > 0 ? `
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;">
+        <span style="font-size:.66rem;color:var(--text-3);margin-right:.15rem;">已用標籤：</span>
+        ${unusedPresets.map(p => {
+          const tc = tagColor(p);
+          return `<span onclick="addTag(${f.id},'${p}')"
+            style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;transition:opacity .15s;"
+            onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">${p}</span>`;
+        }).join('')}
+      </div>` : `<span style="font-size:.7rem;color:var(--text-3);">輸入新標籤後按確認即可新增</span>`}
+    </div>` : '';
+
+  const actionArea = f.importing
+    ? `<span style="font-size:.72rem;color:var(--accent);">⏳ 解析中…</span>`
+    : f.imported > 0
+      ? `<span style="font-size:.72rem;color:#4ADE80;font-weight:600;">✓ ${f.imported} 題</span>`
+      : isImportable && f.status === 'ready'
+        ? `<span style="font-size:.7rem;color:var(--text-3);font-style:italic;">等待匯入…</span>`
+        : isAIPending && f.status === 'ready'
+          ? `<span style="background:rgba(123,111,224,.12);color:var(--accent);border:1px solid var(--accent-border);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:600;">AI 待串接</span>`
+          : '';
+
+  return `
+  <div class="g-card" id="fcard-${f.id}" style="padding:1rem 1.2rem;margin-bottom:.65rem;cursor:default;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <div style="width:38px;height:38px;border-radius:10px;background:${t.bg};border:1px solid ${t.border};display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">${t.emoji}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.9rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
+        <div style="display:flex;gap:.6rem;margin-top:.2rem;">
+          <span style="font-size:.72rem;color:var(--text-3)">${f.size}</span>
+          <span style="color:var(--text-3)">·</span>
+          <span style="font-size:.72rem;color:var(--text-3)">${f.date}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.55rem;flex-shrink:0;">
+        ${badge}
+        ${actionArea}
+        <button onclick="removeFile(${f.id})" style="background:transparent;border:none;color:var(--text-3);cursor:pointer;display:flex;align-items:center;padding:.2rem;border-radius:6px;transition:color .15s" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-3)'" title="移除">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:.32rem;margin-top:.6rem;align-items:center;min-height:1.5rem;">
+      ${tagChips}
+      ${addBtn}
+    </div>
+    ${editPanel}
+  </div>`;
+}
+
+/* ── Targeted card refresh (no full-page re-render) ── */
+function refreshCard(fid) {
+  const el = document.getElementById('fcard-'+fid);
+  const f  = S.files.find(x=>x.id===fid);
+  if (!el || !f) { if(S.page==='datasets') render(); return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = fileCardHTML(f);
+  el.replaceWith(tmp.firstElementChild);
+  // Re-focus tag input if editing
+  if (S.editingTagFid === fid) {
+    const inp = document.getElementById('tagInp-'+fid);
+    if (inp) inp.focus();
+  }
+}
+
+/* Also refresh filter bar (tags may have changed) */
+function refreshFilterBar() {
+  const fb = document.getElementById('tag-filter-bar');
+  if (!fb) return;
+  const allTags = [...new Set(S.files.flatMap(f=>f.tags||[]))];
+  if (!allTags.length) { fb.style.display='none'; return; }
+  fb.style.display='flex';
+  fb.innerHTML = `
+    <span style="font-size:.7rem;color:var(--text-3);font-weight:600;letter-spacing:.04em;margin-right:.1rem;">篩選：</span>
+    <span onclick="setTagFilter(null)" style="background:${!S.tagFilter?'var(--accent)':'rgba(255,255,255,.06)'};color:${!S.tagFilter?'#fff':'var(--text-2)'};border:1px solid ${!S.tagFilter?'var(--accent)':'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">全部</span>
+    ${allTags.map(tag=>{const tc=tagColor(tag);const active=S.tagFilter===tag;return `<span data-tag="${tag.replace(/"/g,'&quot;')}" onclick="setTagFilter(this.dataset.tag)" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`;}).join('')}`;
+}
+
+function datasetsHTML() {
+  const allTags      = [...new Set(S.files.flatMap(f => f.tags || []))];
+  const displayFiles = S.tagFilter ? S.files.filter(f => (f.tags||[]).includes(S.tagFilter)) : S.files;
+  const filesHTML    = displayFiles.map(f => fileCardHTML(f)).join('');
   const importedTotal = S.extraQs.length;
 
   return `
@@ -761,7 +788,6 @@ function datasetsHTML() {
         <h2 style="font-size:1.8rem;font-weight:700;letter-spacing:-.035em;margin-bottom:.4rem;">上傳教材</h2>
         <p style="color:var(--text-2);font-size:.88rem;">已匯入 <span style="color:var(--accent);font-weight:600;">${importedTotal}</span> 題可供模擬考使用</p>
       </div>
-      <!-- Download template -->
       <button onclick="downloadTemplate()"
         style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(123,111,224,.12);border:1px solid var(--accent-border);color:var(--accent);border-radius:10px;padding:.55rem 1rem;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .18s;flex-shrink:0;"
         onmouseover="this.style.background='rgba(123,111,224,.22)'" onmouseout="this.style.background='rgba(123,111,224,.12)'">
@@ -791,14 +817,12 @@ function datasetsHTML() {
     <div style="margin-top:.85rem;padding:.85rem 1rem;border-radius:10px;background:rgba(123,111,224,.07);border:1px solid var(--accent-border);display:flex;gap:.65rem;align-items:flex-start;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <div style="font-size:.78rem;color:var(--accent);line-height:1.6;">
-        <strong>CSV / XLSX 欄位格式：</strong>
-        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Cascadia Code','Consolas','Courier New',monospace;font-size:.73rem;">exam</code>（分類）·
-        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Cascadia Code','Consolas','Courier New',monospace;font-size:.73rem;">question</code>·
-        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Cascadia Code','Consolas','Courier New',monospace;font-size:.73rem;">option_a ~ option_e</code>·
-        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Cascadia Code','Consolas','Courier New',monospace;font-size:.73rem;">answer</code>（A~E）·
-        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Cascadia Code','Consolas','Courier New',monospace;font-size:.73rem;">explanation</code>
-        &nbsp;·&nbsp; 請先下載範本確認格式。
-        <br><strong>PDF / DOCX：</strong>上傳後保留 AI 萃取端口（<code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Cascadia Code','Consolas','Courier New',monospace;font-size:.73rem;">extractTextFromFile(file)</code>），待串接自動生題服務。
+        <strong>CSV / XLSX 欄位：</strong>
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.73rem;">exam</code>（分類）·
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.73rem;">question</code>·
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.73rem;">option_a ~ option_e</code>·
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.73rem;">answer</code>（A~E）·
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.73rem;">explanation</code>
       </div>
     </div>
 
@@ -813,17 +837,17 @@ function datasetsHTML() {
           已上傳檔案 <span style="color:var(--accent)">${S.files.length}</span>
         </p>
       </div>
-      ${allTags.length > 0 ? `
-      <div style="display:flex;flex-wrap:wrap;gap:.38rem;margin-bottom:1rem;align-items:center;">
+      <div id="tag-filter-bar" style="display:${allTags.length>0?'flex':'none'};flex-wrap:wrap;gap:.38rem;margin-bottom:1rem;align-items:center;">
         <span style="font-size:.7rem;color:var(--text-3);font-weight:600;letter-spacing:.04em;margin-right:.1rem;">篩選：</span>
-        <span onclick="setTagFilter(null)" style="background:${!S.tagFilter ? 'var(--accent)' : 'rgba(255,255,255,.06)'};color:${!S.tagFilter ? '#fff' : 'var(--text-2)'};border:1px solid ${!S.tagFilter ? 'var(--accent)' : 'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">全部</span>
+        <span onclick="setTagFilter(null)" style="background:${!S.tagFilter?'var(--accent)':'rgba(255,255,255,.06)'};color:${!S.tagFilter?'#fff':'var(--text-2)'};border:1px solid ${!S.tagFilter?'var(--accent)':'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">全部</span>
         ${allTags.map(tag => { const tc=tagColor(tag); const active=S.tagFilter===tag; return `<span data-tag="${tag.replace(/"/g,'&quot;')}" onclick="setTagFilter(this.dataset.tag)" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`; }).join('')}
-      </div>` : ''}
+      </div>
       ${filesHTML}
       ${displayFiles.length === 0 ? `<div style="text-align:center;color:var(--text-3);font-size:.85rem;padding:1.5rem 0;">沒有符合「${S.tagFilter}」標籤的檔案</div>` : ''}
     </div>` : `<div style="margin-top:2rem;text-align:center;color:var(--text-3);font-size:.88rem;padding:1.5rem 0;">尚未上傳任何檔案</div>`}
   </div>`;
 }
+
 function bindDataset() {
   const dz = document.getElementById('dropZone');
   if (!dz) return;
@@ -856,9 +880,16 @@ function handleFileSelect(files) {
     }
   });
   if (S.page === 'datasets') render();
+  // Non-importable files: update badge without full re-render
   setTimeout(() => {
-    S.files.forEach(f => { if (f.status === 'processing' && !['csv','xlsx'].includes(f.type)) f.status = 'ready'; });
-    if (S.page === 'datasets') render();
+    let changed = false;
+    S.files.forEach(f => {
+      if (f.status === 'processing' && !['csv','xlsx'].includes(f.type)) {
+        f.status = 'ready';
+        refreshCard(f.id); // targeted — no flash
+        changed = true;
+      }
+    });
   }, 2200);
 }
 
@@ -904,20 +935,22 @@ function addTag(fid, tag) {
   if (!f || f.tags.includes(tag) || f.tags.length >= 5) return;
   f.tags.push(tag);
   S.editingTagFid = null;
-  if (S.page === 'datasets') render();
+  refreshCard(fid);
+  refreshFilterBar();
 }
 function removeTag(fid, tag) {
   const f = S.files.find(f => f.id === fid);
   if (!f) return;
   f.tags = f.tags.filter(t => t !== tag);
-  if (S.page === 'datasets') render();
+  refreshCard(fid);
+  refreshFilterBar();
 }
 function toggleTagEdit(fid) {
+  const prev = S.editingTagFid;
   S.editingTagFid = (S.editingTagFid === fid) ? null : fid;
-  if (S.page === 'datasets') render();
-  if (S.editingTagFid !== null) {
-    setTimeout(() => { const el = document.getElementById('tagInp-'+fid); if(el) el.focus(); }, 30);
-  }
+  // Close previous card's panel if different
+  if (prev !== null && prev !== fid) refreshCard(prev);
+  refreshCard(fid);
 }
 function setTagFilter(tag) {
   S.tagFilter = (S.tagFilter === tag) ? null : tag;
@@ -1523,7 +1556,7 @@ function quizActiveHTML() {
           <span class="badge badge-n">Q.${S.currentQ+1}</span>
           <span class="badge ${diff.cls}">${q.difficulty}</span>
         </div>
-        <button class="bk-btn ${bk?'on':''}" onclick="toggleBk(q.id)" title="${bk?'取消標記':'標記此題'}">
+        <button class="bk-btn ${bk?'on':''}" onclick="toggleBk(${q.id})" title="${bk?'取消標記':'標記此題'}">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="${bk?'currentColor':'none'}" stroke="currentColor" stroke-width="2">
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
           </svg>
@@ -1581,14 +1614,22 @@ function confirmAns() {
 
 function toggleBk(id) {
   const isNowOn = !S.bookmarks.has(id);
-  isNowOn ? S.bookmarks.add(id) : S.bookmarks.delete(id);
-  // DOM-only: update button appearance without full re-render
-  const btn = document.querySelector('.bk-btn');
+  if (isNowOn) S.bookmarks.add(id);
+  else         S.bookmarks.delete(id);
+  // Update just the bookmark button — no full page flash
+  const btn = document.querySelector('[onclick="toggleBk('+id+')"]')
+           || document.querySelector('.bk-btn');
   if (btn) {
     btn.classList.toggle('on', isNowOn);
     btn.title = isNowOn ? '取消標記' : '標記此題';
     const svg = btn.querySelector('svg');
-    if (svg) svg.setAttribute('fill', isNowOn ? 'currentColor' : 'none');
+    if (svg) {
+      svg.setAttribute('fill', isNowOn ? 'currentColor' : 'none');
+      // Brief pulse to confirm
+      btn.style.transform = 'scale(1.3)';
+      btn.style.transition = 'transform .15s';
+      setTimeout(() => { btn.style.transform = ''; }, 180);
+    }
   }
 }
 
@@ -1826,25 +1867,24 @@ function dashHTML() {
 
   // ── Tag pills (clickable) ───────────────────────────────────────────
   const tagStatCards = fileTagStats.length > 0
-    ? [`<span data-tag="__all__" onclick="setDashTag(null)"
-        style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .85rem;border-radius:10px;cursor:pointer;transition:all .18s;
+    ? [`<button onclick="setDashTag(null)"
+        style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .85rem;border-radius:10px;cursor:pointer;border:none;transition:all .18s;
           background:${!dt?'var(--accent)':'rgba(255,255,255,.05)'};
           color:${!dt?'#fff':'var(--text-2)'};
-          border:1px solid ${!dt?'var(--accent)':'var(--border)'};font-size:.8rem;font-weight:600;">
+          outline:1px solid ${!dt?'var(--accent)':'var(--border)'};font-size:.8rem;font-weight:600;">
         全部
-      </span>`,
+      </button>`,
       ...fileTagStats.map(s => {
         const tc  = tagColor(s.tag);
         const on  = dt === s.tag;
-        return `<span data-tag="${s.tag}" onclick="setDashTag('${s.tag.replace(/'/g,"\\'")}')"
-          style="display:inline-flex;align-items:center;gap:.5rem;padding:.45rem .9rem;border-radius:10px;cursor:pointer;transition:all .18s;
-            background:${on?tc.color:tc.bg};
-            color:${on?'#111':tc.color};
-            border:1px solid ${on?tc.color:tc.border};font-size:.8rem;font-weight:${on?700:500};">
+        return `<button data-tag="${s.tag.replace(/"/g,'&quot;')}" onclick="setDashTag(this.dataset.tag)"
+          style="display:inline-flex;align-items:center;gap:.5rem;padding:.45rem .9rem;border-radius:10px;cursor:pointer;border:none;transition:all .18s;
+            background:${on?tc.color:tc.bg};color:${on?'#111':tc.color};
+            outline:1px solid ${on?tc.color:tc.border};font-size:.8rem;font-weight:${on?700:500};">
           ${on?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><polyline points="20 6 9 17 4 12"/></svg>':''}
           ${s.tag}
-          <span style="font-family:\'JetBrains Mono\',monospace;font-size:.7rem;opacity:.7;">${s.qCount}題</span>
-        </span>`;
+          <span style="font-family:'JetBrains Mono',monospace;font-size:.7rem;opacity:.75;">${s.qCount}題</span>
+        </button>`;
       })
     ].join('')
     : `<p style="font-size:.84rem;color:var(--text-3);">尚未匯入題目，請至「資料集」上傳並貼標。</p>`;
