@@ -526,7 +526,7 @@ const S = {
    ╚══════════════════════════════════╝ */
 function navigate(page) {
   S.page = page;
-  if (page === 'quiz') { S.quizMode = 'menu'; S.quizConfig = null; S.quizSetup = null; }
+  if (page === 'quiz') { S.quizMode = 'menu'; S.quizConfig = null; S.quizSetup = null; S.activeQs = []; }
   render();
 }
 
@@ -912,18 +912,32 @@ function handleFileSelect(files) {
 }
 
 function removeFile(id) {
+  // ── Purge all questions imported from this file ──────────────────────
+  const removedQIds = new Set(S.extraQs.filter(q => q._fileId === id).map(q => q.id));
+  S.extraQs = S.extraQs.filter(q => q._fileId !== id);
+
+  // Clean up bookmarks and wrongQs that referenced removed questions
+  removedQIds.forEach(qid => {
+    S.bookmarks.delete(qid);
+    S.wrongQs.delete(qid);
+    S.usedQIds.delete(qid);
+  });
+
+  // Remove the file record
   S.files = S.files.filter(f => f.id !== id);
   if (S.editingTagFid === id) S.editingTagFid = null;
-  // Remove card from DOM without full re-render
+
+  // Fade out and remove card from DOM
   const cardEl = document.getElementById('fcard-'+id);
   if (cardEl) {
-    cardEl.style.transition = 'opacity .18s, max-height .22s';
-    cardEl.style.opacity = '0';
-    cardEl.style.maxHeight = cardEl.offsetHeight + 'px';
+    cardEl.style.transition = 'opacity .18s, max-height .25s';
+    cardEl.style.overflow   = 'hidden';
+    cardEl.style.opacity    = '0';
+    cardEl.style.maxHeight  = cardEl.offsetHeight + 'px';
     setTimeout(() => {
-      cardEl.style.maxHeight = '0';
+      cardEl.style.maxHeight  = '0';
       cardEl.style.marginBottom = '0';
-      setTimeout(() => { cardEl.remove(); refreshFilterBar(); }, 220);
+      setTimeout(() => { cardEl.remove(); refreshFilterBar(); }, 240);
     }, 180);
   } else if (S.page === 'datasets') render();
 }
@@ -1185,6 +1199,7 @@ function quizHTML() {
     case 'active': return S.activeQs.length ? quizActiveHTML() : quizMenuHTML();
     case 'result': return quizResultHTML();
     case 'review': return S.activeQs.length ? quizReviewHTML() : quizMenuHTML();
+    case 'browse': return S.activeQs.length ? quizBrowseHTML() : quizMenuHTML();
   }
 }
 
@@ -1196,8 +1211,9 @@ function quizMenuHTML() {
 
   // If setup wizard is active, route to correct step
   if (S.quizSetup) {
-    if (S.quizSetup.step === 'mode')  return quizModeHTML();
-    if (S.quizSetup.step === 'count') return quizCountHTML();
+    if (S.quizSetup.step === 'mode')    return quizModeHTML();
+    if (S.quizSetup.step === 'submode') return quizSubmodeHTML();
+    if (S.quizSetup.step === 'count')   return quizCountHTML();
   }
 
   // Step 1: Category selection — always start fresh with empty set (no pre-selection)
@@ -1357,6 +1373,181 @@ function quizModeHTML() {
   </div>`;
 }
 
+/* ── Step 2b: Submode (browse vs retake) ── */
+function quizSubmodeHTML() {
+  const setup    = S.quizSetup;
+  const isReview = setup.mode === 'review';
+  const allQ     = [...QUESTIONS,...S.extraQs];
+  const inCat    = q => setup.cats.has(q.category)||(q._fileTags&&q._fileTags.some(t=>setup.cats.has(t)));
+  const pool     = isReview
+    ? allQ.filter(q=>S.bookmarks.has(q.id)&&inCat(q))
+    : allQ.filter(q=>S.wrongQs.has(q.id)&&inCat(q));
+  const modeLabel = isReview ? '複習已標記題目' : '錯誤題目驗測';
+  const modeColor = isReview ? 'var(--gold)' : '#F87171';
+
+  return `
+  <div class="page" style="max-width:600px;margin:0 auto;padding:3rem 1.5rem;">
+    <div style="display:flex;align-items:center;gap:.85rem;margin-bottom:2rem;">
+      <button onclick="S.quizSetup.step='mode';render();" class="btn btn-ghost" style="padding:.38rem .75rem;font-size:.78rem;">← 返回</button>
+      <div>
+        <div class="badge" style="background:${isReview?'rgba(200,150,62,.15)':'rgba(248,113,113,.15)'};color:${modeColor};border:1px solid ${isReview?'rgba(200,150,62,.3)':'rgba(248,113,113,.3)'};margin-bottom:.3rem;">${modeLabel}</div>
+        <h2 style="font-size:1.4rem;font-weight:700;letter-spacing:-.03em;">選擇操作方式</h2>
+      </div>
+    </div>
+    <div style="font-size:.83rem;color:var(--text-2);margin-bottom:1.5rem;">
+      共 <span style="color:${modeColor};font-weight:700;">${pool.length}</span> 題符合條件
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.9rem;">
+      <div class="n-card" onclick="pickSubMode('browse')"
+        style="--c:${isReview?'#C8963E':'#F87171'};--c-border:${isReview?'rgba(200,150,62,.3)':'rgba(248,113,113,.3)'};--c-glow:rgba(0,0,0,0);padding:1.5rem;">
+        <div style="display:flex;align-items:center;gap:1rem;">
+          <div style="width:46px;height:46px;border-radius:12px;background:${isReview?'var(--gold-dim)':'rgba(248,113,113,.12)'};border:1px solid ${isReview?'var(--gold-border)':'rgba(248,113,113,.3)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${modeColor}" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          <div style="flex:1">
+            <h3 style="font-size:1rem;font-weight:700;margin-bottom:.25rem;">呈現題目</h3>
+            <p style="color:var(--text-2);font-size:.82rem;">瀏覽所有題目與解析，可${isReview?'取消書籤標記':'移除錯誤紀錄'}</p>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+      </div>
+      <div class="n-card" onclick="pickSubMode('retake')"
+        style="--c:${isReview?'#C8963E':'#F87171'};--c-border:${isReview?'rgba(200,150,62,.3)':'rgba(248,113,113,.3)'};--c-glow:rgba(0,0,0,0);padding:1.5rem;">
+        <div style="display:flex;align-items:center;gap:1rem;">
+          <div style="width:46px;height:46px;border-radius:12px;background:${isReview?'var(--gold-dim)':'rgba(248,113,113,.12)'};border:1px solid ${isReview?'var(--gold-border)':'rgba(248,113,113,.3)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${modeColor}" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+          <div style="flex:1">
+            <h3 style="font-size:1rem;font-weight:700;margin-bottom:.25rem;">重新測驗</h3>
+            <p style="color:var(--text-2);font-size:.82rem;">設定題數並開始新一輪選擇題測驗</p>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function pickSubMode(submode) {
+  const setup = S.quizSetup;
+  const allQ  = [...QUESTIONS,...S.extraQs];
+  const inCat = q => setup.cats.has(q.category)||(q._fileTags&&q._fileTags.some(t=>setup.cats.has(t)));
+  if (submode === 'browse') {
+    S.activeQs = setup.mode === 'review'
+      ? allQ.filter(q=>S.bookmarks.has(q.id)&&inCat(q))
+      : allQ.filter(q=>S.wrongQs.has(q.id)&&inCat(q));
+    S.quizSetup = null;
+    S.quizMode  = 'browse';
+  } else {
+    const pool     = setup.mode === 'review'
+      ? allQ.filter(q=>S.bookmarks.has(q.id)&&inCat(q))
+      : allQ.filter(q=>S.wrongQs.has(q.id)&&inCat(q));
+    setup.count = Math.min(pool.length, 20);
+    setup.step  = 'count';
+  }
+  render();
+}
+
+function quizBrowseHTML() {
+  const qs = S.activeQs;
+  if (!qs.length) return `
+    <div class="page" style="max-width:660px;margin:0 auto;padding:3rem 1.5rem;text-align:center;">
+      <p style="color:var(--text-3);margin-bottom:1rem;">沒有題目可顯示。</p>
+      <button class="btn btn-primary" onclick="navigate('quiz')">返回選單</button>
+    </div>`;
+
+  const LT = ['A','B','C','D','E'];
+  const cards = qs.map((q, idx) => {
+    const bk      = S.bookmarks.has(q.id);
+    const isWrong = S.wrongQs.has(q.id);
+    const optRows = q.options.filter(Boolean).map((opt, oi) => `
+      <div style="padding:.6rem .9rem;border-radius:9px;font-size:.86rem;display:flex;align-items:flex-start;gap:.55rem;
+        background:${oi===q.answer?'rgba(74,222,128,.07)':'rgba(255,255,255,.02)'};
+        border:1px solid ${oi===q.answer?'rgba(74,222,128,.3)':'var(--border)'};
+        color:${oi===q.answer?'#4ADE80':'var(--text-2)'};">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;flex-shrink:0;">${LT[oi]}</span>
+        <span style="line-height:1.55">${opt}</span>
+        ${oi===q.answer?'<svg style="flex-shrink:0;margin-left:auto;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>':''}
+      </div>`).join('');
+
+    return `
+    <div class="rv-card" id="browse-card-${q.id}">
+      <div class="rv-hdr" onclick="toggleRv(${idx})">
+        <div style="display:flex;align-items:center;gap:.6rem;flex:1;min-width:0;">
+          <span class="mono" style="font-size:.72rem;color:var(--text-3);flex-shrink:0;">Q${idx+1}</span>
+          <span style="font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${q.text.slice(0,65)}${q.text.length>65?'…':''}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;margin-left:.7rem;">
+          ${bk?`<button onclick="event.stopPropagation();removeBrowseTag(${q.id},'bookmark')" title="取消書籤"
+            style="background:transparent;border:none;cursor:pointer;color:var(--gold);padding:.15rem;border-radius:5px;display:flex;" onmouseover="this.style.opacity='.5'" onmouseout="this.style.opacity='1'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+          </button>`:''}
+          ${isWrong?`<button onclick="event.stopPropagation();removeBrowseTag(${q.id},'wrong')" title="移除錯誤"
+            style="background:transparent;border:none;cursor:pointer;color:#F87171;padding:.15rem;border-radius:5px;display:flex;" onmouseover="this.style.opacity='.5'" onmouseout="this.style.opacity='1'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+          </button>`:''}
+          <svg id="ch-${idx}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" style="transition:transform .2s;flex-shrink:0;"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+      </div>
+      <div class="rv-body" id="rv-${idx}">
+        <div style="padding-top:1rem;">
+          <p style="font-size:.93rem;line-height:1.75;margin-bottom:1rem;">${q.text}</p>
+          <div style="display:flex;flex-direction:column;gap:.42rem;margin-bottom:.9rem;">${optRows}</div>
+          ${q.explanation&&q.explanation!=='（無解析）'?`
+          <div style="padding:.85rem 1rem;border-radius:10px;background:var(--accent-dim);border:1px solid var(--accent-border);">
+            <p style="font-size:.68rem;font-weight:700;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.4rem;">💡 解析</p>
+            <p style="font-size:.84rem;line-height:1.68;color:var(--text-2);">${q.explanation}</p>
+          </div>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="page" style="max-width:680px;margin:0 auto;padding:3rem 1.5rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+      <div>
+        <div class="badge badge-g" style="margin-bottom:.5rem;">瀏覽模式</div>
+        <h2 style="font-size:1.6rem;font-weight:700;letter-spacing:-.03em;">題目總覽 <span style="color:var(--accent)">${qs.length}</span></h2>
+      </div>
+      <button class="btn btn-ghost" onclick="navigate('quiz')" style="font-size:.83rem;">← 返回</button>
+    </div>
+    <p style="font-size:.79rem;color:var(--text-3);margin-bottom:1.5rem;">
+      點擊題目展開查看解析 ·
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--gold)" style="vertical-align:middle;"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg> 取消書籤 ·
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="2.2" style="vertical-align:middle;"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg> 移除錯誤
+    </p>
+    <div>${cards}</div>
+  </div>`;
+}
+
+function removeBrowseTag(qid, type) {
+  if (type === 'bookmark') S.bookmarks.delete(qid);
+  else                     S.wrongQs.delete(qid);
+  // Remove card smoothly
+  const el = document.getElementById('browse-card-'+qid);
+  if (el) {
+    el.style.transition = 'opacity .18s, max-height .22s, margin .22s';
+    el.style.overflow   = 'hidden';
+    el.style.opacity    = '0';
+    el.style.maxHeight  = el.offsetHeight+'px';
+    setTimeout(() => {
+      el.style.maxHeight = '0';
+      el.style.marginBottom = '0';
+      setTimeout(() => {
+        el.remove();
+        S.activeQs = S.activeQs.filter(q=>q.id!==qid);
+        // Update count in header
+        const hdr = document.querySelector('.page h2 span[style*="color:var(--accent)"]');
+        if (hdr) hdr.textContent = S.activeQs.length;
+      }, 220);
+    }, 180);
+  } else {
+    S.activeQs = S.activeQs.filter(q=>q.id!==qid);
+    render();
+  }
+}
+
 /* ── Step 3: Count Config ── */
 function quizCountHTML() {
   const setup   = S.quizSetup;
@@ -1470,14 +1661,17 @@ function goToModeStep() {
 }
 function pickMode(mode) {
   S.quizSetup.mode = mode;
-  S.quizSetup.step = 'count';
-  const allQ = [...QUESTIONS,...S.extraQs];
-  const inCat = q => S.quizSetup.cats.has(q.category) || (q._fileTags && q._fileTags.some(t=>S.quizSetup.cats.has(t)));
-  let pool;
-  if (mode==='review') pool = allQ.filter(q=>S.bookmarks.has(q.id)&&inCat(q));
-  else if (mode==='wrong') pool = allQ.filter(q=>S.wrongQs.has(q.id)&&inCat(q));
-  else pool = allQ.filter(q=>inCat(q));
-  S.quizSetup.count = Math.min(pool.length, 20);
+  if (mode === 'new') {
+    // new quiz → go straight to count
+    S.quizSetup.step = 'count';
+    const allQ = [...QUESTIONS,...S.extraQs];
+    const inCat = q => S.quizSetup.cats.has(q.category)||(q._fileTags&&q._fileTags.some(t=>S.quizSetup.cats.has(t)));
+    const pool = allQ.filter(q=>inCat(q));
+    S.quizSetup.count = Math.min(pool.length, 20);
+  } else {
+    // review / wrong → let user choose: browse or retake
+    S.quizSetup.step = 'submode';
+  }
   render();
 }
 
@@ -1560,13 +1754,6 @@ function quizActiveHTML() {
   const pct = (S.currentQ / S.activeQs.length) * 100;
   const LT  = ['A','B','C','D'];
 
-  const diffMap = {
-    '基礎':  {cls:'badge-gr', color:'#4ADE80'},
-    '中等':  {cls:'badge-a',  color:'#FBBF24'},
-    '進階':  {cls:'badge-r',  color:'#F87171'},
-  };
-  const diff = diffMap[q.difficulty] || {cls:'badge-n', color:'var(--text-2)'};
-
   const optHTML = q.options.map((opt, i) => {
     let cls = 'opt';
     let style = '';
@@ -1620,9 +1807,8 @@ function quizActiveHTML() {
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;margin-bottom:1.4rem;">
         <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
           <span class="badge badge-n">Q.${S.currentQ+1}</span>
-          <span class="badge ${diff.cls}">${q.difficulty}</span>
         </div>
-        <button class="bk-btn ${bk?'on':''}" onclick="toggleBk(${q.id})" title="${bk?'取消標記':'標記此題'}">
+        <button id="bk-btn" class="bk-btn ${bk?'on':''}" onclick="toggleBk(${q.id})" title="${bk?'取消標記':'標記此題'}">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="${bk?'currentColor':'none'}" stroke="currentColor" stroke-width="2">
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
           </svg>
@@ -1679,10 +1865,16 @@ function confirmAns() {
 }
 
 function toggleBk(id) {
-  if (S.bookmarks.has(id)) S.bookmarks.delete(id);
-  else                     S.bookmarks.add(id);
-  // Re-render quiz page so bk state reflects correctly
-  if (S.page === 'quiz') render();
+  const isOn = !S.bookmarks.has(id);
+  isOn ? S.bookmarks.add(id) : S.bookmarks.delete(id);
+
+  // DOM-only update — no render, no flash
+  const btn = document.getElementById('bk-btn');
+  if (!btn) return;
+  btn.classList.toggle('on', isOn);
+  btn.title = isOn ? '取消標記' : '標記此題';
+  const svg = btn.querySelector('svg');
+  if (svg) svg.setAttribute('fill', isOn ? 'currentColor' : 'none');
 }
 
 function nextQuestion() {
