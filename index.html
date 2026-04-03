@@ -1796,16 +1796,27 @@ function finishQuiz() {
   });
   const quizName = (S.quizSetup && S.quizSetup.name && S.quizSetup.name.trim())
     || `第 ${S.history.length+1} 回合`;
+  // Collect wrong IDs from THIS quiz only
+  const _wrongIds = S.activeQs
+    .filter((q,i) => S.answers[i].selected !== q.answer)
+    .map(q => q.id);
+  // Bookmarked questions from THIS quiz
+  const _bkIds = S.activeQs
+    .filter(q => S.bookmarks.has(q.id))
+    .map(q => q.id);
+
   S.history.push({
     id: S.history.length + 1,
     name: quizName,
     date: new Date().toLocaleDateString('zh-TW'),
     total: S.activeQs.length,
     correct: score,
-    bk: S.bookmarks.size,
-    wrong: S.activeQs.length - score,
+    bk: _bkIds.length,
+    wrong: _wrongIds.length,
     catStats: catMap,
     dur: '—',
+    wrongIds: _wrongIds,   // IDs of wrong answers in this quiz
+    bkIds:    _bkIds,      // IDs of bookmarked Qs from this quiz
   });
   S.quizMode = 'result';
   render();
@@ -2089,6 +2100,35 @@ function toggleRv(idx) {
    ╚══════════════════════════════════╝ */
 
 
+function downloadHistoryCSV(histId, type) {
+  const entry = S.history.find(h => h.id === histId);
+  if (!entry) return;
+  const ids  = type === 'wrong' ? (entry.wrongIds || []) : (entry.bkIds || []);
+  if (!ids.length) { alert('這次測驗沒有' + (type==='wrong'?'錯誤':'標記') + '的題目。'); return; }
+  const allQ = [...QUESTIONS, ...S.extraQs];
+  const pool = ids.map(id => allQ.find(q => q.id === id)).filter(Boolean);
+  if (!pool.length) { alert('找不到對應題目（可能已從資料集移除）。'); return; }
+
+  const ANS = ['A','B','C','D','E'];
+  const header = ['id','exam','question','option_a','option_b','option_c','option_d','option_e','answer','explanation'];
+  const rows = pool.map((q, i) => [
+    i+1, q.category||'', q.text||'',
+    q.options?.[0]||'', q.options?.[1]||'', q.options?.[2]||'',
+    q.options?.[3]||'', q.options?.[4]||'',
+    ANS[q.answer]||'', q.explanation||''
+  ]);
+  const esc = v => { const s=String(v).replace(/"/g,'""'); return (s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s+'"':s; };
+  const csv = '\uFEFF' + [header,...rows].map(r=>r.map(esc).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const label = type === 'wrong' ? '錯誤題目' : '標記題目';
+  a.download = entry.name + '_' + label + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+
 function dashHTML() {
   const allQ = [...QUESTIONS, ...S.extraQs];
   const dt   = S.dashTag;
@@ -2202,21 +2242,31 @@ function dashStatsHTML() {
         const c = hCorrect(h), t = hTotal(h);
         const r = t>0 ? Math.round((c/t)*100) : 0;
         const rc = r>=80?'#4ADE80':r>=60?'#FBBF24':'#F87171';
-        return `<div class="h-row">
-          <div style="font-size:.86rem;font-weight:500;">${h.name||('測驗 #'+h.id)}</div>
-          <div style="font-size:.82rem;color:var(--text-2);">${h.date}</div>
-          <div class="mono" style="font-size:.84rem;color:#4ADE80;">${c}/${t}</div>
-          <div class="mono" style="font-size:.84rem;color:${rc};font-weight:600;">${r}%</div>
-          <div style="font-size:.82rem;color:var(--gold);">${h.bk>0?`🔖 ${h.bk}`:'—'}</div>
+        const dlBtns = `
+          <div style="display:flex;gap:.35rem;flex-wrap:wrap;">
+            ${h.wrong>0 ? `<button onclick="downloadHistoryCSV(${h.id},'wrong')"
+              style="font-size:.68rem;padding:.2rem .5rem;border-radius:5px;cursor:pointer;touch-action:manipulation;
+                     background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:#F87171;">
+              ⬇ 錯誤 ${h.wrong}</button>` : ''}
+            ${h.bk>0 ? `<button onclick="downloadHistoryCSV(${h.id},'bk')"
+              style="font-size:.68rem;padding:.2rem .5rem;border-radius:5px;cursor:pointer;touch-action:manipulation;
+                     background:rgba(200,150,62,.1);border:1px solid rgba(200,150,62,.25);color:#C8963E;">
+              ⬇ 標記 ${h.bk}</button>` : ''}
+          </div>`;
+        return `<div class="h-row" style="grid-template-columns:2fr 1fr 1fr 1fr;gap:.5rem;align-items:start;">
+          <div>
+            <div style="font-size:.86rem;font-weight:500;margin-bottom:.25rem;">${h.name||('測驗 #'+h.id)}</div>
+            <div style="font-size:.75rem;color:var(--text-3);">${h.date}</div>
+            ${dlBtns}
+          </div>
+          <div class="mono" style="font-size:.84rem;color:#4ADE80;padding-top:.15rem;">${c}/${t}</div>
+          <div class="mono" style="font-size:.84rem;color:${rc};font-weight:600;padding-top:.15rem;">${r}%</div>
+          <div style="font-size:.82rem;color:var(--gold);padding-top:.15rem;">${h.bk>0?'🔖 '+h.bk:'—'}</div>
         </div>`;
       }).join('')
     : `<div style="padding:2rem;text-align:center;color:var(--text-3);font-size:.85rem;">${dt?`「${dt}」尚無測驗紀錄。`:'尚無測驗紀錄，完成第一次測驗後將顯示於此。'}</div>`;
 
-  const dlWrong = totW>0 ? `<button onclick="downloadQuestionsCSV('wrong','${(dt||'').replace(/'/g,"\\'")}')" title="下載錯誤題目 CSV"
-    style="background:transparent;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;border-radius:5px;display:flex;transition:color .15s;"
-    onmouseover="this.style.color='#F87171'" onmouseout="this.style.color='var(--text-3)'">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-  </button>` : '';
+  // dlWrong removed — now inline in stat card
   const dlBk   = totBk>0 ? `<button onclick="downloadQuestionsCSV('bookmarked','${(dt||'').replace(/'/g,"\\'")}')" title="下載標記題目 CSV"
     style="background:transparent;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;border-radius:5px;display:flex;transition:color .15s;"
     onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text-3)'">
@@ -2237,20 +2287,25 @@ function dashStatsHTML() {
       <p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">${emptyState?'尚無紀錄':totC+'/'+totQ+' 題'}</p>
     </div>
     <div class="s-card" style="position:relative;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
-        <p style="font-size:.68rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">累計錯誤題</p>
-        ${dlWrong}
-      </div>
+      <p style="font-size:.68rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem;">累計錯誤題</p>
       <div class="mono" style="font-size:2.3rem;font-weight:500;color:${totW>0?'#F87171':'var(--text-3)'};line-height:1.1;">${totW||'—'}</div>
       <p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">待加強</p>
+      ${totW>0?`<button onclick="downloadQuestionsCSV('wrong','${(dt||'').replace(/'/g,"\'")}')"
+        style="margin-top:.7rem;width:100%;padding:.4rem .6rem;border-radius:7px;font-size:.72rem;font-weight:600;cursor:pointer;touch-action:manipulation;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:#F87171;display:flex;align-items:center;justify-content:center;gap:.3rem;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        下載錯誤題目
+      </button>`:''}
     </div>
     <div class="s-card" style="position:relative;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
-        <p style="font-size:.68rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">已標記題目</p>
-        ${dlBk}
-      </div>
+      <p style="font-size:.68rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem;">已標記題目</p>
       <div class="mono" style="font-size:2.3rem;font-weight:500;color:${totBk>0?'var(--gold)':'var(--text-3)'};line-height:1.1;">${totBk||'—'}</div>
       <p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">待複習</p>
+      ${totBk>0?`<button onclick="downloadQuestionsCSV('bookmarked','${(dt||'').replace(/'/g,"\'")}')"
+        style="margin-top:.7rem;width:100%;padding:.4rem .6rem;border-radius:7px;font-size:.72rem;font-weight:600;cursor:pointer;touch-action:manipulation;
+               background:rgba(200,150,62,.12);border:1px solid rgba(200,150,62,.3);color:var(--gold);display:flex;align-items:center;justify-content:center;gap:.3rem;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        下載標記題目
+      </button>`:''}
     </div>
   </div>
 
