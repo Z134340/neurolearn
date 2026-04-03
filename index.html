@@ -827,7 +827,7 @@ function datasetsHTML() {
     </div>
 
     <!-- Import toast -->
-    ${S.importMsg ? `<div style="margin-top:.85rem;padding:.75rem 1rem;border-radius:10px;background:${S.importMsg.startsWith('✅')?'rgba(74,222,128,.07)':'rgba(248,113,113,.07)'};border:1px solid ${S.importMsg.startsWith('✅')?'rgba(74,222,128,.25)':'rgba(248,113,113,.25)'};font-size:.82rem;color:${S.importMsg.startsWith('✅')?'#4ADE80':'#F87171'};">${S.importMsg}</div>` : ''}
+    <div id="import-toast" style="margin-top:.85rem;${S.importMsg?'':'display:none;'}padding:.75rem 1rem;border-radius:10px;background:${S.importMsg&&S.importMsg.startsWith('✅')?'rgba(74,222,128,.07)':'rgba(248,113,113,.07)'};border:1px solid ${S.importMsg&&S.importMsg.startsWith('✅')?'rgba(74,222,128,.25)':'rgba(248,113,113,.25)'};font-size:.82rem;color:${S.importMsg&&S.importMsg.startsWith('✅')?'#4ADE80':'#F87171'};">${S.importMsg||''}</div>
 
     <!-- File List -->
     ${S.files.length > 0 ? `
@@ -879,15 +879,33 @@ function handleFileSelect(files) {
       }, 800);
     }
   });
-  if (S.page === 'datasets') render();
-  // Non-importable files: update badge without full re-render
+  // Insert new cards without full-page re-render
+  if (S.page === 'datasets') {
+    const listEl = document.querySelector('#page-content .page > div[style*="margin-top:2rem"]');
+    if (listEl) {
+      // List already exists — just append new cards
+      S.files.filter(f=>!document.getElementById('fcard-'+f.id)).forEach(f => {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = fileCardHTML(f);
+        const newCard = tmp.firstElementChild;
+        // Insert before empty-state div or append
+        const emptyDiv = listEl.querySelector('div[style*="text-align:center"]');
+        if (emptyDiv) emptyDiv.remove();
+        listEl.appendChild(newCard);
+      });
+      // Update file count
+      const countEl = listEl.querySelector('[style*="color:var(--accent)"]');
+      if (countEl) countEl.textContent = S.files.length;
+    } else {
+      render(); // first file — need to build list
+    }
+  }
+  // Non-importable: update badge after 2.2s without full re-render
   setTimeout(() => {
-    let changed = false;
     S.files.forEach(f => {
       if (f.status === 'processing' && !['csv','xlsx'].includes(f.type)) {
         f.status = 'ready';
-        refreshCard(f.id); // targeted — no flash
-        changed = true;
+        refreshCard(f.id);
       }
     });
   }, 2200);
@@ -896,7 +914,18 @@ function handleFileSelect(files) {
 function removeFile(id) {
   S.files = S.files.filter(f => f.id !== id);
   if (S.editingTagFid === id) S.editingTagFid = null;
-  if (S.page === 'datasets') render();
+  // Remove card from DOM without full re-render
+  const cardEl = document.getElementById('fcard-'+id);
+  if (cardEl) {
+    cardEl.style.transition = 'opacity .18s, max-height .22s';
+    cardEl.style.opacity = '0';
+    cardEl.style.maxHeight = cardEl.offsetHeight + 'px';
+    setTimeout(() => {
+      cardEl.style.maxHeight = '0';
+      cardEl.style.marginBottom = '0';
+      setTimeout(() => { cardEl.remove(); refreshFilterBar(); }, 220);
+    }, 180);
+  } else if (S.page === 'datasets') render();
 }
 
 function triggerCSVImport(fid) {
@@ -906,9 +935,7 @@ function triggerCSVImport(fid) {
   if (fObj._file) {
     importCSVQuestions(fObj._file);
   } else {
-    S.importMsg = '❌ 請重新上傳此 CSV 檔案（頁面重整後無法重新存取原始檔案）';
-    if (S.page==='datasets') render();
-    setTimeout(()=>{S.importMsg=null;if(S.page==='datasets')render();},4000);
+    showImportToast('❌ 請重新上傳此 CSV 檔案（頁面重整後無法重新存取原始檔案）', 4000);
   }
 }
 
@@ -954,7 +981,30 @@ function toggleTagEdit(fid) {
 }
 function setTagFilter(tag) {
   S.tagFilter = (S.tagFilter === tag) ? null : tag;
-  if (S.page === 'datasets') render();
+  // Show/hide file cards based on filter — no full re-render
+  document.querySelectorAll('.g-card[id^="fcard-"]').forEach(el => {
+    const fid = parseInt(el.id.replace('fcard-',''));
+    const f   = S.files.find(x=>x.id===fid);
+    if (!f) return;
+    const show = !S.tagFilter || (f.tags||[]).includes(S.tagFilter);
+    el.style.display = show ? '' : 'none';
+  });
+  // Update filter bar highlight
+  document.querySelectorAll('#tag-filter-bar span, #tag-filter-bar button').forEach(el => {
+    const t = el.dataset.tag;
+    if (!t) return;
+    const active = (t === '__all__' ? !S.tagFilter : S.tagFilter === t);
+    if (t === '__all__') {
+      el.style.background = active ? 'var(--accent)' : 'rgba(255,255,255,.06)';
+      el.style.color      = active ? '#fff' : 'var(--text-2)';
+      el.style.border     = '1px solid ' + (active ? 'var(--accent)' : 'var(--border)');
+    } else {
+      const tc = tagColor(t);
+      el.style.background = active ? tc.color : tc.bg;
+      el.style.color      = active ? '#111' : tc.color;
+      el.style.borderColor = active ? tc.color : tc.border;
+    }
+  });
 }
 
 // Future AI extraction interface
@@ -982,15 +1032,14 @@ function _mergeQuestions(parsed, fObj) {
       added++;
     }
   });
-  if (fObj) { fObj.importing=false; fObj.imported=added; fObj.status='ready'; }
-  S.importMsg = added > 0 ? `✅ 成功匯入 ${added} 題（來源分類：${fileTags.join('、')||'未標記'}）` : `⚠️ 所有題目已存在，無新增`;
-  if (S.page==='datasets') render();
-  setTimeout(() => { S.importMsg=null; if(S.page==='datasets') render(); }, 5000);
+  if (fObj) { fObj.importing=false; fObj.imported=added; fObj.status='ready'; refreshCard(fObj.id); }
+  const msg = added > 0 ? `✅ 成功匯入 ${added} 題（來源分類：${fileTags.join('、')||'未標記'}）` : `⚠️ 所有題目已存在，無新增`;
+  showImportToast(msg, 5000);
 }
 
 function importCSVQuestions(file, fObj) {
   fObj = fObj || S.files.find(f => f.name === file.name);
-  if (fObj) { fObj.importing=true; if(S.page==='datasets') render(); }
+  if (fObj) { fObj.importing=true; refreshCard(fObj.id); }
   const reader = new FileReader();
   reader.onload = e => {
     try {
@@ -998,10 +1047,8 @@ function importCSVQuestions(file, fObj) {
       if (!parsed.length) throw new Error('找不到有效題目，請確認欄位格式');
       _mergeQuestions(parsed, fObj);
     } catch(err) {
-      if (fObj) { fObj.importing=false; fObj.importErr=true; }
-      S.importMsg = `❌ 解析失敗：${err.message}`;
-      if (S.page==='datasets') render();
-      setTimeout(() => { S.importMsg=null; if(S.page==='datasets') render(); }, 5000);
+      if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
+      showImportToast(`❌ 解析失敗：${err.message}`, 5000);
     }
   };
   reader.readAsText(file, 'UTF-8');
@@ -1009,7 +1056,7 @@ function importCSVQuestions(file, fObj) {
 
 function importXLSXQuestions(file, fObj) {
   fObj = fObj || S.files.find(f => f.name === file.name);
-  if (fObj) { fObj.importing=true; if(S.page==='datasets') render(); }
+  if (fObj) { fObj.importing=true; refreshCard(fObj.id); }
   const reader = new FileReader();
   reader.onload = e => {
     try {
@@ -1028,13 +1075,32 @@ function importXLSXQuestions(file, fObj) {
       if (!parsed.length) throw new Error('找不到有效題目，請確認欄位格式（question/option_a/answer）');
       _mergeQuestions(parsed, fObj);
     } catch(err) {
-      if (fObj) { fObj.importing=false; fObj.importErr=true; }
-      S.importMsg = `❌ XLSX 解析失敗：${err.message}`;
-      if (S.page==='datasets') render();
-      setTimeout(() => { S.importMsg=null; if(S.page==='datasets') render(); }, 5000);
+      if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
+      showImportToast(`❌ XLSX 解析失敗：${err.message}`, 5000);
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+/* ── Targeted toast update (no full-page flash) ── */
+function showImportToast(msg, durationMs) {
+  S.importMsg = msg;
+  const el = document.getElementById('import-toast');
+  if (el) {
+    const ok = msg && msg.startsWith('✅');
+    el.style.display = '';
+    el.style.background  = ok ? 'rgba(74,222,128,.07)' : 'rgba(248,113,113,.07)';
+    el.style.border      = '1px solid ' + (ok ? 'rgba(74,222,128,.25)' : 'rgba(248,113,113,.25)');
+    el.style.color       = ok ? '#4ADE80' : '#F87171';
+    el.textContent       = msg;
+    if (durationMs) setTimeout(() => {
+      S.importMsg = null;
+      if (el) el.style.display = 'none';
+    }, durationMs);
+  } else {
+    // Fallback if not on datasets page
+    if (S.page === 'datasets') render();
+  }
 }
 
 /* Template CSV download */
@@ -1613,24 +1679,10 @@ function confirmAns() {
 }
 
 function toggleBk(id) {
-  const isNowOn = !S.bookmarks.has(id);
-  if (isNowOn) S.bookmarks.add(id);
-  else         S.bookmarks.delete(id);
-  // Update just the bookmark button — no full page flash
-  const btn = document.querySelector('[onclick="toggleBk('+id+')"]')
-           || document.querySelector('.bk-btn');
-  if (btn) {
-    btn.classList.toggle('on', isNowOn);
-    btn.title = isNowOn ? '取消標記' : '標記此題';
-    const svg = btn.querySelector('svg');
-    if (svg) {
-      svg.setAttribute('fill', isNowOn ? 'currentColor' : 'none');
-      // Brief pulse to confirm
-      btn.style.transform = 'scale(1.3)';
-      btn.style.transition = 'transform .15s';
-      setTimeout(() => { btn.style.transform = ''; }, 180);
-    }
-  }
+  if (S.bookmarks.has(id)) S.bookmarks.delete(id);
+  else                     S.bookmarks.add(id);
+  // Re-render quiz page so bk state reflects correctly
+  if (S.page === 'quiz') render();
 }
 
 function nextQuestion() {
@@ -2082,8 +2134,8 @@ function initChart() {
 
 /* ── Download questions as CSV ── */
 function downloadQuestionsCSV(type, tagFilter) {
-  const allQ = [...QUESTIONS, ...S.extraQs];
-  const tag  = tagFilter || S.dashTag || null;
+  const allQ  = [...QUESTIONS, ...S.extraQs];
+  const tag   = tagFilter || S.dashTag || null;
   const inTag = q => !tag || q.category === tag;
   let pool, filename;
   if (type === 'wrong') {
@@ -2096,20 +2148,27 @@ function downloadQuestionsCSV(type, tagFilter) {
   if (!pool.length) return;
 
   const ANS = ['A','B','C','D','E'];
-  const header = ['category','question','option_a','option_b','option_c','option_d','answer','explanation'];
-  const rows = pool.map(q => [
+  // Match the same format as downloadTemplate()
+  const header = ['id','exam','question','option_a','option_b','option_c','option_d','option_e','answer','explanation'];
+  const rows = pool.map((q,i) => [
+    i+1,
     q.category||'',
     q.text||'',
-    q.options?.[0]||'', q.options?.[1]||'', q.options?.[2]||'', q.options?.[3]||'',
+    q.options?.[0]||'',
+    q.options?.[1]||'',
+    q.options?.[2]||'',
+    q.options?.[3]||'',
+    q.options?.[4]||'',
     ANS[q.answer]||'',
     q.explanation||'',
   ]);
 
-  const csv = [header,...rows]
-    .map(r => r.map(v => {
-      const s = String(v).replace(/"/g,'""');
-      return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"'+s+'"' : s;
-    }).join(','))
+  const escCSV = v => {
+    const s = String(v).replace(/"/g,'""');
+    return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"'+s+'"' : s;
+  };
+  const csv = [header, ...rows]
+    .map(r => r.map(escCSV).join(','))
     .join('\n');
 
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
