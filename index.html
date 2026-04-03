@@ -205,8 +205,8 @@
 
   /* ─── History ─── */
   .h-row{
-    display:grid;grid-template-columns:2.5fr 1.5fr 1fr 1fr 1fr;
-    align-items:center;padding:.8rem 1.1rem;
+    display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1.5fr;
+    align-items:start;padding:.8rem 1rem;gap:.5rem;
     border-bottom:1px solid var(--border);transition:background .15s;
   }
   .h-row:hover{background:rgba(255,255,255,.02)}
@@ -285,8 +285,8 @@
     .rv-body{padding:0 1rem 1rem}
     .drop-zone{padding:1.5rem 1rem}
     ::-webkit-scrollbar{width:0}
-    .h-row{grid-template-columns:2fr auto;padding:.7rem 1rem}
-    .h-row>div:nth-child(3),.h-row>div:nth-child(5){display:none}
+    .h-row{grid-template-columns:1fr auto;padding:.7rem 1rem}
+    .h-row>div:nth-child(2),.h-row>div:nth-child(3){display:none}
   }
 </style>
 </head>
@@ -1674,9 +1674,16 @@ function quizActiveHTML() {
     <p style="font-size:.87rem;line-height:1.72;color:var(--text-2);">${q.explanation}</p>
   </div>`;
 
+  const hasPrev = S.currentQ > 0;
+  const prevBtn = hasPrev
+    ? `<button class="btn btn-ghost" onclick="prevQuestion()" style="touch-action:manipulation;font-size:.85rem;">← 上一題</button>`
+    : '';
+  const editBtn = ans.confirmed
+    ? `<button class="btn btn-ghost" onclick="unconfirmAns()" style="touch-action:manipulation;font-size:.83rem;">✏️ 修改答案</button>`
+    : '';
   const actionBtn = ans.confirmed
-    ? `<button class="btn btn-primary" onclick="nextQuestion()">${isLast ? '完成測驗 →' : '下一題 →'}</button>`
-    : `<button id="confirm-btn" class="btn btn-primary" onclick="confirmAns()" ${ans.selected===null?'disabled':''}>確認答案</button>`;
+    ? `<div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;">${prevBtn}${editBtn}<button class="btn btn-primary" onclick="nextQuestion()" style="touch-action:manipulation;">${isLast ? '完成測驗 →' : '下一題 →'}</button></div>`
+    : `<div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;">${prevBtn}<button id="confirm-btn" class="btn btn-primary" onclick="confirmAns()" style="touch-action:manipulation;" ${ans.selected===null?'disabled':''}>確認答案</button></div>`;
 
   return `
   <div class="page" style="max-width:660px;margin:0 auto;padding:clamp(1.25rem,4vw,2.5rem) clamp(1rem,4vw,1.5rem);">
@@ -1717,7 +1724,7 @@ function quizActiveHTML() {
       ${explHTML}
     </div>
 
-    <div id="action-btn" style="display:flex;justify-content:flex-end;">${actionBtn}</div>
+    <div id="action-btn" style="display:flex;justify-content:space-between;align-items:center;">${actionBtn}</div>
   </div>`;
 }
 
@@ -1772,7 +1779,30 @@ function toggleBk(id) {
   if (svg) svg.setAttribute('fill', isOn ? 'currentColor' : 'none');
 }
 
+function unconfirmAns() {
+  if (S.currentQ < 0 || S.currentQ >= S.activeQs.length) return;
+  S.answers[S.currentQ].confirmed = false;
+  render();
+}
+
+
+function prevQuestion() {
+  if (S.currentQ <= 0) return;
+  S.currentQ--;
+  // Unconfirm the previous question so the user can re-check and modify
+  if (S.answers[S.currentQ]) {
+    S.answers[S.currentQ].confirmed = false;
+  }
+  render();
+}
+
+
 function nextQuestion() {
+  // Auto-confirm current answer before advancing (allows "下一題" to save)
+  const ans = S.answers[S.currentQ];
+  if (ans && ans.selected !== null && !ans.confirmed) {
+    ans.confirmed = true;
+  }
   if (S.currentQ === S.activeQs.length - 1) {
     finishQuiz();
   } else {
@@ -2261,17 +2291,14 @@ function dashStatsHTML() {
                      background:rgba(200,150,62,.1);border:1px solid rgba(200,150,62,.25);color:#C8963E;white-space:nowrap;">
               ⬇ 標記 ${h.bk}</button>` : ''}
           </div>`;
-        return `<div class="h-row" style="grid-template-columns:2fr 1fr 1fr auto;gap:.5rem;align-items:center;">
+        return `<div class="h-row" style="grid-template-columns:3fr 1fr 1fr 1.6fr;gap:.5rem;align-items:start;padding:.85rem 1.1rem;">
           <div>
-            <div style="font-size:.86rem;font-weight:500;margin-bottom:.15rem;">${h.name||('測驗 #'+h.id)}</div>
-            <div style="font-size:.75rem;color:var(--text-3);">${h.date}</div>
+            <div style="font-size:.86rem;font-weight:500;margin-bottom:.2rem;">${h.name||('測驗 #'+h.id)}</div>
+            <div style="font-size:.74rem;color:var(--text-3);">${h.date}</div>
           </div>
-          <div class="mono" style="font-size:.84rem;color:#4ADE80;">${c}/${t}</div>
-          <div class="mono" style="font-size:.84rem;color:${rc};font-weight:600;">${r}%</div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;">
-            <div style="font-size:.8rem;color:var(--gold);">${h.bk>0?'🔖 '+h.bk:'—'}</div>
-            ${dlBtns}
-          </div>
+          <div class="mono" style="font-size:.84rem;color:#4ADE80;padding-top:.1rem;">${c}/${t}</div>
+          <div class="mono" style="font-size:.84rem;color:${rc};font-weight:600;padding-top:.1rem;">${r}%</div>
+          <div style="display:flex;flex-direction:column;gap:.3rem;align-items:flex-start;">${dlBtns}</div>
         </div>`;
       }).join('')
     : `<div style="padding:2rem;text-align:center;color:var(--text-3);font-size:.85rem;">${dt?`「${dt}」尚無測驗紀錄。`:'尚無測驗紀錄，完成第一次測驗後將顯示於此。'}</div>`;
@@ -2336,12 +2363,11 @@ function dashStatsHTML() {
     <div style="padding:1.1rem 1.1rem .9rem;border-bottom:1px solid var(--border);">
       <p style="font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">測驗歷史紀錄${dt?` · ${dt}`:''}</p>
     </div>
-    ${filtHist.length>0?`<div class="h-row" style="background:rgba(255,255,255,.015);">
-      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">考卷名稱</div>
-      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">日期</div>
-      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">答題</div>
-      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">答對率</div>
-      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">標記</div>
+    ${filtHist.length>0?`<div class="h-row" style="grid-template-columns:3fr 1fr 1fr 1.6fr;background:rgba(255,255,255,.015);">
+      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;">考卷名稱</div>
+      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;">答題</div>
+      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;">答對率</div>
+      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;">下載</div>
     </div>`:''}
     ${histRows}
   </div>`;
