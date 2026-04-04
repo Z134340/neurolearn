@@ -1396,6 +1396,7 @@ function _mergeQuestions(parsed, fObj) {
       q.category = fileTags[0] || q.category || '匯入題目';
       q._fileTags = [...fileTags];
       q._fileId   = fObj ? fObj.id : null;
+      q._fileName = fObj ? fObj.name : null;  // 來源檔名
       S.extraQs.push(q);
       existing.add(q.text.slice(0,40));
       added++;
@@ -1536,7 +1537,8 @@ function parseQuestionRows(rows) {
     const opts=[oA,oB,oC,oD].filter(Boolean);
     if(oE) opts.push(oE);
     while(opts.length<4) opts.push('—');
-    results.push({ id:0, text:q, options:opts.slice(0,5), answer:ansValue, isMulti:isMulti, explanation:expl, category:cat, difficulty:diff });
+    const srcId = (r.id||r['題號']||'').toString().trim();
+    results.push({ id:0, text:q, options:opts.slice(0,5), answer:ansValue, isMulti:isMulti, explanation:expl, category:cat, difficulty:diff, _srcId:srcId||null });
   }
   return results;
 }
@@ -1607,7 +1609,9 @@ function quizMenuHTML_page() {
 
   // ── Pool counts ─────────────────────────────────────────────────────────
   const inCat    = q => setup.cats.has(q.category) || (q._fileTags && q._fileTags.some(t => setup.cats.has(t)));
-  const poolNew    = catsOk ? allQ.filter(q => inCat(q)).length : 0;
+  const poolAll    = catsOk ? allQ.filter(q => inCat(q)).length : 0;
+  const unusedNew  = catsOk ? allQ.filter(q => inCat(q) && !S.usedQIds.has(String(q.id))).length : 0;
+  const poolNew    = poolAll;  // total for slider max
   const poolReview = catsOk ? allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q)).length : 0;
   const poolWrong  = catsOk ? allQ.filter(q => S.wrongQs.has(String(q.id))  && inCat(q)).length : 0;
 
@@ -1706,7 +1710,9 @@ function qsRenderModeSections() {
   const allQ   = [...QUESTIONS, ...S.extraQs];
   const inCat  = q => setup.cats.has(q.category) || (q._fileTags && q._fileTags.some(t => setup.cats.has(t)));
   const catsOk = setup.cats.size > 0;
-  const poolNew    = catsOk ? allQ.filter(q => inCat(q)).length : 0;
+  const poolAll    = catsOk ? allQ.filter(q => inCat(q)).length : 0;
+  const unusedNew  = catsOk ? allQ.filter(q => inCat(q) && !S.usedQIds.has(String(q.id))).length : 0;
+  const poolNew    = poolAll;  // total for slider max
   const poolReview = catsOk ? allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q)).length : 0;
   const poolWrong  = catsOk ? allQ.filter(q => S.wrongQs.has(String(q.id))  && inCat(q)).length : 0;
 
@@ -1774,7 +1780,7 @@ function qsRenderModeSections() {
       <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.85rem;">② 選擇測驗模式</p>
       <div style="display:flex;flex-direction:column;gap:.5rem;">
         ${modeCard('new',    '<polygon points="5 3 19 12 5 21 5 3"/>',
-          '開始新測驗', `${poolNew} 題可用`,
+          '開始新測驗', `${unusedNew} 題未考 / 共 ${poolNew} 題`,
           '#C8963E','rgba(200,150,62,.12)','rgba(200,150,62,.35)')}
         ${modeCard('review', '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
           '複習已標記題目', poolReview > 0 ? `${poolReview} 題已標記` : '目前無標記題目',
@@ -1962,8 +1968,7 @@ function launchQuiz() {
       const fill = shuffle(used).slice(0, count - unused.length);
       drawn = shuffle([...unused, ...fill]);
     }
-    // Mark newly drawn as used
-    drawn.forEach(q => S.usedQIds.add(q.id));
+    // DO NOT mark as used here — only mark after quiz is completed (in finishQuiz)
   } else {
     // review / wrong modes: shuffle normally, no no-repeat tracking
     drawn = [...pool].sort(() => Math.random() - 0.5).slice(0, count);
@@ -1977,6 +1982,16 @@ function launchQuiz() {
   S.quizMode   = mode === 'review' ? 'review' : 'active';
   render();
 }
+
+
+/* Returns source annotation string for a question */
+function questionSource(q) {
+  const parts = [];
+  if (q._fileName) parts.push(q._fileName.replace(/\.[^.]+$/, '')); // strip extension
+  if (q._srcId)   parts.push('題 #' + q._srcId);
+  return parts.length ? parts.join(' · ') : null;
+}
+
 
 function quizActiveHTML() {
   const q   = S.activeQs[S.currentQ];
@@ -2011,6 +2026,7 @@ function quizActiveHTML() {
   <div id="expl-panel" style="margin-top:1.25rem;padding:1rem 1.1rem;border-radius:12px;background:rgba(123,111,224,.07);border:1px solid var(--accent-border);display:${ans.confirmed?'block':'none'};">
     <p style="font-size:.7rem;font-weight:700;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.5rem;">💡 詳細解析</p>
     <p style="font-size:.87rem;line-height:1.72;color:var(--text-2);">${q.explanation}</p>
+    ${questionSource(q)?`<p style="margin-top:.6rem;font-size:.7rem;color:var(--text-3);border-top:1px solid rgba(255,255,255,.06);padding-top:.5rem;">📄 出處：${questionSource(q)}</p>`:''}
   </div>`;
 
   const actionBtn = ans.confirmed
@@ -2238,6 +2254,7 @@ function quizResultHTML() {
   const items = S.activeQs.map((q,i) => {
     const ok = S.answers[i].selected === q.answer;
     const bk = S.bookmarks.has(String(q.id));
+    const src = questionSource(q);
     return `
     <div class="r-item ${ok?'ok':'bad'}">
       <div style="display:flex;align-items:flex-start;gap:.75rem;">
@@ -2434,6 +2451,7 @@ function quizBrowseHTML() {
         ${q.isMulti?'<p style="font-size:.72rem;color:var(--accent);margin-bottom:.6rem;">多選題 — 可選多個正確答案</p>':''}
         ${opts}
         ${q.explanation?`<p style="margin-top:.75rem;font-size:.8rem;color:var(--text-3);border-top:1px solid var(--border);padding-top:.65rem;line-height:1.6;">${q.explanation}</p>`:''}
+      ${questionSource(q)?`<p style="margin-top:.4rem;font-size:.7rem;color:var(--text-3);">📄 出處：${questionSource(q)}</p>`:''}
       </div>
     </div>`;
   }).join('');
