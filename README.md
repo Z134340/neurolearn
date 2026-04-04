@@ -26,6 +26,7 @@
 
 | 功能 | 說明 |
 |------|------|
+| 📚 **題庫** | 上傳自訂 CSV / XLSX 題庫，無內建題庫 |
 | 📂 **自訂題庫** | 上傳 CSV / XLSX 題庫，自動解析匯入 |
 | 🎯 **模擬考** | 開始新測驗 / 複習已標記題目 / 錯誤題目驗測，三種模式 |
 | 🔖 **書籤系統** | 任何模式下均可標記題目，集中複習 |
@@ -217,7 +218,7 @@ id,exam,question,option_a,option_b,option_c,option_d,option_e,answer,explanation
 
 | 項目 | 說明 |
 |------|------|
-| **架構** | 單一 HTML 檔案（287 KB），零建構工具 |
+| **架構** | 單一 HTML 檔案（137 KB），零建構工具 |
 | **框架** | 無（Vanilla JS）|
 | **外部 CDN** | 僅 Supabase JS SDK（登入功能用，可選）|
 | **圖表** | 自製 Canvas 折線圖（無 Chart.js）|
