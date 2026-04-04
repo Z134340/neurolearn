@@ -1338,6 +1338,7 @@ function removeTag(fid, tag) {
   if (!f) return;
   f.tags = f.tags.filter(t => t !== tag);
   refreshCard(fid);
+  saveToStorage();
   refreshFilterBar();
 }
 function toggleTagEdit(fid) {
@@ -2142,8 +2143,13 @@ function confirmAns() {
 }
 
 function toggleBk(id) {
+  id = String(id); // normalize: ensure String comparison
   const isOn = !S.bookmarks.has(id);
   isOn ? S.bookmarks.add(id) : S.bookmarks.delete(id);
+
+  // Persist to localStorage + trigger cloud sync (debounced 600ms)
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(saveToStorage, 600);
 
   // DOM-only update — no render, no flash
   const btn = document.getElementById('bk-btn');
