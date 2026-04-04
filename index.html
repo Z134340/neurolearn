@@ -1812,7 +1812,7 @@ function qsRenderModeSections() {
         style="width:100%;accent-color:var(--gold);cursor:pointer;margin-bottom:1rem;">
       <button onclick="launchQuiz()" ${!maxCount?'disabled':''} class="btn btn-primary"
         style="width:100%;padding:.8rem;font-size:.97rem;font-weight:700;${!maxCount?'opacity:.4;cursor:not-allowed;':''}">
-        ${launchIcon} ${launchWord} · ${count} 題
+        ${launchIcon} ${launchWord}
       </button>
     </div>` : ''}`;
 }
@@ -1945,13 +1945,13 @@ function launchQuiz() {
   // Only apply no-repeat for 'new' mode (review/wrong modes intentionally repeat)
   let drawn;
   if (mode === 'new') {
-    const unused = pool.filter(q => !S.usedQIds.has(q.id));
-    const used   = pool.filter(q =>  S.usedQIds.has(q.id));
+    const unused = pool.filter(q => !S.usedQIds.has(String(q.id)));
+    const used   = pool.filter(q =>  S.usedQIds.has(String(q.id)));
     const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
 
     if (unused.length === 0) {
       // All questions used — auto-reset this pool and start fresh
-      pool.forEach(q => S.usedQIds.delete(q.id));
+      pool.forEach(q => S.usedQIds.delete(String(q.id)));
       drawn = shuffle(pool).slice(0, count);
       S._poolResetMsg = true; // show toast on result page
     } else if (unused.length >= count) {
@@ -2216,6 +2216,11 @@ function finishQuiz() {
     wrongIds: _wrongIds,
     bkIds:    _bkIds,
   });
+
+  // Mark questions as used (only for 'new' mode)
+  if (S.quizConfig && S.quizConfig.mode === 'new') {
+    S.activeQs.forEach(q => S.usedQIds.add(String(q.id)));
+  }
 
   // Persist + sync to cloud
   saveToStorage();
