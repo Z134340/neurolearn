@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0B0B12">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer onerror="console.warn('[Supa] SDK load failed')"></script>
 <title>NeuroLearn — 智能學習平台</title>
 <!-- Chart.js replaced with inline renderer -->
 <!-- SheetJS removed: XLSX import requires internet. Use CSV instead. -->
@@ -65,6 +65,7 @@
     border-bottom:1px solid var(--border);
     z-index:200;display:flex;align-items:center;
     padding:0 1.75rem;justify-content:space-between;
+    overflow:hidden;
   }
   .nav-logo{display:flex;align-items:center;gap:.65rem;cursor:pointer}
   .nav-logo-icon{
@@ -310,8 +311,8 @@
       <button class="nav-link" id="nl-quiz"   onclick="navigate('quiz')">模擬考</button>
       <button class="nav-link" id="nl-dash"   onclick="navigate('dashboard')">儀表板</button>
     </div>
-    <div id="nav-user-area" style="display:flex;align-items:center;gap:.4rem;margin-left:.5rem;">
-      <button onclick="navigate('login')" class="btn btn-primary" style="font-size:.72rem;padding:.28rem .65rem;min-height:0;">登入</button>
+    <div id="nav-user-area" style="display:flex;align-items:center;gap:.4rem;margin-left:.5rem;flex-shrink:0;">
+      <button onclick="navigate('login')" class="btn btn-primary" style="font-size:.72rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>
     </div>
   </div>
 </nav>
@@ -331,12 +332,17 @@ let _currentUser = null;
 let _cloudSyncTimer = null;
 
 function initSupabase() {
-  if (typeof supabase === 'undefined') return;
+  if (typeof supabase === 'undefined') {
+    // SDK failed to load — still show login button
+    console.warn('[Supa] SDK 未載入，雲端同步停用。請確認網路連線。');
+    updateNavUser();
+    return;
+  }
   // Skip if still using placeholder values
   if (!SUPA_URL || SUPA_URL === 'YOUR_SUPABASE_URL' ||
       !SUPA_KEY || SUPA_KEY === 'YOUR_SUPABASE_ANON_KEY') {
     console.info('[Supa] 尚未設定 Supabase URL/Key，雲端同步已停用。');
-    updateNavUser(); // still show login button (disabled state)
+    updateNavUser();
     return;
   }
   try {
@@ -346,19 +352,18 @@ function initSupabase() {
       _currentUser = session?.user ?? null;
       updateNavUser();
       if (event === 'SIGNED_IN' && !prev) {
-        // Reset in-memory state before loading new user's cloud data
-        S.history   = []; S.bookmarks = new Set(); S.wrongQs  = new Set();
-        S.usedQIds  = new Set(); S.files = []; S.extraQs = [];
-        // Try to load this user's localStorage first, then cloud
+        // Full state reset before loading new user's data
+        resetState();
+        // Load this user's localStorage first, then override with cloud
         loadFromStorage();
         await loadCloudProgress();
         render();
       }
       if (event === 'SIGNED_OUT') {
-        // Reset state and load anonymous localStorage
-        S.history   = []; S.bookmarks = new Set(); S.wrongQs  = new Set();
-        S.usedQIds  = new Set(); S.files = []; S.extraQs = [];
-        loadFromStorage(); // loads anonymous (no user_id) key
+        // Full state reset
+        resetState();
+        // Load anonymous localStorage (key without user_id)
+        loadFromStorage();
         render();
       }
     });
@@ -459,11 +464,50 @@ async function authSignIn(email, pw) {
   _currentUser = data.user;
 }
 
+
+function resetState() {
+  // Clear all quiz state
+  S.quizMode      = 'menu';
+  S.currentQ      = 0;
+  S.answers       = [];
+  S.quizConfig    = null;
+  S.quizSetup     = null;
+  S.activeQs      = [];
+  S.browseSrc     = null;
+  S.importMsg     = null;
+  S.editingTagFid = null;
+  S.chart         = null;
+  // Clear all user progress data
+  S.bookmarks     = new Set();
+  S.wrongQs       = new Set();
+  S.usedQIds      = new Set();
+  S.history       = [];
+  S.files         = [];
+  S.extraQs       = [];
+  S.nextFid       = 4;
+  // Clear filters
+  S.dashTag       = null;
+  S.tagFilter     = null;
+  // Reset to home
+  S.page          = 'home';
+}
+
+
 async function signOut() {
-  if (!_supa) return;
-  await _supa.auth.signOut();
+  if (!_supa) {
+    // No Supabase — just reset local state
+    resetState();
+    _currentUser = null;
+    updateNavUser();
+    render();
+    return;
+  }
+  // Reset state immediately (don't wait for SIGNED_OUT event)
+  resetState();
   _currentUser = null;
   updateNavUser();
+  await _supa.auth.signOut();
+  // SIGNED_OUT event will also fire, but resetState is idempotent
   render();
 }
 
@@ -2177,7 +2221,20 @@ function downloadHistoryCSV(histId, type) {
     ANS[q.answer]||'', q.explanation||''
   ]);
   const esc = v => { const s=String(v).replace(/"/g,'""'); return (s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s+'"':s; };
-  const csv = '\uFEFF' + [header,...rows].map(r=>r.map(esc).join(',')).join('\n');
+
+  // 取得這批題目涉及的資料集標籤
+  const tags = [...new Set(pool.map(q => q.category || q._fileTags?.[0] || '').filter(Boolean))];
+  const typeLabel2 = type === 'wrong' ? '錯誤題目' : '標記題目';
+  const metaLines2 = [
+    '# 考卷：'     + (entry.name || '測驗 #' + entry.id),
+    '# 類型：'     + typeLabel2,
+    '# 資料集標籤：' + (tags.length ? tags.join('、') : '（未分類）'),
+    '# 題數：'     + pool.length + ' 題',
+    '# 匯出時間：'  + new Date().toLocaleString('zh-TW'),
+    '#',
+  ].join('\n');
+
+  const csv = '\uFEFF' + metaLines2 + '\n' + [header,...rows].map(r=>r.map(esc).join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -2309,7 +2366,21 @@ async function doSignIn() {
     await authSignIn(email, pw);
     navigate('home');
   } catch(e) {
-    if (msg) { msg.style.color='#F87171'; msg.textContent = e.message || '登入失敗，請確認帳號密碼。'; }
+    if (msg) {
+      msg.style.color = '#F87171';
+      const errMsg = (e.message || '').toLowerCase();
+      if (errMsg.includes('invalid login credentials') || errMsg.includes('invalid credentials')) {
+        msg.innerHTML =
+          '登入失敗：帳號密碼錯誤，或 <b>Email 尚未驗證</b>。<br>' +
+          '<span style="font-size:.78rem;color:var(--text-3);">請點擊註冊時收到的驗證信，或點下方「重寄驗證信」。</span>';
+      } else if (errMsg.includes('email not confirmed')) {
+        msg.innerHTML =
+          'Email 尚未驗證，請至信箱點擊驗證連結後再登入。<br>' +
+          '<span style="font-size:.78rem;color:var(--text-3);">未收到信？請點下方「重寄驗證信」。</span>';
+      } else {
+        msg.textContent = e.message || '登入失敗，請稍後再試。';
+      }
+    }
   }
 }
 
@@ -2855,7 +2926,19 @@ function downloadQuestionsCSV(type, tagFilter) {
     const s = String(v).replace(/"/g,'""');
     return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"'+s+'"' : s;
   };
-  const csv = [header, ...rows]
+
+  // 在 CSV 最前面加上資料集標籤名稱說明行
+  const tagLabel = tag ? tag : '全部分類';
+  const typeLabel = type === 'wrong' ? '錯誤題目' : '標記題目';
+  const metaLines = [
+    '# 資料集：' + tagLabel,
+    '# 類型：'   + typeLabel,
+    '# 題數：'   + pool.length + ' 題',
+    '# 匯出時間：' + new Date().toLocaleString('zh-TW'),
+    '#',
+  ].join('\n');
+
+  const csv = metaLines + '\n' + [header, ...rows]
     .map(r => r.map(escCSV).join(','))
     .join('\n');
 
@@ -2948,7 +3031,14 @@ let _autoSaveTimer = null;
 // Restore persisted state from localStorage
 loadFromStorage();
 render();
-initSupabase();
+// Wait for deferred Supabase SDK to load before initializing
+if (typeof supabase !== 'undefined') {
+  initSupabase();
+} else {
+  window.addEventListener('load', function() {
+    initSupabase();
+  });
+}
 
 </script>
 </body>
