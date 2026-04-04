@@ -1608,8 +1608,8 @@ function quizMenuHTML_page() {
   // ── Pool counts ─────────────────────────────────────────────────────────
   const inCat    = q => setup.cats.has(q.category) || (q._fileTags && q._fileTags.some(t => setup.cats.has(t)));
   const poolNew    = catsOk ? allQ.filter(q => inCat(q)).length : 0;
-  const poolReview = catsOk ? allQ.filter(q => S.bookmarks.has(q.id) && inCat(q)).length : 0;
-  const poolWrong  = catsOk ? allQ.filter(q => S.wrongQs.has(q.id)  && inCat(q)).length : 0;
+  const poolReview = catsOk ? allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q)).length : 0;
+  const poolWrong  = catsOk ? allQ.filter(q => S.wrongQs.has(String(q.id))  && inCat(q)).length : 0;
 
   // ── Mode card builder ────────────────────────────────────────────────────
   const modeCard = (id, svgPath, label, sub, color, colorDim, colorBorder) => {
@@ -1661,8 +1661,8 @@ function quizMenuHTML_page() {
   const modeOk = setup.mode !== null && (setup.mode === 'new' || setup.submode === 'retake');
   let pool3 = [];
   if (modeOk) {
-    if (setup.mode === 'review') pool3 = allQ.filter(q => S.bookmarks.has(q.id) && inCat(q));
-    else if (setup.mode === 'wrong') pool3 = allQ.filter(q => S.wrongQs.has(q.id) && inCat(q));
+    if (setup.mode === 'review') pool3 = allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q));
+    else if (setup.mode === 'wrong') pool3 = allQ.filter(q => S.wrongQs.has(String(q.id)) && inCat(q));
     else pool3 = allQ.filter(q => inCat(q));
   }
   const maxCount = pool3.length;
@@ -1707,8 +1707,8 @@ function qsRenderModeSections() {
   const inCat  = q => setup.cats.has(q.category) || (q._fileTags && q._fileTags.some(t => setup.cats.has(t)));
   const catsOk = setup.cats.size > 0;
   const poolNew    = catsOk ? allQ.filter(q => inCat(q)).length : 0;
-  const poolReview = catsOk ? allQ.filter(q => S.bookmarks.has(q.id) && inCat(q)).length : 0;
-  const poolWrong  = catsOk ? allQ.filter(q => S.wrongQs.has(q.id)  && inCat(q)).length : 0;
+  const poolReview = catsOk ? allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q)).length : 0;
+  const poolWrong  = catsOk ? allQ.filter(q => S.wrongQs.has(String(q.id))  && inCat(q)).length : 0;
 
   const modeCard = (id, svgPath, label, sub, color, colorDim, colorBorder) => {
     const selected = setup.mode === id;
@@ -1757,8 +1757,8 @@ function qsRenderModeSections() {
   const modeOk = setup.mode !== null && (setup.mode === 'new' || setup.submode === 'retake');
   let pool3 = [];
   if (modeOk) {
-    if (setup.mode === 'review') pool3 = allQ.filter(q => S.bookmarks.has(q.id) && inCat(q));
-    else if (setup.mode === 'wrong') pool3 = allQ.filter(q => S.wrongQs.has(q.id) && inCat(q));
+    if (setup.mode === 'review') pool3 = allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q));
+    else if (setup.mode === 'wrong') pool3 = allQ.filter(q => S.wrongQs.has(String(q.id)) && inCat(q));
     else pool3 = allQ.filter(q => inCat(q));
   }
   const maxCount = pool3.length;
@@ -1853,8 +1853,8 @@ function qsSelectSubMode(submode) {
     const allQ  = [...QUESTIONS,...S.extraQs];
     const inCat = q => S.quizSetup.cats.has(q.category)||(q._fileTags&&q._fileTags.some(t=>S.quizSetup.cats.has(t)));
     S.activeQs  = S.quizSetup.mode === 'review'
-      ? allQ.filter(q=>S.bookmarks.has(q.id)&&inCat(q))
-      : allQ.filter(q=>S.wrongQs.has(q.id)&&inCat(q));
+      ? allQ.filter(q=>S.bookmarks.has(String(q.id))&&inCat(q))
+      : allQ.filter(q=>S.wrongQs.has(String(q.id))&&inCat(q));
     S.browseSrc = { mode: S.quizSetup.mode, cats: new Set(S.quizSetup.cats) };
     S.quizSetup = null;
     S.quizMode  = 'browse';
@@ -1921,8 +1921,8 @@ function getAvailPool() {
   const allQ = [...QUESTIONS, ...S.extraQs];
   const inCat = q => setup.cats.has(q.category) ||
     (q._fileTags && q._fileTags.some(t => setup.cats.has(t)));
-  if (setup.mode === 'review') return allQ.filter(q => S.bookmarks.has(q.id) && inCat(q));
-  if (setup.mode === 'wrong')  return allQ.filter(q => S.wrongQs.has(q.id)   && inCat(q));
+  if (setup.mode === 'review') return allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q));
+  if (setup.mode === 'wrong')  return allQ.filter(q => S.wrongQs.has(String(q.id))   && inCat(q));
   return allQ.filter(q => inCat(q));
 }
 function toggleConfigCat(cat) {
@@ -1981,7 +1981,7 @@ function launchQuiz() {
 function quizActiveHTML() {
   const q   = S.activeQs[S.currentQ];
   const ans = S.answers[S.currentQ];
-  const bk  = S.bookmarks.has(q.id);
+  const bk  = S.bookmarks.has(String(q.id));
   const isLast = S.currentQ === S.activeQs.length - 1;
   const pct = (S.currentQ / S.activeQs.length) * 100;
   const LT  = ['A','B','C','D'];
@@ -2232,7 +2232,7 @@ function quizResultHTML() {
 
   const items = S.activeQs.map((q,i) => {
     const ok = S.answers[i].selected === q.answer;
-    const bk = S.bookmarks.has(q.id);
+    const bk = S.bookmarks.has(String(q.id));
     return `
     <div class="r-item ${ok?'ok':'bad'}">
       <div style="display:flex;align-items:flex-start;gap:.75rem;">
@@ -2580,8 +2580,8 @@ function dashStatsHTML() {
   const tot   = filtHist.length;
   const totC  = filtHist.reduce((s,h)=>s+hCorrect(h),0);
   const totQ  = filtHist.reduce((s,h)=>s+hTotal(h),0);
-  const totW  = allQ.filter(q=>S.wrongQs.has(q.id)&&qInTag(q)).length;
-  const totBk = allQ.filter(q=>S.bookmarks.has(q.id)&&qInTag(q)).length;
+  const totW  = allQ.filter(q=>S.wrongQs.has(String(q.id))&&qInTag(q)).length;
+  const totBk = allQ.filter(q=>S.bookmarks.has(String(q.id))&&qInTag(q)).length;
   const rate  = totQ>0 ? Math.round((totC/totQ)*100) : 0;
   const rateColor  = rate>=80?'#4ADE80':rate>=60?'#FBBF24':'#F87171';
   const emptyState = tot === 0;
@@ -2853,10 +2853,10 @@ function downloadQuestionsCSV(type, tagFilter) {
   const inTag = q => !tag || q.category === tag;
   let pool, filename;
   if (type === 'wrong') {
-    pool     = allQ.filter(q => S.wrongQs.has(q.id) && inTag(q));
+    pool     = allQ.filter(q => S.wrongQs.has(String(q.id)) && inTag(q));
     filename = (tag ? tag+'_' : '') + '錯誤題目.csv';
   } else {
-    pool     = allQ.filter(q => S.bookmarks.has(q.id) && inTag(q));
+    pool     = allQ.filter(q => S.bookmarks.has(String(q.id)) && inTag(q));
     filename = (tag ? tag+'_' : '') + '標記題目.csv';
   }
   if (!pool.length) return;
