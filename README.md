@@ -1,4 +1,4 @@
-# NeuroLearn 🧠
+# NeuroLearn 🧠 v2.0
 
 > **智能模擬考平台** — 單一 HTML 檔案，離線可用，支援雲端同步
 
