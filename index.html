@@ -2798,51 +2798,106 @@ function setDashTag(tag) {
 function initChart() {
   const canvas = document.getElementById('scoreChart');
   if (!canvas) return;
-  if (typeof Chart === 'undefined') {
-    canvas.parentElement.innerHTML += '<p style="font-size:.78rem;color:var(--text-3);text-align:center;padding:2rem 0;">📡 趨勢圖需要網路連線</p>';
+
+  // Pure Canvas line chart — no CDN required
+  const dt = S.dashTag;
+  const filtHist = dt
+    ? S.history.filter(h => h.catStats && h.catStats[dt])
+    : S.history;
+  if (!filtHist.length) return;
+
+  const hC = h => dt ? (h.catStats?.[dt]?.correct || 0) : h.correct;
+  const hT = h => dt ? (h.catStats?.[dt]?.total   || 1) : h.total;
+  const data   = filtHist.map(h => { const t = hT(h); return t > 0 ? Math.round((hC(h)/t)*100) : 0; });
+  const labels = filtHist.map(h => h.name ? h.name.slice(0,8) : '#'+h.id);
+
+  const dpr  = window.devicePixelRatio || 1;
+  const W    = canvas.parentElement.clientWidth || 320;
+  const H    = 160;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx  = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const PAD  = { top:18, right:12, bottom:36, left:34 };
+  const cW   = W - PAD.left - PAD.right;
+  const cH   = H - PAD.top  - PAD.bottom;
+  const n    = data.length;
+
+  // Grid lines & Y labels
+  ctx.strokeStyle = 'rgba(255,255,255,.07)';
+  ctx.fillStyle   = 'rgba(255,255,255,.3)';
+  ctx.font        = '10px JetBrains Mono, monospace';
+  ctx.textAlign   = 'right';
+  [0,25,50,75,100].forEach(pct => {
+    const y = PAD.top + cH * (1 - pct/100);
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y); ctx.stroke();
+    ctx.fillText(pct+'%', PAD.left - 4, y + 3.5);
+  });
+
+  if (n < 2) {
+    // Single point
+    const x = PAD.left + cW/2;
+    const y = PAD.top + cH * (1 - data[0]/100);
+    const col = data[0]>=80?'#4ADE80':data[0]>=60?'#FBBF24':'#F87171';
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2);
+    ctx.fillStyle = col; ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.5)'; ctx.textAlign='center';
+    ctx.fillText(data[0]+'%', x, y-10);
     return;
   }
-  if (S.chart) { S.chart.destroy(); S.chart = null; }
-  const _filtForChart = S.dashTag ? S.history.filter(h=>h.catStats&&h.catStats[S.dashTag]) : S.history;
-  if (!_filtForChart.length) return;
 
-  const dt = S.dashTag;
-  const filtHist = dt ? S.history.filter(h => h.catStats && h.catStats[dt]) : S.history;
-  const hC = h => dt ? (h.catStats?.[dt]?.correct||0) : h.correct;
-  const hT = h => dt ? (h.catStats?.[dt]?.total||1)  : h.total;
-  const labels = filtHist.map(h => h.name ? h.name.slice(0,10) : `#${h.id}`);
-  const data   = filtHist.map(h => { const t=hT(h); return t>0?Math.round((hC(h)/t)*100):0; });
+  // X positions
+  const xs = data.map((_,i) => PAD.left + i * cW/(n-1));
+  const ys = data.map(v   => PAD.top  + cH * (1 - v/100));
 
-  S.chart = new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: '答對率',
-        data,
-        borderColor: 'rgba(123,111,224,.85)',
-        backgroundColor: 'rgba(123,111,224,.08)',
-        pointBackgroundColor: data.map(v=>v>=80?'#4ADE80':v>=60?'#FBBF24':'#F87171'),
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        tension: 0.35,
-        fill: true,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx=>` ${ctx.parsed.y}%`, title: ctx=>ctx[0].label } }
-      },
-      scales: {
-        y: { min:0, max:100,
-          ticks:{ color:'rgba(255,255,255,.35)', font:{family:'JetBrains Mono',size:11}, callback:v=>v+'%'},
-          border:{color:'rgba(255,255,255,.07)'} },
-        x: { ticks:{ color:'rgba(255,255,255,.35)', font:{family:'JetBrains Mono',size:11} },
-          border:{color:'rgba(255,255,255,.07)'} }
-      }
+  // Fill area
+  const grad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top+cH);
+  grad.addColorStop(0,   'rgba(123,111,224,.25)');
+  grad.addColorStop(1,   'rgba(123,111,224,.01)');
+  ctx.beginPath();
+  ctx.moveTo(xs[0], ys[0]);
+  for (let i=1; i<n; i++) {
+    const cpx = (xs[i-1]+xs[i])/2;
+    ctx.bezierCurveTo(cpx,ys[i-1], cpx,ys[i], xs[i],ys[i]);
+  }
+  ctx.lineTo(xs[n-1], PAD.top+cH);
+  ctx.lineTo(xs[0],   PAD.top+cH);
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(xs[0], ys[0]);
+  for (let i=1; i<n; i++) {
+    const cpx = (xs[i-1]+xs[i])/2;
+    ctx.bezierCurveTo(cpx,ys[i-1], cpx,ys[i], xs[i],ys[i]);
+  }
+  ctx.strokeStyle = 'rgba(123,111,224,.9)'; ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Points + tooltips
+  data.forEach((v, i) => {
+    const col = v>=80?'#4ADE80':v>=60?'#FBBF24':'#F87171';
+    ctx.beginPath(); ctx.arc(xs[i], ys[i], 4, 0, Math.PI*2);
+    ctx.fillStyle = col; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 1; ctx.stroke();
+    // Value label above point (show for first, last, and peaks/valleys)
+    const isEdge = i===0 || i===n-1;
+    const isPeak = n>2 && (i===0||i===n-1||v!==data[i-1]&&v!==data[i+1]);
+    if (isEdge || n<=5) {
+      ctx.fillStyle='rgba(255,255,255,.7)'; ctx.font='9px JetBrains Mono,monospace';
+      ctx.textAlign='center';
+      ctx.fillText(v+'%', xs[i], ys[i]-9);
     }
+    // X label
+    ctx.fillStyle='rgba(255,255,255,.35)'; ctx.font='9px sans-serif';
+    ctx.textAlign='center';
+    const lbl = labels[i].length>6 ? labels[i].slice(0,5)+'…' : labels[i];
+    ctx.fillText(lbl, xs[i], H - PAD.bottom + 14);
   });
 }
 
