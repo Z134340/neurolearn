@@ -270,12 +270,12 @@
     .nav-link:active{color:var(--accent);background:var(--accent-dim)}
   }
   @media(max-width:640px){
-    #navbar{height:52px;padding:0 1rem}
+    #navbar{height:52px;padding:0 .75rem;gap:.4rem}
     #page-content{padding-top:52px}
-    .nav-logo-text{font-size:.88rem}
-    .nav-logo-icon{width:28px;height:28px;border-radius:7px}
-    .nav-link{padding:.38rem .5rem;font-size:.76rem}
-    .nav-links{gap:0}
+    .nav-logo-text{font-size:.82rem}
+    .nav-logo-icon{width:26px;height:26px;border-radius:6px}
+    .nav-link{padding:.32rem .38rem;font-size:.7rem;letter-spacing:-.01em}
+    .nav-links{gap:0;flex-shrink:1}
     .page{animation:none}
     .g-card{border-radius:14px}
     .n-card{border-radius:16px;padding:1.5rem}
@@ -311,7 +311,7 @@
       <button class="nav-link" id="nl-quiz"   onclick="navigate('quiz')">模擬考</button>
       <button class="nav-link" id="nl-dash"   onclick="navigate('dashboard')">儀表板</button>
     </div>
-    <div id="nav-user-area" style="display:flex;align-items:center;gap:.4rem;margin-left:.5rem;flex-shrink:0;">
+    <div id="nav-user-area" style="display:flex;align-items:center;gap:.3rem;margin-left:.3rem;flex-shrink:0;">
       <button onclick="navigate('login')" class="btn btn-primary" style="font-size:.72rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>
     </div>
   </div>
@@ -2720,19 +2720,21 @@ function dashStatsHTML() {
   <div class="g-card" style="padding:1.25rem;margin-top:1.5rem;cursor:default;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
     <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem;">進度備份 / 還原</p>
     <p style="font-size:.8rem;color:var(--text-3);margin-bottom:1rem;line-height:1.6;">將書籤、錯誤紀錄、測驗歷史完整備份成 JSON 檔，可在任何裝置匯入還原。</p>
-    <div style="display:flex;gap:.65rem;flex-wrap:wrap;">
+    <div style="display:flex;flex-direction:column;gap:.5rem;">
       <button onclick="exportProgress()" class="btn btn-ghost"
-        style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:.45rem;touch-action:manipulation;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;touch-action:manipulation;padding:.65rem 1rem;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0;">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>匯出進度備份
+        </svg>
+        <span>匯出進度備份</span>
       </button>
-      <label style="flex:1;min-width:140px;">
+      <label style="width:100%;">
         <input type="file" accept=".json" style="display:none;" onchange="importProgress(this)">
-        <span class="btn btn-ghost" style="display:flex;align-items:center;justify-content:center;gap:.45rem;cursor:pointer;touch-action:manipulation;width:100%;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <span class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;cursor:pointer;touch-action:manipulation;padding:.65rem 1rem;box-sizing:border-box;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0;">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>匯入進度備份
+          </svg>
+          <span>匯入進度備份</span>
         </span>
       </label>
     </div>
