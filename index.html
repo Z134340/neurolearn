@@ -309,6 +309,7 @@ const SUPA_KEY = 'sb_publishable_A3vHSsoyjb_KMZDUbCNHdQ_hs0O87su';
 let _supa = null;
 let _currentUser = null;
 let _cloudSyncTimer = null;
+let _accessToken = null;  // cached JWT — no network needed for sync
 
 const STORAGE_KEY_BASE = 'neurolearn_v2';
 function getStorageKey() {
@@ -327,56 +328,48 @@ function resetState() {
 async function syncToCloud() {
   if (!_supa || !_currentUser) return;
 
-  // Get current auth token from Supabase SDK
-  const { data: { session } } = await _supa.auth.getSession();
-  const token = session?.access_token;
-  if (!token) throw new Error('登入已過期，請重新登入。');
+  const token = _accessToken;
+  if (!token) throw new Error('請重新登入後再同步。');
 
-  const payload = {
+  const payload = JSON.stringify({
     user_id: _currentUser.id,
     data: {
       history:   S.history,
       bookmarks: [...S.bookmarks],
       wrongQs:   [...S.wrongQs],
       usedQIds:  [...S.usedQIds],
-      files:     S.files.map(({ _file, ...f }) => f),
+      files:     S.files.map(function(f){ var c={}; Object.assign(c,f); delete c._file; return c; }),
       extraQs:   S.extraQs,
       dashTag:   S.dashTag,
       tagFilter: S.tagFilter,
     },
     updated_at: new Date().toISOString(),
-  };
+  });
 
-  // Use native fetch() with AbortController — supports real timeout
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 25000); // 25s hard timeout
+  // XMLHttpRequest — has a native, guaranteed timeout property
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', SUPA_URL + '/rest/v1/user_progress?on_conflict=user_id');
+    xhr.timeout = 10000; // 10 seconds hard timeout (native, always works)
+    xhr.setRequestHeader('Content-Type',  'application/json');
+    xhr.setRequestHeader('apikey',        SUPA_KEY);
+    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+    xhr.setRequestHeader('Prefer',        'resolution=merge-duplicates');
 
-  let res;
-  try {
-    res = await fetch(
-      SUPA_URL + '/rest/v1/user_progress?on_conflict=user_id',
-      {
-        method:  'POST',
-        signal:  controller.signal,
-        headers: {
-          'Content-Type':  'application/json',
-          'apikey':        SUPA_KEY,
-          'Authorization': 'Bearer ' + token,
-          'Prefer':        'resolution=merge-duplicates',
-        },
-        body: JSON.stringify(payload),
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        console.log('[Supa] Synced ✓ HTTP', xhr.status);
+        resolve();
+      } else {
+        var msg = 'HTTP ' + xhr.status;
+        try { var j = JSON.parse(xhr.responseText); msg = j.message || j.hint || j.error || msg; } catch(_) {}
+        reject(new Error('Supabase 錯誤：' + msg));
       }
-    );
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!res.ok) {
-    let errMsg = 'HTTP ' + res.status;
-    try { const j = await res.json(); errMsg = j.message || j.error || errMsg; } catch(_) {}
-    throw new Error('Supabase 錯誤：' + errMsg);
-  }
-  console.log('[Supa] Synced ✓ status:', res.status);
+    };
+    xhr.onerror   = function() { reject(new Error('網路錯誤，請確認連線。')); };
+    xhr.ontimeout = function() { reject(new Error('連線逾時（10秒），Supabase 無回應。')); };
+    xhr.send(payload);
+  });
 }
 
 async function loadCloudProgress() {
@@ -424,7 +417,8 @@ function initSupabase() {
     _supa = supabase.createClient(SUPA_URL, SUPA_KEY);
     _supa.auth.onAuthStateChange(async (event, session) => {
       const prev = _currentUser;
-      _currentUser = session?.user ?? null;
+      _currentUser  = session?.user ?? null;
+      _accessToken  = session?.access_token ?? null;  // cache for instant sync
       updateNavUser();
       if (event === 'SIGNED_IN' && !prev) {
         resetState(); loadFromStorage(); await loadCloudProgress(); render();
@@ -448,7 +442,9 @@ function initSupabase() {
       }
     } else {
       _supa.auth.getSession().then(({ data }) => {
-        _currentUser = data?.session?.user ?? null; updateNavUser();
+        _currentUser = data?.session?.user ?? null;
+        _accessToken = data?.session?.access_token ?? null;
+        updateNavUser();
         if (_currentUser) loadCloudProgress().then(() => render());
       });
     }
@@ -2373,25 +2369,26 @@ function downloadHistoryCSV(histId, type) {
 
 async function forceSyncToCloud() {
   function setMsg(text, color) {
-    const el = document.getElementById('backup-msg');
+    var el = document.getElementById('backup-msg');
     if (el) { el.textContent = text; el.style.color = color; }
   }
 
-  if (!_supa || !_currentUser) {
-    setMsg('⚠️ 請先登入帳號才能同步雲端。', '#F87171'); return;
+  if (!_supa || !_currentUser || !_accessToken) {
+    setMsg('⚠️ 請先登入帳號才能同步雲端。', '#F87171');
+    return;
   }
 
-  setMsg('連線確認中…', 'var(--text-3)');
+  setMsg('同步中…', 'var(--text-3)');
 
   try {
     await syncToCloud();
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('zh-TW', { year:'numeric', month:'numeric', day:'numeric' });
-    const timeStr = now.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false });
+    var now      = new Date();
+    var dateStr  = now.toLocaleDateString('zh-TW');
+    var timeStr  = now.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
     setMsg('✅ 同步雲端成功　' + dateStr + ' ' + timeStr, '#4ADE80');
   } catch(e) {
-    const reason = e.message || String(e);
-    console.error('[Supa] sync failed:', reason);
+    var reason = e.message || String(e);
+    console.error('[Supa] forceSyncToCloud error:', reason);
     setMsg('❌ ' + reason, '#F87171');
   }
 }
