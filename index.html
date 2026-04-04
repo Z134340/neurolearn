@@ -1686,7 +1686,7 @@ function quizMenuHTML_page() {
           ① 選擇題目分類
           ${selCats.size > 0 ? `<span style="color:var(--accent);margin-left:.4rem;">已選 ${selCats.size} 類</span>` : ''}
         </p>
-        <div style="display:flex;flex-direction:column;gap:.5rem;">
+        <div style="display:flex;flex-direction:row;align-items:center;gap:.3rem;">
           <button onclick="qsSelectAllCats(true)" style="font-size:.7rem;color:var(--accent);background:transparent;border:none;cursor:pointer;padding:.1rem .3rem;">全選</button>
           <span style="color:var(--border)">|</span>
           <button onclick="qsSelectAllCats(false)" style="font-size:.7rem;color:var(--text-3);background:transparent;border:none;cursor:pointer;padding:.1rem .3rem;">清除</button>
@@ -2389,39 +2389,55 @@ function quizBrowseHTML() {
     </div>`;
   }
   const ANS = ['A','B','C','D','E'];
-  const cards = qs.map((q,qi) => {
+
+  const cards = qs.map((q, qi) => {
     const bk = S.bookmarks.has(String(q.id));
     const opts = q.options.map((opt, oi) => {
       const isAns = correctSet(q).has(oi);
-      return `<div style="padding:.65rem .9rem;border-radius:9px;margin-bottom:.4rem;
+      return `<div style="padding:.55rem .85rem;border-radius:8px;margin-bottom:.35rem;
         background:${isAns?'rgba(74,222,128,.07)':'rgba(255,255,255,.02)'};
         border:1px solid ${isAns?'rgba(74,222,128,.3)':'var(--border)'};
-        color:${isAns?'#4ADE80':'var(--text-2)'};font-size:.86rem;line-height:1.5;">
-        <span style="font-weight:700;margin-right:.4rem;">${ANS[oi]}.</span>${opt}
-        ${isAns?'<span style="margin-left:.4rem;font-size:.75rem;">✓</span>':''}
+        color:${isAns?'#4ADE80':'var(--text-2)'};font-size:.85rem;line-height:1.5;">
+        <span style="font-weight:700;margin-right:.35rem;">${ANS[oi]}.</span>${opt}
+        ${isAns?'<span style="margin-left:.3rem;font-size:.72rem;">✓</span>':''}
       </div>`;
     }).join('');
-    return `<div class="g-card" style="padding:1.1rem 1.25rem;margin-bottom:.85rem;cursor:default;"
-      onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
-        <span class="badge badge-n">Q.${qi+1}</span>
-        <button class="bk-btn ${bk?'on':''}" onclick="toggleBk('${q.id}')" style="flex-shrink:0;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="${bk?'currentColor':'none'}" stroke="currentColor" stroke-width="2">
-            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+
+    return `
+    <div class="g-card" style="padding:0;margin-bottom:.65rem;overflow:hidden;">
+      <!-- Header — click to expand/collapse -->
+      <div class="rv-hdr" onclick="toggleRv(${qi})" style="padding:.9rem 1.1rem;">
+        <div style="display:flex;align-items:center;gap:.6rem;min-width:0;">
+          <span class="badge badge-n" style="flex-shrink:0;">Q.${qi+1}</span>
+          ${q.isMulti?'<span class="badge" style="background:rgba(123,111,224,.15);color:var(--accent);border:1px solid var(--accent-border);font-size:.58rem;flex-shrink:0;">多選</span>':''}
+          <span style="font-size:.87rem;color:var(--text-1);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${q.text}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;margin-left:.5rem;">
+          <button class="bk-btn ${bk?'on':''}" onclick="event.stopPropagation();toggleBk('${q.id}')" style="width:28px;height:28px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="${bk?'currentColor':'none'}" stroke="currentColor" stroke-width="2">
+              <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+            </svg>
+          </button>
+          <svg id="ch-${qi}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            style="transition:transform .2s;color:var(--text-3);flex-shrink:0;">
+            <polyline points="6 9 12 15 18 9"/>
           </svg>
-        </button>
+        </div>
       </div>
-      <p style="font-size:.93rem;line-height:1.7;margin-bottom:.85rem;">${q.text}</p>
-      ${q.isMulti?'<p style="font-size:.72rem;color:var(--accent);margin-bottom:.5rem;">多選題</p>':''}
-      ${opts}
-      ${q.explanation?`<p style="margin-top:.75rem;font-size:.8rem;color:var(--text-3);border-top:1px solid var(--border);padding-top:.65rem;line-height:1.6;">${q.explanation}</p>`:''}
+      <!-- Body — hidden by default, toggled by toggleRv() -->
+      <div class="rv-body" id="rv-${qi}">
+        <p style="font-size:.9rem;line-height:1.75;margin-bottom:.85rem;color:var(--text-1);">${q.text}</p>
+        ${q.isMulti?'<p style="font-size:.72rem;color:var(--accent);margin-bottom:.6rem;">多選題 — 可選多個正確答案</p>':''}
+        ${opts}
+        ${q.explanation?`<p style="margin-top:.75rem;font-size:.8rem;color:var(--text-3);border-top:1px solid var(--border);padding-top:.65rem;line-height:1.6;">${q.explanation}</p>`:''}
+      </div>
     </div>`;
   }).join('');
 
-  return `<div class="page" style="max-width:660px;margin:0 auto;padding:clamp(1rem,4vw,2rem);">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+  return `<div class="page" style="max-width:660px;margin:0 auto;padding:clamp(.75rem,3vw,1.5rem);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
       <button class="btn btn-ghost" onclick="goBackFromBrowse()" style="font-size:.85rem;">← 返回</button>
-      <span style="font-size:.82rem;color:var(--text-2);">${qs.length} 題</span>
+      <span style="font-size:.82rem;color:var(--text-2);">${qs.length} 題・點題目展開</span>
     </div>
     ${cards}
   </div>`;
