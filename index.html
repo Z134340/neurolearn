@@ -1667,7 +1667,7 @@ function quizMenuHTML_page() {
   if (modeOk) {
     if (setup.mode === 'review') pool3 = allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q));
     else if (setup.mode === 'wrong') pool3 = allQ.filter(q => S.wrongQs.has(String(q.id)) && inCat(q));
-    else pool3 = allQ.filter(q => inCat(q));
+    else pool3 = allQ.filter(q => inCat(q) && !S.usedQIds.has(String(q.id))); // only unused
   }
   const maxCount = pool3.length;
   const count    = Math.max(1, Math.min(setup.count || 20, Math.max(maxCount, 1)));
@@ -1765,7 +1765,7 @@ function qsRenderModeSections() {
   if (modeOk) {
     if (setup.mode === 'review') pool3 = allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q));
     else if (setup.mode === 'wrong') pool3 = allQ.filter(q => S.wrongQs.has(String(q.id)) && inCat(q));
-    else pool3 = allQ.filter(q => inCat(q));
+    else pool3 = allQ.filter(q => inCat(q) && !S.usedQIds.has(String(q.id))); // only unused
   }
   const maxCount = pool3.length;
   const count    = Math.max(1, Math.min(setup.count || 20, Math.max(maxCount, 1)));
@@ -1810,7 +1810,7 @@ function qsRenderModeSections() {
         <label style="font-size:.74rem;color:var(--text-3);">題目數量</label>
         <span style="display:flex;align-items:baseline;gap:.25rem;">
           <span id="qs-count-display" class="mono" style="font-size:1.6rem;font-weight:600;color:var(--gold);">${count}</span>
-          <span style="font-size:.8rem;color:var(--text-3);">/ ${maxCount}</span>
+          <span style="font-size:.8rem;color:var(--text-3);">/ ${maxCount} 未考</span>
         </span>
       </div>
       <input type="range" min="1" max="${Math.max(maxCount,1)}" value="${count}" step="1"
