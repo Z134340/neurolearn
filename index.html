@@ -327,10 +327,7 @@ function resetState() {
 async function syncToCloud() {
   if (!_supa || !_currentUser) return;
 
-  // Verify session is still valid
-  const { data: { session } } = await _supa.auth.getSession();
-  if (!session) throw new Error('登入已過期，請重新登入。');
-
+  // Build payload first (synchronous, no network needed)
   const payload = {
     user_id: _currentUser.id,
     data: {
@@ -346,15 +343,19 @@ async function syncToCloud() {
     updated_at: new Date().toISOString(),
   };
 
-  // 15-second timeout using Promise.race
-  const upsertPromise = _supa
-    .from('user_progress')
-    .upsert(payload, { onConflict: 'user_id' });
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('同步逾時（15秒），請確認網路連線。')), 15000)
+  // Wrap ALL network calls in a single 12-second timeout
+  const syncWork = async () => {
+    const { error } = await _supa
+      .from('user_progress')
+      .upsert(payload, { onConflict: 'user_id' });
+    if (error) throw new Error(error.message || '同步失敗');
+  };
+
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('同步逾時（12秒），請確認網路。')), 12000)
   );
-  const { error } = await Promise.race([upsertPromise, timeoutPromise]);
-  if (error) throw new Error(error.message || '同步失敗');
+
+  await Promise.race([syncWork(), timeout]);
   console.log('[Supa] Synced ✓');
 }
 
@@ -2565,29 +2566,36 @@ function downloadHistoryCSV(histId, type) {
 
 
 async function forceSyncToCloud() {
+  // Always write to backup-msg by re-querying DOM (survives re-renders)
   function setMsg(text, color) {
     const el = document.getElementById('backup-msg');
     if (el) { el.textContent = text; el.style.color = color; }
-    showImportToast(text, color === '#4ADE80' ? 3000 : 5000);
   }
 
   if (!_supa || !_currentUser) {
-    setMsg('⚠️ 請先登入帳號才能同步雲端。', '#F87171');
-    return;
+    setMsg('⚠️ 請先登入帳號才能同步雲端。', '#F87171'); return;
   }
 
-  // Show syncing immediately
-  const msgEl = document.getElementById('backup-msg');
-  if (msgEl) { msgEl.textContent = '同步中…'; msgEl.style.color = 'var(--text-3)'; }
+  setMsg('同步中…', 'var(--text-3)');
+
+  // Outer timeout guard: if syncToCloud itself hangs, we bail out after 14s
+  const syncWithGuard = Promise.race([
+    syncToCloud(),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('同步逾時，請確認網路連線後重試。')), 14000)
+    )
+  ]);
 
   try {
-    await syncToCloud();
-    const now = new Date().toLocaleTimeString('zh-TW');
-    setMsg('✅ 已同步到雲端（' + now + '）', '#4ADE80');
+    await syncWithGuard;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('zh-TW', { year:'numeric', month:'2-digit', day:'2-digit' });
+    const timeStr = now.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    setMsg('✅ 同步雲端成功　' + dateStr + ' ' + timeStr, '#4ADE80');
   } catch(e) {
     const reason = e.message || String(e);
-    setMsg('❌ ' + reason, '#F87171');
-    console.error('[Supa] forceSyncToCloud failed:', reason);
+    console.error('[Supa] sync failed:', reason);
+    setMsg('❌ 同步失敗：' + reason, '#F87171');
   }
 }
 
