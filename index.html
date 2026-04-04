@@ -327,6 +327,11 @@ function resetState() {
 async function syncToCloud() {
   if (!_supa || !_currentUser) return;
 
+  // Get current auth token from Supabase SDK
+  const { data: { session } } = await _supa.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error('登入已過期，請重新登入。');
+
   const payload = {
     user_id: _currentUser.id,
     data: {
@@ -342,28 +347,36 @@ async function syncToCloud() {
     updated_at: new Date().toISOString(),
   };
 
-  // Step 1: Quick connectivity probe (5s) using SELECT
-  const probeP = _supa.from('user_progress').select('user_id').eq('user_id', _currentUser.id).maybeSingle();
-  const probeTimeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('PROBE_TIMEOUT')), 5000)
-  );
+  // Use native fetch() with AbortController — supports real timeout
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25000); // 25s hard timeout
+
+  let res;
   try {
-    await Promise.race([probeP, probeTimeout]);
-  } catch(probeErr) {
-    if ((probeErr.message || '').includes('PROBE_TIMEOUT')) {
-      throw new Error('無法連線到 Supabase，請確認網路或稍後再試。');
-    }
-    // If probe returns an error (e.g. no row yet), that's ok — continue to upsert
+    res = await fetch(
+      SUPA_URL + '/rest/v1/user_progress?on_conflict=user_id',
+      {
+        method:  'POST',
+        signal:  controller.signal,
+        headers: {
+          'Content-Type':  'application/json',
+          'apikey':        SUPA_KEY,
+          'Authorization': 'Bearer ' + token,
+          'Prefer':        'resolution=merge-duplicates',
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+  } finally {
+    clearTimeout(timer);
   }
 
-  // Step 2: Upsert with generous timeout (30s for large payloads)
-  const upsertP = _supa.from('user_progress').upsert(payload, { onConflict: 'user_id' });
-  const upsertTimeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('同步超時（30秒），資料量較大請稍後再試。')), 30000)
-  );
-  const { error } = await Promise.race([upsertP, upsertTimeout]);
-  if (error) throw new Error('Supabase 錯誤：' + error.message);
-  console.log('[Supa] Synced ✓');
+  if (!res.ok) {
+    let errMsg = 'HTTP ' + res.status;
+    try { const j = await res.json(); errMsg = j.message || j.error || errMsg; } catch(_) {}
+    throw new Error('Supabase 錯誤：' + errMsg);
+  }
+  console.log('[Supa] Synced ✓ status:', res.status);
 }
 
 async function loadCloudProgress() {
