@@ -1987,7 +1987,7 @@ function finishQuiz() {
     || `第 ${S.history.length+1} 回合`;
   // Collect wrong IDs from THIS quiz only
   const _wrongIds = S.activeQs
-    .filter((q,i) => S.answers[i].selected !== q.answer)
+    .filter((q,i) => !isCorrectAnswer(q, S.answers[i].selected))
     .map(q => String(q.id));
   // Bookmarked questions from THIS quiz
   const _bkIds = S.activeQs
@@ -2012,6 +2012,32 @@ function finishQuiz() {
 }
 
 /* ── Result ── */
+
+/* ── Multi/single answer comparison helper ── */
+function isCorrectAnswer(q, selected) {
+  if (q.isMulti) {
+    const s = Array.isArray(selected) ? [...selected].sort((a,b)=>a-b) : [];
+    const a = [...q.answer].sort((a,b)=>a-b);
+    return s.length === a.length && s.every((v,j) => v === a[j]);
+  }
+  return selected === q.answer;
+}
+
+/* Returns Set of correct option indices for a question */
+function correctSet(q) {
+  return q.isMulti ? new Set(q.answer) : new Set([q.answer]);
+}
+
+/* Display label for correct answer(s) */
+function correctAnswerLabel(q) {
+  const ANS = ['A','B','C','D','E'];
+  if (q.isMulti) {
+    return [...q.answer].sort((a,b)=>a-b).map(i => ANS[i]+'. '+q.options[i]).join('、');
+  }
+  return q.options[q.answer] || '';
+}
+
+
 function quizResultHTML() {
   const score = S.activeQs.filter((q,i) => {
     const sel = S.answers[i].selected;
@@ -2028,7 +2054,7 @@ function quizResultHTML() {
   const msg   = pct >= 80 ? '表現優異！🎉' : pct >= 60 ? '繼續加油！' : '建議再次複習';
 
   const items = S.activeQs.map((q,i) => {
-    const ok = S.answers[i].selected === q.answer;
+    const ok = isCorrectAnswer(q, S.answers[i].selected);
     const bk = S.bookmarks.has(String(q.id));
     return `
     <div class="r-item ${ok?'ok':'bad'}">
@@ -2036,7 +2062,7 @@ function quizResultHTML() {
         <span style="font-size:1rem;flex-shrink:0;margin-top:1px;">${ok?'✅':'❌'}</span>
         <div style="flex:1;min-width:0;">
           <p style="font-size:.86rem;line-height:1.62;color:var(--text-1);">${q.text}</p>
-          ${!ok?`<p style="margin-top:.35rem;font-size:.79rem;color:var(--green);">✓ 正確答案：${q.options[q.answer]}</p>`:''}
+          ${!ok?`<p style="margin-top:.35rem;font-size:.79rem;color:var(--green);">✓ 正確答案：${correctAnswerLabel(q)}</p>`:''}
         </div>
         ${bk?`<span title="已標記" style="color:var(--gold);flex-shrink:0;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
@@ -2076,7 +2102,7 @@ function quizResultHTML() {
           <div style="font-size:.72rem;color:var(--text-3);margin-top:.15rem;">已標記</div>
         </div>
         <div>
-          <div class="mono" style="font-size:1.5rem;font-weight:600;color:#F87171;">${S.activeQs.filter((q,i)=>S.answers[i].selected!==q.answer).length}</div>
+          <div class="mono" style="font-size:1.5rem;font-weight:600;color:#F87171;">${S.activeQs.filter((q,i)=>!isCorrectAnswer(q,S.answers[i].selected)).length}</div>
           <div style="font-size:.72rem;color:var(--text-3);margin-top:.15rem;">錯誤</div>
         </div>
       </div>
@@ -2108,14 +2134,14 @@ function quizReviewHTML() {
   const cards = bkQs.map(({q,i}, idx) => {
     const ans = S.answers[i];  // i = index in activeQs
     const hasAns = ans && ans.confirmed;
-    const ok = hasAns && ans.selected === q.answer;
+    const ok = hasAns && isCorrectAnswer(q, ans.selected);
     const borderColor = hasAns ? (ok ? 'rgba(74,222,128,.2)' : 'rgba(248,113,113,.2)') : 'var(--border)';
 
     const optRows = q.options.map((opt,oi) => `
     <div style="padding:.65rem .9rem;border-radius:9px;font-size:.85rem;display:flex;align-items:center;gap:.5rem;
-      background:${oi===q.answer?'rgba(74,222,128,.07)':'rgba(255,255,255,.02)'};
-      border:1px solid ${oi===q.answer?'rgba(74,222,128,.3)':'var(--border)'};
-      color:${oi===q.answer?'#4ADE80':'var(--text-2)'};">
+      background:${correctSet(q).has(oi)?'rgba(74,222,128,.07)':'rgba(255,255,255,.02)'};
+      border:1px solid ${correctSet(q).has(oi)?'rgba(74,222,128,.3)':'var(--border)'};
+      color:${correctSet(q).has(oi)?'#4ADE80':'var(--text-2)'};">
       ${oi===q.answer
         ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
         : '<span style="width:13px;display:inline-block"></span>'}
@@ -2186,7 +2212,7 @@ function quizBrowseHTML() {
 
   const cards = qs.map((q, idx) => {
     const optRows = q.options.map((opt, oi) => {
-      const isAns = oi === q.answer;
+      const isAns = correctSet(q).has(oi);
       return `<div style="padding:.65rem .9rem;border-radius:9px;font-size:.85rem;display:flex;align-items:center;gap:.5rem;
         background:${isAns ? 'rgba(74,222,128,.07)' : 'rgba(255,255,255,.02)'};
         border:1px solid ${isAns ? 'rgba(74,222,128,.3)' : 'var(--border)'};
@@ -2313,7 +2339,7 @@ function downloadHistoryCSV(histId, type) {
     i+1, q.category||'', q.text||'',
     q.options?.[0]||'', q.options?.[1]||'', q.options?.[2]||'',
     q.options?.[3]||'', q.options?.[4]||'',
-    ANS[q.answer]||'', q.explanation||''
+    (q.isMulti ? [...q.answer].sort((a,b)=>a-b).map(i=>['A','B','C','D','E'][i]).join('') : ['A','B','C','D','E'][q.answer])||'', q.explanation||''
   ]);
   const esc = v => { const s=String(v).replace(/"/g,'""'); return (s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s+'"':s; };
 
@@ -3015,7 +3041,7 @@ function downloadQuestionsCSV(type, tagFilter) {
     q.options?.[2]||'',
     q.options?.[3]||'',
     q.options?.[4]||'',
-    ANS[q.answer]||'',
+    (q.isMulti ? [...q.answer].sort((a,b)=>a-b).map(i=>['A','B','C','D','E'][i]).join('') : ['A','B','C','D','E'][q.answer])||'',
     q.explanation||'',
   ]);
 
