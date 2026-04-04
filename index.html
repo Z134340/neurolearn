@@ -1318,17 +1318,30 @@ function parseQuestionRows(rows) {
     const oD=(r.option_d||r.選項d||r['選項_d']||'').trim();
     const oE=(r.option_e||r.選項e||r['選項_e']||'').trim();
     const ansRaw=(r.answer||r.答案||'').trim().toUpperCase();
-    // category: prefer 'exam' field (matches the xlsx template), then 'category'
     const cat=(r.exam||r.category||r.分類||'').trim()||'匯入題目';
     const diff=DIFF[(r.difficulty||r.難度||'').trim()]||'中等';
     const expl=(r.explanation||r.解析||r.說明||'').trim()||'（無解析）';
-    const ansIdx=ANS[ansRaw]??parseInt(ansRaw);
-    if(!q||!oA||ansIdx===undefined||isNaN(ansIdx)||ansIdx>4) continue;
-    // Build options (filter out empty ones beyond A)
+
+    // Detect multi-select: "AB", "A,B", "A+B", "A B" all mean multi-select
+    const ansLetters = ansRaw.replace(/[,+\s]+/g,'').split('').filter(l => ANS[l]!==undefined);
+    const isMulti = ansLetters.length > 1;
+    const ansValue = isMulti
+      ? ansLetters.map(l => ANS[l]).sort((a,b)=>a-b)   // array of indices, sorted
+      : (ANS[ansRaw]??parseInt(ansRaw));                 // single index
+
+    if(!q||!oA) continue;
+    if(isMulti && ansLetters.length === 0) continue;
+    if(!isMulti && (ansValue===undefined||isNaN(ansValue)||ansValue>4)) continue;
+
     const opts=[oA,oB,oC,oD].filter(Boolean);
     if(oE) opts.push(oE);
     while(opts.length<4) opts.push('—');
-    results.push({ id:0, text:q, options:opts.slice(0,5), answer:ansIdx, explanation:expl, category:cat, difficulty:diff });
+    results.push({
+      id:0, text:q, options:opts.slice(0,5),
+      answer:ansValue,          // number (single) or sorted number[] (multi)
+      isMulti: isMulti,         // flag for UI
+      explanation:expl, category:cat, difficulty:diff
+    });
   }
   return results;
 }
@@ -1702,7 +1715,7 @@ function launchQuiz() {
   }
 
   S.activeQs   = drawn;
-  S.answers    = drawn.map(() => ({selected:null, confirmed:false}));
+  S.answers    = drawn.map((q) => ({selected: q.isMulti ? [] : null, confirmed:false}));
   S.currentQ   = 0;
   S.quizConfig = { mode, count: drawn.length, name: setup.name||'', cats: new Set(setup.cats) };
   S.quizSetup  = null;
@@ -1718,6 +1731,10 @@ function quizActiveHTML() {
   const pct = (S.currentQ / S.activeQs.length) * 100;
   const LT  = ['A','B','C','D'];
 
+  // For multi-select: selected is an array
+  const selSet = q.isMulti ? new Set(ans.selected) : null;
+  const correctSet = q.isMulti ? new Set(q.answer) : null;
+
   const optHTML = q.options.map((opt, i) => {
     let cls = 'opt';
     let style = '';
@@ -1725,15 +1742,22 @@ function quizActiveHTML() {
     if (ans.confirmed) {
       cls += ' locked';
       handler = '';
-      if (i === q.answer)                            cls += ' correct';
-      else if (i === ans.selected && i !== q.answer) cls += ' wrong';
-      else                                           style = 'opacity:.35;';
-    } else if (ans.selected === i) {
-      cls += ' sel';
+      const isCorrect  = q.isMulti ? correctSet.has(i) : i === q.answer;
+      const isSelected = q.isMulti ? selSet.has(i)     : i === ans.selected;
+      if (isCorrect)                    cls += ' correct';
+      else if (isSelected && !isCorrect) cls += ' wrong';
+      else                              style = 'opacity:.35;';
+    } else {
+      const isSel = q.isMulti ? selSet.has(i) : ans.selected === i;
+      if (isSel) cls += ' sel';
     }
+    // Checkbox icon for multi-select, letter for single
+    const indicator = q.isMulti
+      ? `<span style="width:26px;height:26px;border-radius:5px;border:2px solid ${ans.confirmed && correctSet.has(i) ? 'var(--green)' : (selSet && selSet.has(i) && !ans.confirmed ? 'var(--accent)' : 'rgba(255,255,255,.25)')};display:inline-flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;background:${selSet&&selSet.has(i)&&!ans.confirmed?'var(--accent-dim)':'transparent'};">${selSet&&selSet.has(i)||ans.confirmed&&correctSet.has(i)?'✓':''}</span>`
+      : `<span style="width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.07);display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0;font-family:'Sora','Inter','Segoe UI',system-ui,-apple-system,sans-serif;">${LT[i]}</span>`;
     return `
     <button class="${cls}" style="${style}" onclick="${handler}">
-      <span style="width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.07);display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0;font-family:'Sora','Inter','Segoe UI',system-ui,-apple-system,sans-serif;">${LT[i]}</span>
+      ${indicator}
       <span style="line-height:1.55">${opt}</span>
     </button>`;
   }).join('');
@@ -1778,6 +1802,7 @@ function quizActiveHTML() {
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;margin-bottom:1.4rem;">
         <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
           <span class="badge badge-n">Q.${S.currentQ+1}</span>
+          ${q.isMulti ? '<span class="badge" style="background:rgba(123,111,224,.15);color:var(--accent);border:1px solid var(--accent-border);font-size:.62rem;">多選題</span>' : ''}
         </div>
         <button id="bk-btn" class="bk-btn ${bk?'on':''}" onclick="toggleBk('${q.id}')" title="${bk?'取消標記':'標記此題'}">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="${bk?'currentColor':'none'}" stroke="currentColor" stroke-width="2">
@@ -1800,34 +1825,66 @@ function quizActiveHTML() {
 }
 
 function selectOpt(i) {
-  if (S.answers[S.currentQ].confirmed) return;
-  if (S.answers[S.currentQ].selected === i) return; // already selected
-  S.answers[S.currentQ].selected = i;
-  // Direct DOM update — no full render, no flash
-  document.querySelectorAll('.opt').forEach((el, idx) => {
-    el.classList.toggle('sel', idx === i);
-  });
-  const confirmBtn = document.getElementById('confirm-btn');
-  if (confirmBtn) confirmBtn.removeAttribute('disabled');
+  const ans = S.answers[S.currentQ];
+  const q   = S.activeQs[S.currentQ];
+  if (ans.confirmed) return;
+
+  if (q.isMulti) {
+    // Multi-select: toggle
+    const sel = ans.selected; // array
+    const pos = sel.indexOf(i);
+    if (pos >= 0) sel.splice(pos, 1);
+    else sel.push(i);
+    // Update UI
+    document.querySelectorAll('.opt').forEach((el, idx) => {
+      el.classList.toggle('sel', sel.includes(idx));
+    });
+    const confirmBtn = document.getElementById('confirm-btn');
+    if (confirmBtn) {
+      if (sel.length > 0) confirmBtn.removeAttribute('disabled');
+      else confirmBtn.setAttribute('disabled','');
+    }
+  } else {
+    // Single-select: replace
+    if (ans.selected === i) return;
+    ans.selected = i;
+    document.querySelectorAll('.opt').forEach((el, idx) => {
+      el.classList.toggle('sel', idx === i);
+    });
+    const confirmBtn = document.getElementById('confirm-btn');
+    if (confirmBtn) confirmBtn.removeAttribute('disabled');
+  }
 }
 
 function confirmAns() {
   const ans = S.answers[S.currentQ];
-  if (ans.selected === null) return;
+  const q   = S.activeQs[S.currentQ];
+
+  // Guard: need at least one selection
+  if (q.isMulti ? ans.selected.length === 0 : ans.selected === null) return;
   ans.confirmed = true;
-  const q = S.activeQs[S.currentQ];
-  // DOM-only update for option states — no full render flash
+
+  // Determine correct set
+  const correctSet = q.isMulti
+    ? new Set(q.answer)          // q.answer is sorted number[]
+    : new Set([q.answer]);
+  const selectedSet = q.isMulti
+    ? new Set(ans.selected)
+    : new Set([ans.selected]);
+
   document.querySelectorAll('.opt').forEach((el, idx) => {
     el.classList.add('locked');
     el.onclick = null;
-    if (idx === q.answer)                         el.classList.add('correct');
-    else if (idx === ans.selected && idx !== q.answer) el.classList.add('wrong');
-    else                                           el.style.opacity = '0.35';
+    const isCorrect  = correctSet.has(idx);
+    const isSelected = selectedSet.has(idx);
+    if (isCorrect)                   el.classList.add('correct');
+    else if (isSelected && !isCorrect) el.classList.add('wrong');
+    else                             el.style.opacity = '0.35';
   });
-  // Show explanation
+
   const explPanel = document.getElementById('expl-panel');
   if (explPanel) explPanel.style.display = 'block';
-  // Swap action button
+
   const actionDiv = document.getElementById('action-btn');
   if (actionDiv) {
     const isLast = S.currentQ === S.activeQs.length - 1;
@@ -1871,7 +1928,11 @@ function prevQuestion() {
 function nextQuestion() {
   // Auto-confirm current answer before advancing (allows "下一題" to save)
   const ans = S.answers[S.currentQ];
-  if (ans && ans.selected !== null && !ans.confirmed) {
+  const q0  = S.activeQs[S.currentQ];
+  const hasSelection = q0 && q0.isMulti
+    ? Array.isArray(ans.selected) && ans.selected.length > 0
+    : ans && ans.selected !== null;
+  if (hasSelection && !ans.confirmed) {
     ans.confirmed = true;
   }
   if (S.currentQ === S.activeQs.length - 1) {
@@ -1883,7 +1944,16 @@ function nextQuestion() {
 }
 
 function finishQuiz() {
-  const score = S.activeQs.filter((q,i) => S.answers[i].selected === q.answer).length;
+  const score = S.activeQs.filter((q,i) => {
+    const sel = S.answers[i].selected;
+    if (q.isMulti) {
+      // Multi: selected array must match answer array exactly (same elements)
+      const s = Array.isArray(sel) ? [...sel].sort((a,b)=>a-b) : [];
+      const a = [...q.answer].sort((a,b)=>a-b);
+      return s.length === a.length && s.every((v,j) => v === a[j]);
+    }
+    return sel === q.answer;
+  }).length;
 
   // ── Mark questions as used ONLY on completion (not on launch) ──
   // quizConfig.mode is set during launchQuiz
@@ -1893,7 +1963,16 @@ function finishQuiz() {
 
   // Track wrong answers
   S.activeQs.forEach((q,i) => {
-    if (S.answers[i].selected !== q.answer) S.wrongQs.add(String(q.id));
+    const sel = S.answers[i].selected;
+    let isCorrect;
+    if (q.isMulti) {
+      const s = Array.isArray(sel) ? [...sel].sort((a,b)=>a-b) : [];
+      const a = [...q.answer].sort((a,b)=>a-b);
+      isCorrect = s.length === a.length && s.every((v,j) => v === a[j]);
+    } else {
+      isCorrect = sel === q.answer;
+    }
+    if (!isCorrect) S.wrongQs.add(String(q.id));
     else S.wrongQs.delete(String(q.id));
   });
   // Per-category breakdown
@@ -1934,7 +2013,16 @@ function finishQuiz() {
 
 /* ── Result ── */
 function quizResultHTML() {
-  const score = S.activeQs.filter((q,i) => S.answers[i].selected === q.answer).length;
+  const score = S.activeQs.filter((q,i) => {
+    const sel = S.answers[i].selected;
+    if (q.isMulti) {
+      // Multi: selected array must match answer array exactly (same elements)
+      const s = Array.isArray(sel) ? [...sel].sort((a,b)=>a-b) : [];
+      const a = [...q.answer].sort((a,b)=>a-b);
+      return s.length === a.length && s.every((v,j) => v === a[j]);
+    }
+    return sel === q.answer;
+  }).length;
   const pct   = Math.round((score / S.activeQs.length) * 100);
   const color = pct >= 80 ? '#4ADE80' : pct >= 60 ? '#FBBF24' : '#F87171';
   const msg   = pct >= 80 ? '表現優異！🎉' : pct >= 60 ? '繼續加油！' : '建議再次複習';
