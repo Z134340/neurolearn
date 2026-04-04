@@ -436,7 +436,9 @@ function initSupabase() {
       } else if (_hash.includes('access_token')) {
         window.location.hash = '';
         _supa.auth.getSession().then(({ data }) => {
-          _currentUser = data?.session?.user ?? null; updateNavUser();
+          _currentUser  = data?.session?.user ?? null;
+          _accessToken  = data?.session?.access_token ?? null;  // restore token
+          updateNavUser();
           if (_currentUser) loadCloudProgress().then(() => render());
         });
       }
@@ -2373,8 +2375,12 @@ async function forceSyncToCloud() {
     if (el) { el.textContent = text; el.style.color = color; }
   }
 
-  if (!_supa || !_currentUser || !_accessToken) {
+  if (!_supa || !_currentUser) {
     setMsg('⚠️ 請先登入帳號才能同步雲端。', '#F87171');
+    return;
+  }
+  if (!_accessToken) {
+    setMsg('⚠️ Token 尚未就緒，請重新整理頁面後再試。', '#F87171');
     return;
   }
 
