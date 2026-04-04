@@ -1,1 +1,2921 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0B0B12">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no.0">
+<title>NeuroLearn — 智能學習平台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer onerror="console.warn('[Supa] SDK load failed')"></script>
+<style>
+  :root {
+    --bg-base: #0B0B12;
+    --bg-surface: #11111A;
+    --bg-card: #181824;
+    --accent: #7B6FE0;
+    --accent-dim: rgba(123,111,224,0.1);
+    --accent-border: rgba(123,111,224,0.3);
+    --gold: #C8963E;
+    --gold-dim: rgba(200,150,62,0.1);
+    --gold-border: rgba(200,150,62,0.28);
+    --green: #4ADE80;
+    --red: #F87171;
+    --amber: #FBBF24;
+    --text-1: #E2E2EE;
+    --text-2: #8888A8;
+    --text-3: #525270;
+    --border: rgba(255,255,255,0.07);
+    --border-h: rgba(255,255,255,0.14);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'DM Sans','Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+    background:var(--bg-base);
+    color:var(--text-1);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  /* Ambient background */
+  body::before{
+    content:'';position:fixed;inset:0;
+    background:
+      radial-gradient(ellipse 70% 50% at 15% 20%, rgba(123,111,224,0.07) 0%,transparent 60%),
+      radial-gradient(ellipse 60% 50% at 85% 80%, rgba(200,150,62,0.05) 0%,transparent 60%);
+    pointer-events:none;z-index:0;
+  }
+  /* Subtle grid */
+  body::after{
+    content:'';position:fixed;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px);
+    background-size:44px 44px;
+    pointer-events:none;z-index:0;
+  }
+  h1,h2,h3,h4{font-family:'Sora',sans-serif}
+  .mono{font-family:'JetBrains Mono','Cascadia Code','Consolas',monospace}
 
+  /* ─── Navbar ─── */
+  #navbar{
+    position:fixed;top:0;left:0;right:0;height:62px;
+    background:rgba(11,11,18,0.88);
+    backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+    border-bottom:1px solid var(--border);
+    z-index:200;display:flex;align-items:center;
+    padding:0 1.75rem;justify-content:space-between;
+  }
+  .nav-logo{display:flex;align-items:center;gap:.65rem;cursor:pointer}
+  .nav-logo-icon{
+    width:32px;height:32px;border-radius:9px;
+    background:linear-gradient(135deg,#7B6FE0,#5244C2);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 14px rgba(123,111,224,.35);
+  }
+  .nav-logo-text{font-family:'Sora','Inter','Segoe UI',system-ui,-apple-system,sans-serif;font-weight:700;font-size:1.05rem;letter-spacing:-.02em}
+  .nav-links{display:flex;align-items:center;gap:.25rem}
+  .nav-link{
+    background:transparent;border:none;color:var(--text-2);
+    padding:.42rem .85rem;border-radius:8px;font-size:.83rem;
+    font-family:'DM Sans','Inter','Segoe UI',system-ui,-apple-system,sans-serif;cursor:pointer;
+    transition:all .2s ease;
+  }
+  .nav-link:hover{color:var(--text-1);background:rgba(255,255,255,.05)}
+  .nav-link.active{color:var(--accent);background:var(--accent-dim)}
+
+  /* ─── Page ─── */
+  #page-content{min-height:100vh;padding-top:62px;position:relative;z-index:1}
+  .page{animation:fadeUp .38s cubic-bezier(.4,0,.2,1)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ─── Badge ─── */
+  .badge{
+    display:inline-flex;align-items:center;gap:.25rem;
+    padding:.18rem .55rem;border-radius:999px;
+    font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  }
+  .badge-v{background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border)}
+  .badge-g{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border)}
+  .badge-gr{background:rgba(74,222,128,.08);color:var(--green);border:1px solid rgba(74,222,128,.25)}
+  .badge-r{background:rgba(248,113,113,.08);color:var(--red);border:1px solid rgba(248,113,113,.25)}
+  .badge-a{background:rgba(251,191,36,.08);color:var(--amber);border:1px solid rgba(251,191,36,.25)}
+  .badge-n{background:rgba(255,255,255,.05);color:var(--text-2);border:1px solid var(--border)}
+
+  /* ─── Buttons ─── */
+  .btn{
+    display:inline-flex;align-items:center;gap:.4rem;
+    border:none;border-radius:10px;cursor:pointer;
+    font-family:'Sora','Inter','Segoe UI',system-ui,-apple-system,sans-serif;font-weight:600;
+    font-size:.875rem;letter-spacing:.01em;transition:all .2s ease;
+    padding:.7rem 1.5rem;
+  }
+  .btn-primary{
+    background:linear-gradient(135deg,#7B6FE0,#5244C2);color:#fff;
+    box-shadow:0 2px 12px rgba(123,111,224,.25);
+  }
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(123,111,224,.4)}
+  .btn-primary:active{transform:translateY(0)}
+  .btn-primary:disabled{opacity:.38;cursor:not-allowed;transform:none;box-shadow:none}
+  .btn-ghost{
+    background:transparent;color:var(--text-2);
+    border:1px solid var(--border);font-family:'DM Sans','Inter','Segoe UI',system-ui,-apple-system,sans-serif;font-weight:500;
+  }
+  .btn-ghost:hover{border-color:var(--border-h);color:var(--text-1);background:rgba(255,255,255,.04)}
+
+  /* ─── Glass Card ─── */
+  .g-card{
+    background:rgba(24,24,36,.65);
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    border:1px solid var(--border);border-radius:18px;
+    transition:border-color .25s,box-shadow .25s,transform .3s cubic-bezier(.4,0,.2,1);
+  }
+  .g-card:hover{border-color:var(--border-h);box-shadow:0 16px 40px rgba(0,0,0,.28)}
+
+  /* ─── Nav Cards (Home) ─── */
+  .n-card{
+    background:rgba(20,20,32,.55);
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    border:1px solid var(--border);border-radius:22px;padding:2.25rem;
+    cursor:pointer;position:relative;overflow:hidden;
+    transition:all .35s cubic-bezier(.4,0,.2,1);
+  }
+  .n-card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,var(--c,#7B6FE0),transparent);
+    opacity:0;transition:opacity .3s;
+  }
+  .n-card:hover{border-color:var(--c-border,var(--accent-border));transform:translateY(-9px);box-shadow:0 28px 56px rgba(0,0,0,.45),0 0 32px var(--c-glow,rgba(123,111,224,.07))}
+  .n-card:hover::before{opacity:1}
+
+  /* ─── Progress bar ─── */
+  .pb-bg{height:3px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden}
+  .pb-fill{height:100%;background:linear-gradient(90deg,var(--accent),#9988F5);border-radius:999px;transition:width .5s ease}
+
+  /* ─── Option Buttons ─── */
+  .opt{
+    width:100%;text-align:left;
+    background:rgba(255,255,255,.025);border:1px solid var(--border);
+    border-radius:12px;padding:.9rem 1.1rem;color:var(--text-1);
+    cursor:pointer;transition:all .18s ease;
+    font-family:'DM Sans','Inter','Segoe UI',system-ui,-apple-system,sans-serif;font-size:.92rem;
+    display:flex;align-items:center;gap:.75rem;
+  }
+  .opt:hover:not(.locked){border-color:var(--accent-border);background:var(--accent-dim)}
+  .opt.sel{border-color:var(--accent);background:var(--accent-dim)}
+  .opt.correct{border-color:rgba(74,222,128,.55)!important;background:rgba(74,222,128,.07)!important;color:var(--green)}
+  .opt.wrong{border-color:rgba(248,113,113,.55)!important;background:rgba(248,113,113,.07)!important;color:var(--red)}
+  .opt.dim{opacity:.35}
+  .opt.locked{cursor:default}
+
+  /* ─── Bookmark ─── */
+  .bk-btn{
+    background:transparent;border:none;cursor:pointer;
+    color:var(--text-3);padding:.3rem;border-radius:7px;
+    transition:all .2s;display:flex;align-items:center;
+  }
+  .bk-btn:hover{color:var(--gold);background:var(--gold-dim)}
+  .bk-btn.on{color:var(--gold)}
+
+  /* ─── Drop Zone ─── */
+  .drop-zone{
+    border:2px dashed rgba(255,255,255,.12);border-radius:20px;
+    padding:3rem 2rem;text-align:center;cursor:pointer;
+    transition:all .25s ease;
+  }
+  .drop-zone:hover,.drop-zone.dv{
+    border-color:var(--accent);background:var(--accent-dim);
+  }
+
+  /* ─── Stat Card ─── */
+  .s-card{
+    background:rgba(24,24,36,.7);backdrop-filter:blur(12px);
+    border:1px solid var(--border);border-radius:16px;padding:1.4rem;
+  }
+
+  /* ─── Review card ─── */
+  .rv-card{border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .rv-hdr{
+    padding:1rem 1.2rem;cursor:pointer;
+    display:flex;align-items:center;justify-content:space-between;
+    transition:background .15s;
+  }
+  .rv-hdr:hover{background:rgba(255,255,255,.025)}
+  .rv-body{display:none;padding:0 1.2rem 1.2rem;border-top:1px solid var(--border)}
+  .rv-body.open{display:block}
+
+  /* ─── History ─── */
+  .h-row{
+    display:grid;grid-template-columns:2.5fr 1.5fr 1fr 1fr 1fr;
+    align-items:center;padding:.8rem 1.1rem;
+    border-bottom:1px solid var(--border);transition:background .15s;
+  }
+  .h-row:hover{background:rgba(255,255,255,.02)}
+  .h-row:last-child{border-bottom:none}
+
+  /* ─── Result Item ─── */
+  .r-item{
+    border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;
+    transition:all .15s;
+  }
+  .r-item.ok{border-color:rgba(74,222,128,.18);background:rgba(74,222,128,.025)}
+  .r-item.bad{border-color:rgba(248,113,113,.18);background:rgba(248,113,113,.025)}
+
+  /* ─── Gradient text ─── */
+  .grad-text{
+    background:linear-gradient(135deg,#9B8FF0 0%,#C8963E 45%,#7B6FE0 100%);
+    background-size:200% 200%;
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;
+    animation:gradShift 5s ease infinite;
+  }
+  @keyframes gradShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+  /* ─── Scrollbar ─── */
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:999px}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.18)}
+
+  .sep{height:1px;background:var(--border);margin:1.25rem 0}
+
+  /* ─── Pulse dot ─── */
+  .pulse-dot{
+    width:7px;height:7px;border-radius:50%;background:var(--green);
+    animation:pulse 2.2s ease infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+
+  /* ─── Chart canvas ─── */
+  #scoreChart{max-height:200px}
+
+  /* ─── Score ring ─── */
+  .score-ring{position:relative;display:inline-flex;align-items:center;justify-content:center}
+
+  @media(max-width:640px){
+    #navbar{height:52px;padding:0 .75rem;gap:.4rem}
+    #page-content{padding-top:52px}
+    .nav-logo-text{font-size:.82rem}
+    .nav-logo-icon{width:26px;height:26px;border-radius:6px}
+    .nav-link{padding:.32rem .38rem;font-size:.7rem}
+    .nav-links{gap:0;flex-shrink:1}
+    .page{animation:none}
+    .g-card{border-radius:14px}
+    .btn{min-height:44px}
+  }
+  @media(max-width:400px){
+    .nav-link-text{display:none}
+    .nav-link{padding:.32rem .45rem}
+    #navbar{padding:0 .6rem;gap:.3rem}
+  }
+  @media(hover:hover){.btn:hover{opacity:.82}}
+  @media(hover:none){.btn:active{opacity:.82}}
+  #page-content{padding-bottom:env(safe-area-inset-bottom,0px)}
+</style>
+</head>
+<body>
+
+<!-- ════ NAVBAR ════ -->
+<nav id="navbar">
+  <div class="nav-logo" onclick="navigate('home')">
+    <div class="nav-logo-icon">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5M2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <span class="nav-logo-text">NeuroLearn</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:.5rem;">
+    <div class="nav-links">
+    <button class="nav-link" id="nl-home"   onclick="navigate('home')">首頁</button>
+    <button class="nav-link" id="nl-data"   onclick="navigate('datasets')">資料集</button>
+    <button class="nav-link" id="nl-quiz"   onclick="navigate('quiz')">模擬考</button>
+    <button class="nav-link" id="nl-dash"   onclick="navigate('dashboard')">儀表板</button>
+  </div>
+    <div id="nav-user-area" style="display:flex;align-items:center;gap:.3rem;margin-left:.3rem;flex-shrink:0;">
+      <button onclick="navigate('login')" class="btn btn-primary" style="font-size:.72rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>
+    </div>
+  </div>
+</nav>
+
+<main id="page-content"></main>
+
+<script>
+
+const SUPA_URL = 'https://rmqlwzjlvpowqwgwiegg.supabase.co';
+const SUPA_KEY = 'sb_publishable_A3vHSsoyjb_KMZDUbCNHdQ_hs0O87su';
+let _supa = null;
+let _currentUser = null;
+let _cloudSyncTimer = null;
+
+const STORAGE_KEY_BASE = 'neurolearn_v2';
+function getStorageKey() {
+  return _currentUser ? STORAGE_KEY_BASE + '_' + _currentUser.id : STORAGE_KEY_BASE;
+}
+
+function resetState() {
+  S.quizMode = 'menu'; S.currentQ = 0; S.answers = [];
+  S.quizConfig = null; S.quizSetup = null; S.activeQs = [];
+  S.browseSrc = null; S.importMsg = null; S.editingTagFid = null; S.chart = null;
+  S.bookmarks = new Set(); S.wrongQs = new Set(); S.usedQIds = new Set();
+  S.history = []; S.files = []; S.extraQs = []; S.nextFid = 4;
+  S.dashTag = null; S.tagFilter = null; S.page = 'home';
+}
+
+async function syncToCloud() {
+  if (!_supa || !_currentUser) return;
+
+  // Get current auth token from Supabase SDK
+  const { data: { session } } = await _supa.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error('登入已過期，請重新登入。');
+
+  const payload = {
+    user_id: _currentUser.id,
+    data: {
+      history:   S.history,
+      bookmarks: [...S.bookmarks],
+      wrongQs:   [...S.wrongQs],
+      usedQIds:  [...S.usedQIds],
+      files:     S.files.map(({ _file, ...f }) => f),
+      extraQs:   S.extraQs,
+      dashTag:   S.dashTag,
+      tagFilter: S.tagFilter,
+    },
+    updated_at: new Date().toISOString(),
+  };
+
+  // Use native fetch() with AbortController — supports real timeout
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25000); // 25s hard timeout
+
+  let res;
+  try {
+    res = await fetch(
+      SUPA_URL + '/rest/v1/user_progress?on_conflict=user_id',
+      {
+        method:  'POST',
+        signal:  controller.signal,
+        headers: {
+          'Content-Type':  'application/json',
+          'apikey':        SUPA_KEY,
+          'Authorization': 'Bearer ' + token,
+          'Prefer':        'resolution=merge-duplicates',
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (!res.ok) {
+    let errMsg = 'HTTP ' + res.status;
+    try { const j = await res.json(); errMsg = j.message || j.error || errMsg; } catch(_) {}
+    throw new Error('Supabase 錯誤：' + errMsg);
+  }
+  console.log('[Supa] Synced ✓ status:', res.status);
+}
+
+async function loadCloudProgress() {
+  if (!_supa || !_currentUser) return;
+  try {
+    const { data, error } = await _supa.from('user_progress').select('data').eq('user_id', _currentUser.id).maybeSingle();
+    if (error || !data) return;
+    const d = data.data; if (!d) return;
+    if (Array.isArray(d.history))   S.history   = d.history;
+    if (Array.isArray(d.bookmarks)) S.bookmarks = new Set(d.bookmarks.map(String));
+    if (Array.isArray(d.wrongQs))   S.wrongQs   = new Set(d.wrongQs.map(String));
+    if (Array.isArray(d.usedQIds))  S.usedQIds  = new Set(d.usedQIds.map(String));
+    if (Array.isArray(d.files))     S.files     = d.files;
+    if (Array.isArray(d.extraQs))   S.extraQs   = d.extraQs;
+    if (d.dashTag !== undefined)    S.dashTag   = d.dashTag;
+    if (d.tagFilter !== undefined)  S.tagFilter = d.tagFilter;
+    if (S.files.length > 0) S.nextFid = Math.max(...S.files.map(f => f.id + 1));
+    saveToStorage();
+    console.log('[Supa] Cloud progress loaded.');
+  } catch(e) { console.warn('[Supa] loadCloudProgress error:', e); }
+}
+
+function scheduleSyncToCloud() {
+  clearTimeout(_cloudSyncTimer);
+  _cloudSyncTimer = setTimeout(() => syncToCloud().catch(e => console.warn('[Supa] background sync error:', e.message || e)), 2000);
+}
+
+function updateNavUser() {
+  const el = document.getElementById('nav-user-area');
+  if (!el) return;
+  if (_currentUser) {
+    const name = (_currentUser.email||'').split('@')[0];
+    el.innerHTML =
+      '<span style="font-size:.74rem;color:var(--text-2);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + _currentUser.email + '">' + name + '</span>' +
+      '<button onclick="signOut()" class="btn btn-ghost" style="font-size:.72rem;padding:.28rem .55rem;min-height:0;touch-action:manipulation;">登出</button>';
+  } else {
+    el.innerHTML = '<button onclick="navigate(\'login\')" class="btn btn-primary" style="font-size:.72rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>';
+  }
+}
+
+function initSupabase() {
+  if (typeof supabase === 'undefined') { updateNavUser(); return; }
+  if (!SUPA_URL || SUPA_URL === 'YOUR_SUPABASE_URL') { updateNavUser(); return; }
+  try {
+    _supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+    _supa.auth.onAuthStateChange(async (event, session) => {
+      const prev = _currentUser;
+      _currentUser = session?.user ?? null;
+      updateNavUser();
+      if (event === 'SIGNED_IN' && !prev) {
+        resetState(); loadFromStorage(); await loadCloudProgress(); render();
+      }
+      if (event === 'SIGNED_OUT') {
+        resetState(); loadFromStorage(); render();
+      }
+    });
+    const _hash = window.location.hash;
+    if (_hash && (_hash.includes('access_token') || _hash.includes('error'))) {
+      if (_hash.includes('otp_expired') || _hash.includes('access_denied')) {
+        window.location.hash = '';
+        S.page = 'login'; render();
+        setTimeout(() => { const m=document.getElementById('auth-msg'); if(m){ m.style.color='#F87171'; m.textContent='驗證連結已過期，請重寄驗證信。'; } }, 100);
+      } else if (_hash.includes('access_token')) {
+        window.location.hash = '';
+        _supa.auth.getSession().then(({ data }) => {
+          _currentUser = data?.session?.user ?? null; updateNavUser();
+          if (_currentUser) loadCloudProgress().then(() => render());
+        });
+      }
+    } else {
+      _supa.auth.getSession().then(({ data }) => {
+        _currentUser = data?.session?.user ?? null; updateNavUser();
+        if (_currentUser) loadCloudProgress().then(() => render());
+      });
+    }
+  } catch(e) { console.warn('[Supa] init failed:', e); }
+}
+
+async function authSignIn(email, pw) {
+  if (!_supa) throw new Error('Supabase 未連線');
+  const { error } = await _supa.auth.signInWithPassword({ email, password: pw });
+  if (error) throw error;
+}
+
+async function authSignUp(email, pw) {
+  if (!_supa) throw new Error('Supabase 未連線');
+  const { error } = await _supa.auth.signUp({ email, password: pw, options: { emailRedirectTo: 'https://z134340.github.io/neurolearn/' } });
+  if (error) throw error;
+}
+
+async function sendPasswordReset(email) {
+  if (!_supa) throw new Error('Supabase 未初始化。');
+  const { error } = await _supa.auth.resetPasswordForEmail(email, { redirectTo: 'https://z134340.github.io/neurolearn/' });
+  if (error) throw error;
+}
+
+async function doSignIn() {
+  const email = (document.getElementById('auth-email')?.value||'').trim();
+  const pw    = document.getElementById('auth-pw')?.value||'';
+  const msg   = document.getElementById('auth-msg');
+  if (!email||!pw) { if(msg){ msg.style.color='#F87171'; msg.textContent='請填寫 Email 和密碼。'; } return; }
+  if (msg) { msg.style.color='var(--text-3)'; msg.textContent='登入中…'; }
+  try {
+    await authSignIn(email, pw); navigate('home');
+  } catch(e) {
+    if (msg) {
+      const errMsg = (e.message||'').toLowerCase();
+      if (errMsg.includes('invalid login credentials')||errMsg.includes('invalid credentials')) {
+        msg.innerHTML = '登入失敗：帳號密碼錯誤，或 <b>Email 尚未驗證</b>。<br><span style="font-size:.78rem;color:var(--text-3);">請點下方「重寄驗證信」。</span>';
+      } else { msg.textContent = e.message||'登入失敗'; }
+      msg.style.color = '#F87171';
+    }
+  }
+}
+
+async function doSignUp() {
+  const email = (document.getElementById('auth-email')?.value||'').trim();
+  const pw    = document.getElementById('auth-pw')?.value||'';
+  const msg   = document.getElementById('auth-msg');
+  if (!email||!pw) { if(msg){ msg.style.color='#F87171'; msg.textContent='請填寫 Email 和密碼。'; } return; }
+  if (pw.length < 6) { if(msg){ msg.style.color='#F87171'; msg.textContent='密碼至少 6 個字元。'; } return; }
+  if (msg) { msg.style.color='var(--text-3)'; msg.textContent='註冊中…'; }
+  try {
+    await authSignUp(email, pw);
+    if (msg) { msg.style.color='#4ADE80'; msg.textContent='✅ 註冊成功！請至信箱點擊驗證連結（60 分鐘內有效）。'; }
+  } catch(e) {
+    if (msg) { msg.style.color='#F87171'; msg.textContent = e.message||'註冊失敗'; }
+  }
+}
+
+function showResetForm() {
+  const pwg=document.getElementById('pw-group'); if(pwg) pwg.style.display='none';
+  const msg=document.getElementById('auth-msg'); if(msg){ msg.style.color='var(--text-2)'; msg.textContent='輸入 Email，寄送密碼重設連結。'; }
+  const si=document.getElementById('btn-signin'); if(si){ si.textContent='寄送重設連結'; si.onclick=doReset; }
+  const su=document.getElementById('btn-signup'); if(su){ su.textContent='取消'; su.onclick=()=>navigate('login'); }
+}
+
+function showResendForm() {
+  const pwg=document.getElementById('pw-group'); if(pwg) pwg.style.display='none';
+  const msg=document.getElementById('auth-msg'); if(msg){ msg.style.color='var(--text-2)'; msg.textContent='輸入 Email，重寄驗證信。'; }
+  const si=document.getElementById('btn-signin'); if(si){ si.textContent='重寄驗證信'; si.onclick=doResend; }
+  const su=document.getElementById('btn-signup'); if(su){ su.textContent='取消'; su.onclick=()=>navigate('login'); }
+}
+
+async function doReset() {
+  const email=(document.getElementById('auth-email')?.value||'').trim();
+  const msg=document.getElementById('auth-msg');
+  if (!email){ if(msg){ msg.style.color='#F87171'; msg.textContent='請填寫 Email。'; } return; }
+  try { await sendPasswordReset(email); if(msg){ msg.style.color='#4ADE80'; msg.textContent='✅ 重設連結已寄出，請查收。'; } }
+  catch(e){ if(msg){ msg.style.color='#F87171'; msg.textContent=e.message; } }
+}
+
+async function doResend() {
+  const email=(document.getElementById('auth-email')?.value||'').trim();
+  const msg=document.getElementById('auth-msg');
+  if (!email||!_supa){ if(msg){ msg.style.color='#F87171'; msg.textContent='請填寫 Email。'; } return; }
+  try {
+    const { error }=await _supa.auth.resend({ type:'signup', email, options:{ emailRedirectTo:'https://z134340.github.io/neurolearn/' } });
+    if (error) throw error;
+    if(msg){ msg.style.color='#4ADE80'; msg.textContent='✅ 驗證信已重寄，請查收。'; }
+  } catch(e){ if(msg){ msg.style.color='#F87171'; msg.textContent=e.message; } }
+}
+
+async function signOut() {
+  resetState(); _currentUser=null; updateNavUser();
+  if (_supa) await _supa.auth.signOut();
+  render();
+}
+
+function loginPageHTML() {
+  if (_currentUser) {
+    return `<div class="page" style="max-width:480px;margin:0 auto;padding:clamp(1.5rem,5vw,3rem) clamp(1rem,4vw,1.5rem);">
+      <div class="g-card" style="padding:1.75rem;">
+        <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:1rem;">帳號</p>
+        <p style="color:var(--text-1);margin-bottom:.5rem;">\${_currentUser.email}</p>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.25rem;">
+          <button onclick="syncToCloud()" class="btn btn-ghost" style="flex:1;">☁️ 立即同步</button>
+          <button onclick="signOut()" class="btn btn-ghost" style="flex:1;">登出</button>
+        </div>
+      </div></div>`;
+  }
+  return `<div class="page" style="max-width:480px;margin:0 auto;padding:clamp(1.5rem,5vw,3rem) clamp(1rem,4vw,1.5rem);">
+    <div class="g-card" style="padding:1.75rem;">
+      <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:1.25rem;">登入 / 註冊</p>
+      <div style="display:flex;flex-direction:column;gap:.75rem;">
+        <input id="auth-email" type="email" placeholder="Email" autocomplete="email"
+          style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;color:var(--text-1);font-size:.9rem;outline:none;width:100%;box-sizing:border-box;">
+        <div id="pw-group">
+          <input id="auth-pw" type="password" placeholder="密碼（至少 6 字元）"
+            style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;color:var(--text-1);font-size:.9rem;outline:none;width:100%;box-sizing:border-box;">
+        </div>
+        <div id="auth-msg" style="font-size:.82rem;min-height:1.5em;"></div>
+        <div style="display:flex;gap:.6rem;">
+          <button id="btn-signin" onclick="doSignIn()" class="btn btn-primary" style="flex:1;touch-action:manipulation;">登入</button>
+          <button id="btn-signup" onclick="doSignUp()" class="btn btn-ghost" style="flex:1;touch-action:manipulation;">註冊</button>
+        </div>
+        <div style="text-align:center;border-top:1px solid var(--border);padding-top:.85rem;display:flex;justify-content:center;gap:1.2rem;flex-wrap:wrap;">
+          <button onclick="showResetForm()" style="font-size:.75rem;color:var(--text-3);background:none;border:none;cursor:pointer;touch-action:manipulation;">忘記密碼？</button>
+          <span style="color:var(--border);">|</span>
+          <button onclick="showResendForm()" style="font-size:.75rem;color:var(--text-3);background:none;border:none;cursor:pointer;touch-action:manipulation;">重寄驗證信？</button>
+        </div>
+      </div>
+    </div></div>`;
+}
+
+/* ── Multi/single answer comparison helpers ── */
+function isCorrectAnswer(q, selected) {
+  if (q.isMulti) {
+    const s = Array.isArray(selected) ? [...selected].sort((a,b)=>a-b) : [];
+    const a = [...q.answer].sort((a,b)=>a-b);
+    return s.length === a.length && s.every((v,j) => v === a[j]);
+  }
+  return selected === q.answer;
+}
+function correctSet(q) {
+  return q.isMulti ? new Set(q.answer) : new Set([q.answer]);
+}
+function correctAnswerLabel(q) {
+  const ANS = ['A','B','C','D','E'];
+  if (q.isMulti) return [...q.answer].sort((a,b)=>a-b).map(i => ANS[i]+'. '+q.options[i]).join('、');
+  return q.options[q.answer] || '';
+}
+
+function exportProgress() {
+  const payload = {
+    _version:1, _app:'NeuroLearn', _exported:new Date().toISOString(),
+    bookmarks:[...S.bookmarks], wrongQs:[...S.wrongQs], usedQIds:[...S.usedQIds],
+    history:S.history, files:S.files.map(function(f){var c={};Object.assign(c,f);delete c._file;return c;}),
+    extraQs:S.extraQs, dashTag:S.dashTag, tagFilter:S.tagFilter,
+  };
+  var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='NeuroLearn_'+new Date().toLocaleDateString('zh-TW').replace(/\//g,'-')+'.json';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+function importProgress(input) {
+  var file=input.files[0]; if(!file) return;
+  var msg=document.getElementById('backup-msg');
+  function setMsg(t,ok){ if(!msg) return; msg.textContent=t; msg.style.color=ok?'#4ADE80':'#F87171'; }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try {
+      var d=JSON.parse(e.target.result);
+      if(!d||d._app!=='NeuroLearn'){ setMsg('無效備份檔案',false); return; }
+      if(d._version!==1){ setMsg('版本不相容',false); return; }
+      if(Array.isArray(d.bookmarks)) S.bookmarks=new Set(d.bookmarks.map(String));
+      if(Array.isArray(d.wrongQs))   S.wrongQs=new Set(d.wrongQs.map(String));
+      if(Array.isArray(d.usedQIds))  S.usedQIds=new Set(d.usedQIds.map(String));
+      if(Array.isArray(d.history))   S.history=d.history;
+      if(Array.isArray(d.files))     S.files=d.files;
+      if(Array.isArray(d.extraQs))   S.extraQs=d.extraQs;
+      if(d.dashTag!==undefined)      S.dashTag=d.dashTag;
+      if(d.tagFilter!==undefined)    S.tagFilter=d.tagFilter;
+      saveToStorage(); scheduleSyncToCloud();
+      var bk=S.bookmarks.size,wr=S.wrongQs.size,hi=S.history.length;
+      setMsg('✅ 匯入成功：'+hi+' 筆紀錄、'+bk+' 書籤、'+wr+' 錯題',true);
+      setTimeout(function(){render();},1500);
+    } catch(err){ setMsg('解析失敗：'+err.message,false); }
+    input.value='';
+  };
+  reader.readAsText(file);
+}
+
+
+const QUESTIONS = []; // 題庫由使用者上傳（CSV/XLSX）
+
+const MOCK_FILES = [];
+
+const MOCK_HISTORY = [];
+
+/* ╔══════════════════════════════════╗
+   ║             STATE                ║
+   ╚══════════════════════════════════╝ */
+const S = {
+  page:      'home',
+  quizMode:       'menu',   // menu | active | result | review
+  currentQ:       0,
+  answers:        [],       // [{selected:null|number, confirmed:bool}]
+  bookmarks:      new Set(),
+  quizConfig:     null,     // {mode:'new'|'review'|'wrong', cats:Set, count:number}
+  quizSetup:      null,     // {step:'cats'|'mode'|'count', cats:Set, mode:null, count:0}
+  activeQs:       [],       // questions for current session
+  extraQs:        [],       // questions imported from CSV/XLSX uploads
+  wrongQs:        new Set(), // question IDs answered incorrectly
+  browseSrc:      null,     // {mode, cats} saved when entering browse mode
+  usedQIds:       new Set(), // question IDs already drawn (per-tag no-repeat)
+  importMsg:      null,     // transient import status message
+  dashTag:        null,     // selected tag filter in dashboard
+  history:   JSON.parse(JSON.stringify(MOCK_HISTORY)),
+  files:     JSON.parse(JSON.stringify(MOCK_FILES)),
+  nextFid:        4,
+  editingTagFid:  null,
+  tagFilter:      null,
+  chart:          null,
+};
+
+/* ╔══════════════════════════════════╗
+   ║          NAVIGATION              ║
+   ╚══════════════════════════════════╝ */
+function navigate(page) {
+  S.page = page;
+  if (page === 'quiz') { S.quizMode = 'menu'; S.quizConfig = null; S.quizSetup = null; }
+  render();
+}
+
+function setActiveNav(page) {
+  ['home','data','quiz','dash'].forEach(id => {
+    document.getElementById('nl-'+id)?.classList.remove('active');
+  });
+  const map = {home:'home',datasets:'data',quiz:'quiz',dashboard:'dash'};
+  document.getElementById('nl-'+(map[page]||'home'))?.classList.add('active');
+}
+
+/* ╔══════════════════════════════════╗
+   ║           MASTER RENDER          ║
+   ╚══════════════════════════════════╝ */
+function render() {
+  // Debounced auto-save after every render
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(saveToStorage, 600);
+
+  const c = document.getElementById('page-content');
+  setActiveNav(S.page);
+  switch(S.page) {
+    case 'home':      c.innerHTML = homeHTML();       break;
+    case 'datasets':  c.innerHTML = datasetsHTML();   setTimeout(bindDataset, 0); break;
+    case 'quiz':
+      try { c.innerHTML = quizHTML(); }
+      catch(err) {
+        console.error('[NeuroLearn] render error:', err);
+        c.innerHTML = '<div style="padding:2rem;color:#F87171;font-size:.85rem;"><b>Render error:</b><br>' + err.message + '</div>';
+      }
+      break;
+    case 'login':     c.innerHTML = loginPageHTML();   break;
+    case 'dashboard': c.innerHTML = dashHTML();       setTimeout(initChart, 80); break;
+  }
+}
+
+/* ╔══════════════════════════════════╗
+   ║           HOME PAGE              ║
+   ╚══════════════════════════════════╝ */
+function homeHTML() {
+  return `
+  <div class="page" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 1.5rem 4rem;">
+
+    <!-- Hero -->
+    <div style="text-align:center;margin-bottom:5rem;max-width:660px;">
+      <div style="display:flex;align-items:center;justify-content:center;gap:.55rem;margin-bottom:1.6rem;">
+        <div class="pulse-dot"></div>
+        <span class="badge badge-v">Beta · AI 學習平台</span>
+      </div>
+      <h1 style="font-size:clamp(2.6rem,7vw,4.1rem);font-weight:800;letter-spacing:-.045em;line-height:1.08;margin-bottom:1.3rem;">
+        <span style="color:var(--text-1)">智能學習，</span><br>
+        <span class="grad-text">從教材到考題</span>
+      </h1>
+      <p style="font-size:1.05rem;color:var(--text-2);line-height:1.75;font-weight:300;max-width:500px;margin:0 auto;">
+        上傳您的學習教材，由 AI 智能萃取考題核心，<br>即時生成個人化測驗，精準追蹤學習成效。
+      </p>
+    </div>
+
+    <!-- Cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:1.4rem;max-width:870px;width:100%;">
+
+      <div class="n-card" onclick="navigate('datasets')" style="--c:#7B6FE0;--c-border:rgba(123,111,224,.3);--c-glow:rgba(123,111,224,.08)">
+        <div style="display:flex;align-items:center;gap:.9rem;margin-bottom:1.6rem;">
+          <div style="width:50px;height:50px;border-radius:13px;background:rgba(123,111,224,.14);border:1px solid rgba(123,111,224,.25);display:flex;align-items:center;justify-content:center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7B6FE0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+            </svg>
+          </div>
+          <div>
+            <div class="badge badge-v" style="margin-bottom:.2rem">Step 01</div>
+            <div style="font-size:.7rem;color:var(--text-3);letter-spacing:.04em">Datasets</div>
+          </div>
+        </div>
+        <h3 style="font-size:1.25rem;font-weight:700;letter-spacing:-.025em;margin-bottom:.55rem;">訓練資料集</h3>
+        <p style="color:var(--text-2);font-size:.86rem;line-height:1.68;">上傳 PDF、Word 或 CSV 教材，AI 自動萃取知識架構與核心考點。</p>
+        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--accent);font-size:.83rem;font-weight:600;">
+          <span>前往上傳</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+      </div>
+
+      <div class="n-card" onclick="navigate('quiz')" style="--c:#C8963E;--c-border:rgba(200,150,62,.3);--c-glow:rgba(200,150,62,.07)">
+        <div style="display:flex;align-items:center;gap:.9rem;margin-bottom:1.6rem;">
+          <div style="width:50px;height:50px;border-radius:13px;background:rgba(200,150,62,.12);border:1px solid rgba(200,150,62,.25);display:flex;align-items:center;justify-content:center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C8963E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div>
+            <div class="badge badge-g" style="margin-bottom:.2rem">Step 02</div>
+            <div style="font-size:.7rem;color:var(--text-3);letter-spacing:.04em">Simulations</div>
+          </div>
+        </div>
+        <h3 style="font-size:1.25rem;font-weight:700;letter-spacing:-.025em;margin-bottom:.55rem;">智能模擬考</h3>
+        <p style="color:var(--text-2);font-size:.86rem;line-height:1.68;">即時生成個人化選擇題，標記不確定題目，完成後提供詳細解析。</p>
+        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--gold);font-size:.83rem;font-weight:600;">
+          <span>開始測驗</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+      </div>
+
+      <div class="n-card" onclick="navigate('dashboard')" style="--c:#4ADE80;--c-border:rgba(74,222,128,.25);--c-glow:rgba(74,222,128,.06)">
+        <div style="display:flex;align-items:center;gap:.9rem;margin-bottom:1.6rem;">
+          <div style="width:50px;height:50px;border-radius:13px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.2);display:flex;align-items:center;justify-content:center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+          </div>
+          <div>
+            <div class="badge badge-gr" style="margin-bottom:.2rem">Step 03</div>
+            <div style="font-size:.7rem;color:var(--text-3);letter-spacing:.04em">Dashboard</div>
+          </div>
+        </div>
+        <h3 style="font-size:1.25rem;font-weight:700;letter-spacing:-.025em;margin-bottom:.55rem;">學習儀表板</h3>
+        <p style="color:var(--text-2);font-size:.86rem;line-height:1.68;">視覺化追蹤整體答對率、各次測驗成效與學習趨勢曲線。</p>
+        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--green);font-size:.83rem;font-weight:600;">
+          <span>查看成效</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <p style="margin-top:3.5rem;color:var(--text-3);font-size:.78rem;letter-spacing:.02em;">
+      目前測驗主題：AIF 
+    </p>
+  </div>`;
+}
+
+/* ╔══════════════════════════════════╗
+   ║          DATASETS PAGE           ║
+   ╚══════════════════════════════════╝ */
+const FT = {
+  pdf:  {emoji:'📄', color:'#F87171', bg:'rgba(248,113,113,.1)',  border:'rgba(248,113,113,.25)'},
+  docx: {emoji:'📝', color:'#60A5FA', bg:'rgba(96,165,250,.1)',   border:'rgba(96,165,250,.25)'},
+  csv:  {emoji:'📊', color:'#4ADE80', bg:'rgba(74,222,128,.1)',   border:'rgba(74,222,128,.25)'},
+};
+
+/* ── Single file card HTML (extracted for targeted refresh) ── */
+function fileCardHTML(f) {
+  const t    = FT[f.type] || {emoji:'📎',color:'var(--text-2)',bg:'rgba(255,255,255,.05)',border:'var(--border)'};
+  const isImportable = ['csv','xlsx'].includes(f.type);
+  const isAIPending  = ['pdf','docx'].includes(f.type);
+
+  const badge = f.status === 'ready'
+    ? `<span class="badge badge-gr">✓ 就緒</span>`
+    : `<span class="badge badge-a">⏳ 處理中</span>`;
+
+  const tagChips = (f.tags||[]).map(tag => {
+    const tc = tagColor(tag);
+    return `<span style="display:inline-flex;align-items:center;gap:.22rem;background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .48rem .1rem .52rem;font-size:.68rem;font-weight:600;letter-spacing:.01em;">
+      ${tag}
+      <span data-fid="${f.id}" data-tag="${tag.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();removeTag(+this.dataset.fid,this.dataset.tag)" style="cursor:pointer;opacity:.6;font-size:.75rem;line-height:1;margin-left:.05rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.6'">×</span>
+    </span>`;
+  }).join('');
+
+  const addBtn = (f.tags||[]).length < 5 ? `
+    <button onclick="event.stopPropagation();toggleTagEdit(${f.id})"
+      style="background:transparent;border:1px dashed ${S.editingTagFid===f.id?'var(--accent)':'var(--border)'};color:${S.editingTagFid===f.id?'var(--accent)':'var(--text-3)'};border-radius:20px;padding:.1rem .42rem;font-size:.67rem;cursor:pointer;display:inline-flex;align-items:center;gap:.2rem;transition:all .15s;"
+      onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+      onmouseout="this.style.borderColor='${S.editingTagFid===f.id?'var(--accent)':'var(--border)'}';this.style.color='${S.editingTagFid===f.id?'var(--accent)':'var(--text-3)'}'">
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      貼標
+    </button>` : '';
+
+  const allUsedTags = [...new Set(S.files.flatMap(x => x.tags||[]))];
+  const unusedPresets = allUsedTags.filter(p => !(f.tags||[]).includes(p));
+
+  const editPanel = S.editingTagFid === f.id ? `
+    <div style="margin-top:.65rem;padding:.75rem .85rem;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:10px;">
+      <div style="display:flex;gap:.45rem;margin-bottom:.55rem;">
+        <input id="tagInp-${f.id}" type="text" placeholder="輸入標籤名稱（最多10字）…" maxlength="10"
+          style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:.3rem .6rem;font-size:.78rem;color:var(--text-1);outline:none;font-family:inherit;transition:border-color .15s;"
+          onkeydown="if(event.key==='Enter'){addTag(${f.id},this.value)}"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        <button onclick="addTag(${f.id},document.getElementById('tagInp-${f.id}').value)"
+          style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.3rem .75rem;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;">確認</button>
+        <button onclick="toggleTagEdit(${f.id})"
+          style="background:transparent;border:1px solid var(--border);color:var(--text-3);border-radius:8px;padding:.3rem .55rem;font-size:.78rem;cursor:pointer;">取消</button>
+      </div>
+      ${unusedPresets.length > 0 ? `
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;">
+        <span style="font-size:.66rem;color:var(--text-3);margin-right:.15rem;">已用標籤：</span>
+        ${unusedPresets.map(p => {
+          const tc = tagColor(p);
+          return `<span onclick="addTag(${f.id},'${p}')"
+            style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;transition:opacity .15s;"
+            onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">${p}</span>`;
+        }).join('')}
+      </div>` : `<span style="font-size:.7rem;color:var(--text-3);">輸入新標籤後按確認即可新增</span>`}
+    </div>` : '';
+
+  const actionArea = f.importing
+    ? `<span style="font-size:.72rem;color:var(--accent);">⏳ 解析中…</span>`
+    : f.imported > 0
+      ? `<span style="font-size:.72rem;color:#4ADE80;font-weight:600;">✓ ${f.imported} 題</span>`
+      : isImportable && f.status === 'ready'
+        ? `<span style="font-size:.7rem;color:var(--text-3);font-style:italic;">等待匯入…</span>`
+        : isAIPending && f.status === 'ready'
+          ? `<span style="background:rgba(123,111,224,.12);color:var(--accent);border:1px solid var(--accent-border);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:600;">AI 待串接</span>`
+          : '';
+
+  return `
+  <div class="g-card" id="fcard-${f.id}" style="padding:1rem 1.2rem;margin-bottom:.65rem;cursor:default;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <div style="width:38px;height:38px;border-radius:10px;background:${t.bg};border:1px solid ${t.border};display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">${t.emoji}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.9rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
+        <div style="display:flex;gap:.6rem;margin-top:.2rem;">
+          <span style="font-size:.72rem;color:var(--text-3)">${f.size}</span>
+          <span style="color:var(--text-3)">·</span>
+          <span style="font-size:.72rem;color:var(--text-3)">${f.date}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.55rem;flex-shrink:0;">
+        ${badge}
+        ${actionArea}
+        <button onclick="removeFile(${f.id})" style="background:transparent;border:none;color:var(--text-3);cursor:pointer;display:flex;align-items:center;padding:.2rem;border-radius:6px;transition:color .15s" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-3)'" title="移除">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:.32rem;margin-top:.6rem;align-items:center;min-height:1.5rem;">
+      ${tagChips}
+      ${addBtn}
+    </div>
+    ${editPanel}
+  </div>`;
+}
+
+/* ── Targeted card refresh (no full-page re-render) ── */
+function refreshCard(fid) {
+  const el = document.getElementById('fcard-'+fid);
+  const f  = S.files.find(x=>x.id===fid);
+  if (!el || !f) { if(S.page==='datasets') render(); return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = fileCardHTML(f);
+  el.replaceWith(tmp.firstElementChild);
+  // Re-focus tag input if editing
+  if (S.editingTagFid === fid) {
+    const inp = document.getElementById('tagInp-'+fid);
+    if (inp) inp.focus();
+  }
+}
+
+/* Also refresh filter bar (tags may have changed) */
+function refreshFilterBar() {
+  const fb = document.getElementById('tag-filter-bar');
+  if (!fb) return;
+  const allTags = [...new Set(S.files.flatMap(f=>f.tags||[]))];
+  if (!allTags.length) { fb.style.display='none'; return; }
+  fb.style.display='flex';
+  fb.innerHTML = `
+    <span style="font-size:.7rem;color:var(--text-3);font-weight:600;letter-spacing:.04em;margin-right:.1rem;">篩選：</span>
+    <span onclick="setTagFilter(null)" style="background:${!S.tagFilter?'var(--accent)':'rgba(255,255,255,.06)'};color:${!S.tagFilter?'#fff':'var(--text-2)'};border:1px solid ${!S.tagFilter?'var(--accent)':'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">全部</span>
+    ${allTags.map(tag=>{const tc=tagColor(tag);const active=S.tagFilter===tag;return `<span data-tag="${tag.replace(/"/g,'&quot;')}" onclick="setTagFilter(this.dataset.tag)" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`;}).join('')}`;
+}
+
+function datasetsHTML() {
+  const allTags      = [...new Set(S.files.flatMap(f => f.tags || []))];
+  const displayFiles = S.tagFilter ? S.files.filter(f => (f.tags||[]).includes(S.tagFilter)) : S.files;
+  const filesHTML    = displayFiles.map(f => fileCardHTML(f)).join('');
+  const importedTotal = S.extraQs.length;
+
+  return `
+  <div class="page" style="max-width:720px;margin:0 auto;padding:3rem 1.5rem;">
+    <!-- Header -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2rem;gap:1rem;flex-wrap:wrap;">
+      <div>
+        <div class="badge badge-v" style="margin-bottom:.7rem">訓練資料集</div>
+        <h2 style="font-size:1.8rem;font-weight:700;letter-spacing:-.035em;margin-bottom:.4rem;">上傳教材</h2>
+        <p style="color:var(--text-2);font-size:.88rem;">已匯入 <span style="color:var(--accent);font-weight:600;">${importedTotal}</span> 題可供模擬考使用</p>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;flex-shrink:0;">
+        <button onclick="downloadTemplate()"
+          style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(123,111,224,.12);border:1px solid var(--accent-border);color:var(--accent);border-radius:10px;padding:.55rem 1rem;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .18s;"
+          onmouseover="this.style.background='rgba(123,111,224,.22)'" onmouseout="this.style.background='rgba(123,111,224,.12)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          下載題目匯入範本
+        </button>
+        <button onclick="clearAllData()"
+          style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:#F87171;border-radius:10px;padding:.55rem 1rem;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .18s;"
+          onmouseover="this.style.background='rgba(248,113,113,.18)'" onmouseout="this.style.background='rgba(248,113,113,.08)'" title="清除所有本機儲存資料">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          清除所有資料
+        </button>
+      </div>
+    </div>
+
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" style="display:none" multiple accept=".pdf,.docx,.csv,.xlsx" onchange="handleFileSelect(this.files)">
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.5" style="margin:0 auto .9rem;">
+        <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+        <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+      </svg>
+      <p style="font-size:.95rem;font-weight:500;margin-bottom:.3rem;">拖曳檔案至此，或點擊選取</p>
+      <p style="font-size:.76rem;color:var(--text-3)">CSV · XLSX 自動解析成題庫 &nbsp;|&nbsp; PDF · DOCX 保留 AI 串接端口</p>
+      <div style="display:flex;justify-content:center;gap:.4rem;margin-top:1rem;flex-wrap:wrap;">
+        <span style="background:rgba(74,222,128,.1);color:#4ADE80;border:1px solid rgba(74,222,128,.28);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:700">CSV ✓ 自動匯入</span>
+        <span style="background:rgba(96,165,250,.1);color:#60A5FA;border:1px solid rgba(96,165,250,.28);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:700">XLSX ✓ 自動匯入</span>
+        <span style="background:rgba(248,113,113,.08);color:#F87171;border:1px solid rgba(248,113,113,.22);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:700">PDF AI端口</span>
+        <span style="background:rgba(251,146,60,.08);color:#FB923C;border:1px solid rgba(251,146,60,.22);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:700">DOCX AI端口</span>
+      </div>
+    </div>
+
+    <!-- Format guide -->
+    <div style="margin-top:.85rem;padding:.85rem 1rem;border-radius:10px;background:rgba(123,111,224,.07);border:1px solid var(--accent-border);display:flex;gap:.65rem;align-items:flex-start;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div style="font-size:.78rem;color:var(--accent);line-height:1.6;">
+        <strong>CSV / XLSX 欄位：</strong>
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">exam</code>（分類）·
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">question</code>·
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">option_a ~ option_e</code>·
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">answer</code>（A~E）·
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">explanation</code>
+      </div>
+    </div>
+
+    <!-- Import toast -->
+    <div id="import-toast" style="margin-top:.85rem;${S.importMsg?'':'display:none;'}padding:.75rem 1rem;border-radius:10px;background:${S.importMsg&&S.importMsg.startsWith('✅')?'rgba(74,222,128,.07)':'rgba(248,113,113,.07)'};border:1px solid ${S.importMsg&&S.importMsg.startsWith('✅')?'rgba(74,222,128,.25)':'rgba(248,113,113,.25)'};font-size:.82rem;color:${S.importMsg&&S.importMsg.startsWith('✅')?'#4ADE80':'#F87171'};">${S.importMsg||''}</div>
+
+    <!-- File List -->
+    ${S.files.length > 0 ? `
+    <div style="margin-top:2rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem;">
+        <p style="font-size:.78rem;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;">
+          已上傳檔案 <span style="color:var(--accent)">${S.files.length}</span>
+        </p>
+      </div>
+      <div id="tag-filter-bar" style="display:${allTags.length>0?'flex':'none'};flex-wrap:wrap;gap:.38rem;margin-bottom:1rem;align-items:center;">
+        <span style="font-size:.7rem;color:var(--text-3);font-weight:600;letter-spacing:.04em;margin-right:.1rem;">篩選：</span>
+        <span onclick="setTagFilter(null)" style="background:${!S.tagFilter?'var(--accent)':'rgba(255,255,255,.06)'};color:${!S.tagFilter?'#fff':'var(--text-2)'};border:1px solid ${!S.tagFilter?'var(--accent)':'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">全部</span>
+        ${allTags.map(tag => { const tc=tagColor(tag); const active=S.tagFilter===tag; return `<span data-tag="${tag.replace(/"/g,'&quot;')}" onclick="setTagFilter(this.dataset.tag)" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`; }).join('')}
+      </div>
+      ${filesHTML}
+      ${displayFiles.length === 0 ? `<div style="text-align:center;color:var(--text-3);font-size:.85rem;padding:1.5rem 0;">沒有符合「${S.tagFilter}」標籤的檔案</div>` : ''}
+    </div>` : `<div style="margin-top:2rem;text-align:center;color:var(--text-3);font-size:.88rem;padding:1.5rem 0;">尚未上傳任何檔案</div>`}
+  </div>`;
+}
+
+function bindDataset() {
+  const dz = document.getElementById('dropZone');
+  if (!dz) return;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dv'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dv'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dv');
+    handleFileSelect(e.dataTransfer.files);
+  });
+}
+
+function handleFileSelect(files) {
+  Array.from(files).forEach(file => {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['pdf','docx','csv','xlsx'].includes(ext)) return;
+    const size = file.size > 1048576
+      ? (file.size/1048576).toFixed(1)+' MB'
+      : Math.round(file.size/1024)+' KB';
+    const today = new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'});
+    const isImportable = ['csv','xlsx'].includes(ext);
+    const fObj = {id:S.nextFid++, name:file.name, type:ext, size, status:'processing', date:today, tags:[], _file:file};
+    S.files.push(fObj);
+    // Auto-import CSV/XLSX immediately
+    if (isImportable) {
+      setTimeout(() => {
+        fObj.status = 'ready';
+        if (ext === 'xlsx') importXLSXQuestions(file, fObj);
+        else importCSVQuestions(file, fObj);
+      }, 800);
+    }
+  });
+  // Insert new cards without full-page re-render
+  if (S.page === 'datasets') {
+    const listEl = document.querySelector('#page-content .page > div[style*="margin-top:2rem"]');
+    if (listEl) {
+      // List already exists — just append new cards
+      S.files.filter(f=>!document.getElementById('fcard-'+f.id)).forEach(f => {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = fileCardHTML(f);
+        const newCard = tmp.firstElementChild;
+        // Insert before empty-state div or append
+        const emptyDiv = listEl.querySelector('div[style*="text-align:center"]');
+        if (emptyDiv) emptyDiv.remove();
+        listEl.appendChild(newCard);
+      });
+      // Update file count
+      const countEl = listEl.querySelector('[style*="color:var(--accent)"]');
+      if (countEl) countEl.textContent = S.files.length;
+    } else {
+      render(); // first file — need to build list
+    }
+  }
+  // Non-importable: update badge after 2.2s without full re-render
+  setTimeout(() => {
+    S.files.forEach(f => {
+      if (f.status === 'processing' && !['csv','xlsx'].includes(f.type)) {
+        f.status = 'ready';
+        refreshCard(f.id);
+      }
+    });
+  }, 2200);
+}
+
+function removeFile(id) {
+  // ── Purge all questions imported from this file ──────────────────────
+  const removedQIds = new Set(S.extraQs.filter(q => q._fileId === id).map(q => q.id));
+  S.extraQs = S.extraQs.filter(q => q._fileId !== id);
+
+  // Clean up bookmarks and wrongQs that referenced removed questions
+  removedQIds.forEach(qid => {
+    S.bookmarks.delete(qid);
+    S.wrongQs.delete(qid);
+    S.usedQIds.delete(qid);
+  });
+
+  // Remove the file record
+  S.files = S.files.filter(f => f.id !== id);
+  if (S.editingTagFid === id) S.editingTagFid = null;
+
+  // Fade out and remove card from DOM
+  const cardEl = document.getElementById('fcard-'+id);
+  if (cardEl) {
+    cardEl.style.transition = 'opacity .18s, max-height .25s';
+    cardEl.style.overflow   = 'hidden';
+    cardEl.style.opacity    = '0';
+    cardEl.style.maxHeight  = cardEl.offsetHeight + 'px';
+    setTimeout(() => {
+      cardEl.style.maxHeight  = '0';
+      cardEl.style.marginBottom = '0';
+      setTimeout(() => { cardEl.remove(); refreshFilterBar(); }, 240);
+    }, 180);
+  } else if (S.page === 'datasets') saveToStorage();
+  render();
+}
+
+function triggerCSVImport(fid) {
+  const fObj = S.files.find(f => f.id === fid);
+  if (!fObj) return;
+  // Get the actual File object stored on fObj, or trigger a hidden input
+  if (fObj._file) {
+    importCSVQuestions(fObj._file);
+  } else {
+    showImportToast('❌ 請重新上傳此 CSV 檔案（頁面重整後無法重新存取原始檔案）', 4000);
+  }
+}
+
+/* ── Tag system ─────────────────────────────── */
+// TAG_PRESETS removed — quick tags are user-defined only
+const TAG_PALETTE = [
+  {bg:'rgba(123,111,224,.18)',color:'#A99FF3',border:'rgba(123,111,224,.38)'},
+  {bg:'rgba(200,150,62,.18)', color:'#D4A85C',border:'rgba(200,150,62,.38)'},
+  {bg:'rgba(74,222,128,.13)', color:'#4ADE80',border:'rgba(74,222,128,.32)'},
+  {bg:'rgba(96,165,250,.13)', color:'#60A5FA',border:'rgba(96,165,250,.32)'},
+  {bg:'rgba(248,113,113,.13)',color:'#F87171',border:'rgba(248,113,113,.32)'},
+  {bg:'rgba(251,146,60,.13)', color:'#FB923C',border:'rgba(251,146,60,.32)'},
+  {bg:'rgba(167,139,250,.13)',color:'#A78BFA',border:'rgba(167,139,250,.32)'},
+  {bg:'rgba(34,211,238,.13)', color:'#22D3EE',border:'rgba(34,211,238,.32)'},
+];
+function tagColor(tag) {
+  let h = 0; for (const c of tag) h = (h * 31 + c.charCodeAt(0)) & 0xFFFF;
+  return TAG_PALETTE[h % TAG_PALETTE.length];
+}
+function addTag(fid, tag) {
+  tag = (tag || '').trim().slice(0, 10);
+  if (!tag) return;
+  const f = S.files.find(f => f.id === fid);
+  if (!f || f.tags.includes(tag) || f.tags.length >= 5) return;
+  f.tags.push(tag);
+  S.editingTagFid = null;
+  _syncQuestionTags(fid, f.tags);
+  saveToStorage();
+  refreshCard(fid);
+  refreshFilterBar();
+}
+function removeTag(fid, tag) {
+  const f = S.files.find(f => f.id === fid);
+  if (!f) return;
+  f.tags = f.tags.filter(t => t !== tag);
+  refreshCard(fid);
+  saveToStorage();
+  refreshFilterBar();
+}
+function toggleTagEdit(fid) {
+  const prev = S.editingTagFid;
+  S.editingTagFid = (S.editingTagFid === fid) ? null : fid;
+  // Close previous card's panel if different
+  if (prev !== null && prev !== fid) refreshCard(prev);
+  refreshCard(fid);
+}
+function setTagFilter(tag) {
+  S.tagFilter = (S.tagFilter === tag) ? null : tag;
+  // Show/hide file cards based on filter — no full re-render
+  document.querySelectorAll('.g-card[id^="fcard-"]').forEach(el => {
+    const fid = parseInt(el.id.replace('fcard-',''));
+    const f   = S.files.find(x=>x.id===fid);
+    if (!f) return;
+    const show = !S.tagFilter || (f.tags||[]).includes(S.tagFilter);
+    el.style.display = show ? '' : 'none';
+  });
+  // Update filter bar highlight
+  document.querySelectorAll('#tag-filter-bar span, #tag-filter-bar button').forEach(el => {
+    const t = el.dataset.tag;
+    if (!t) return;
+    const active = (t === '__all__' ? !S.tagFilter : S.tagFilter === t);
+    if (t === '__all__') {
+      el.style.background = active ? 'var(--accent)' : 'rgba(255,255,255,.06)';
+      el.style.color      = active ? '#fff' : 'var(--text-2)';
+      el.style.border     = '1px solid ' + (active ? 'var(--accent)' : 'var(--border)');
+    } else {
+      const tc = tagColor(t);
+      el.style.background = active ? tc.color : tc.bg;
+      el.style.color      = active ? '#111' : tc.color;
+      el.style.borderColor = active ? tc.color : tc.border;
+    }
+  });
+}
+
+// Future AI extraction interface
+async function extractTextFromFile(file) {
+  // TODO: POST /api/extract with FormData
+  console.log('[NeuroLearn] AI Extract ready for:', file.name);
+  return null;
+}
+
+/* ── CSV Question Import ── */
+/* ── Shared import helpers ── */
+function _mergeQuestions(parsed, fObj) {
+  const existing = new Set(S.extraQs.map(q => q.text.slice(0,40)));
+  const fileTags = fObj ? (fObj.tags && fObj.tags.length ? fObj.tags : []) : [];
+  let added = 0;
+  parsed.forEach(q => {
+    if (!existing.has(q.text.slice(0,40))) {
+      q.id = 10000 + S.extraQs.length;
+      // Category comes from file's first tag, fallback to exam/category field
+      q.category = fileTags[0] || q.category || '匯入題目';
+      q._fileTags = [...fileTags];
+      q._fileId   = fObj ? fObj.id : null;
+      q._fileName = fObj ? fObj.name : null;  // 來源檔名
+      S.extraQs.push(q);
+      existing.add(q.text.slice(0,40));
+      added++;
+    }
+  });
+  if (fObj) { fObj.importing=false; fObj.imported=added; fObj.status='ready'; refreshCard(fObj.id); }
+  const msg = added > 0 ? `✅ 成功匯入 ${added} 題（來源分類：${fileTags.join('、')||'未標記'}）` : `⚠️ 所有題目已存在，無新增`;
+  showImportToast(msg, 5000);
+  if (added > 0) { saveToStorage(); scheduleSyncToCloud(); }
+}
+
+function importCSVQuestions(file, fObj) {
+  fObj = fObj || S.files.find(f => f.name === file.name);
+  if (fObj) { fObj.importing=true; refreshCard(fObj.id); }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = parseQuestionCSV(e.target.result);
+      if (!parsed.length) throw new Error('找不到有效題目，請確認欄位格式');
+      _mergeQuestions(parsed, fObj);
+    } catch(err) {
+      if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
+      showImportToast(`❌ 解析失敗：${err.message}`, 5000);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function importXLSXQuestions(file, fObj) {
+  fObj = fObj || S.files.find(f => f.name === file.name);
+  if (typeof XLSX === 'undefined') {
+    if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
+    showImportToast('❌ 離線模式無法匯入 XLSX，請改用 CSV 格式', 5000);
+    return;
+  }
+  if (fObj) { fObj.importing=true; refreshCard(fObj.id); }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      if (typeof XLSX === 'undefined') throw new Error('XLSX 函式庫未載入，請重新整理頁面');
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+      if (!rows.length) throw new Error('試算表內容為空');
+      // Normalize column names (lowercase)
+      const norm = rows.map(r => {
+        const out={};
+        Object.keys(r).forEach(k => out[k.toLowerCase().trim()] = String(r[k]||'').trim());
+        return out;
+      });
+      const parsed = parseQuestionRows(norm);
+      if (!parsed.length) throw new Error('找不到有效題目，請確認欄位格式（question/option_a/answer）');
+      _mergeQuestions(parsed, fObj);
+    } catch(err) {
+      if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
+      showImportToast(`❌ XLSX 解析失敗：${err.message}`, 5000);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ── Targeted toast update (no full-page flash) ── */
+function showImportToast(msg, durationMs) {
+  S.importMsg = msg;
+  const el = document.getElementById('import-toast');
+  if (el) {
+    const ok = msg && msg.startsWith('✅');
+    el.style.display = '';
+    el.style.background  = ok ? 'rgba(74,222,128,.07)' : 'rgba(248,113,113,.07)';
+    el.style.border      = '1px solid ' + (ok ? 'rgba(74,222,128,.25)' : 'rgba(248,113,113,.25)');
+    el.style.color       = ok ? '#4ADE80' : '#F87171';
+    el.textContent       = msg;
+    if (durationMs) setTimeout(() => {
+      S.importMsg = null;
+      if (el) el.style.display = 'none';
+    }, durationMs);
+  } else {
+    // Fallback if not on datasets page
+    if (S.page === 'datasets') render();
+  }
+}
+
+/* Template CSV download */
+function downloadTemplate() {
+  const rows = [
+    ['id','exam','question','option_a','option_b','option_c','option_d','option_e','answer','explanation'],
+    ['1','AWS AI','在機器學習中，用於評估分類模型效能且平衡精確率與召回率的指標是什麼？','Accuracy（準確率）','F1 Score','RMSE（均方根誤差）','R-squared（R平方）','','B','A - 錯誤。B - 正確，F1 Score 是精確率與召回率的調和平均數。C - 錯誤。D - 錯誤。'],
+    ['2','AI治理','下列哪種技術最能幫助 AI 模型的決策過程對非技術利害關係人透明化？','Dropout 正規化','Batch Normalization','SHAP 值','梯度裁剪','','C','C - 正確，SHAP 值量化每個特徵對預測結果的貢獻。'],
+    ['3','LLM應用','企業想讓 LLM 在不重新訓練的情況下存取最新內部知識庫，最適合的方法是？','提高 temperature 參數','使用 RAG（檢索增強生成）架構','增加 Max Tokens 限制','切換至更大的基礎模型','','B','B - 正確，RAG 將外部知識庫與生成模型結合，無需重新訓練。'],
+  ];
+  const csv = rows.map(r => r.map(v => v.includes(',') || v.includes('"') ? '"'+v.replace(/"/g,'""')+'"' : v).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '題目匯入範本.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function parseQuestionCSV(text) {
+  if (text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+  const lines = text.split(/\r?\n/);
+  if (lines.length<2) return [];
+  const headers = parseCSVLine(lines[0]).map(h=>h.trim().toLowerCase());
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    if(!lines[i].trim()) continue;
+    const cols=parseCSVLine(lines[i]);
+    const row={};
+    headers.forEach((h,j)=>{ row[h]=cols[j]?.trim()||''; });
+    rows.push(row);
+  }
+  return parseQuestionRows(rows);
+}
+
+/* Shared row parser: works for both CSV (object rows) and XLSX (sheet_to_json rows) */
+function parseQuestionRows(rows) {
+  const ANS={'A':0,'B':1,'C':2,'D':3,'E':4,'a':0,'b':1,'c':2,'d':3,'e':4,'0':0,'1':1,'2':2,'3':3,'4':4};
+  const DIFF={'基礎':'基礎','中等':'中等','進階':'進階','easy':'基礎','medium':'中等','hard':'進階'};
+  const results=[];
+  for(const r of rows){
+    const q=(r.question||r.題目||'').trim();
+    const oA=(r.option_a||r.選項a||r['選項_a']||'').trim();
+    const oB=(r.option_b||r.選項b||r['選項_b']||'').trim();
+    const oC=(r.option_c||r.選項c||r['選項_c']||'').trim();
+    const oD=(r.option_d||r.選項d||r['選項_d']||'').trim();
+    const oE=(r.option_e||r.選項e||r['選項_e']||'').trim();
+    const ansRaw=(r.answer||r.答案||'').trim().toUpperCase();
+    // category: prefer 'exam' field (matches the xlsx template), then 'category'
+    const cat=(r.exam||r.category||r.分類||'').trim()||'匯入題目';
+    const diff=DIFF[(r.difficulty||r.難度||'').trim()]||'中等';
+    const expl=(r.explanation||r.解析||r.說明||'').trim()||'（無解析）';
+    const ansLetters = ansRaw.replace(/[,+\s]+/g,'').split('').filter(l => ANS[l]!==undefined);
+    const isMulti = ansLetters.length > 1;
+    const ansValue = isMulti ? ansLetters.map(l => ANS[l]).sort((a,b)=>a-b) : (ANS[ansRaw]??parseInt(ansRaw));
+    if(!q||!oA) continue;
+    if(!isMulti && (ansValue===undefined||isNaN(ansValue)||ansValue>4)) continue;
+    const opts=[oA,oB,oC,oD].filter(Boolean);
+    if(oE) opts.push(oE);
+    while(opts.length<4) opts.push('—');
+    const srcId = (r.id||r['題號']||'').toString().trim();
+    results.push({ id:0, text:q, options:opts.slice(0,5), answer:ansValue, isMulti:isMulti, explanation:expl, category:cat, difficulty:diff, _srcId:srcId||null });
+  }
+  return results;
+}
+
+function parseCSVLine(line) {
+  const r=[];let cur='',inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'&&!inQ)inQ=true;
+    else if(ch==='"'&&inQ){if(line[i+1]==='"'){cur+='"';i++;}else inQ=false;}
+    else if(ch===','&&!inQ){r.push(cur);cur='';}
+    else cur+=ch;
+  }
+  r.push(cur);return r;
+}
+
+/* ╔══════════════════════════════════╗
+   ║           QUIZ PAGE              ║
+   ╚══════════════════════════════════╝ */
+function quizHTML() {
+  switch(S.quizMode) {
+    case 'menu':   return quizMenuHTML();
+    case 'active': return S.activeQs.length ? quizActiveHTML() : quizMenuHTML();
+    case 'result': return quizResultHTML();
+    case 'review': return S.activeQs.length ? quizReviewHTML() : quizMenuHTML();
+    case 'browse': return S.activeQs.length ? quizBrowseHTML() : quizMenuHTML();
+  }
+}
+
+
+/* ── Quiz Setup: Single-page flow ── */
+function quizMenuHTML() {
+  // Route to active quiz modes (not setup)
+  if (S.quizMode === 'active')  return S.activeQs.length ? quizActiveHTML() : quizMenuHTML_page();
+  if (S.quizMode === 'result')  return quizResultHTML();
+  if (S.quizMode === 'review')  return S.activeQs.length ? quizReviewHTML()  : quizMenuHTML_page();
+  if (S.quizMode === 'browse')  return S.activeQs.length ? quizBrowseHTML()  : quizMenuHTML_page();
+  return quizMenuHTML_page();
+}
+
+function quizMenuHTML_page() {
+  if (!S.quizSetup) {
+    S.quizSetup = { cats: new Set(), mode: null, submode: null, count: 20, name: '' };
+  }
+  const setup  = S.quizSetup;
+  const allQ   = [...QUESTIONS, ...S.extraQs];
+  const allCats = [...new Set(S.files.flatMap(f => f.tags || []))].sort();
+  const selCats = setup.cats;
+  const catsOk  = selCats.size > 0;
+
+  // ── Category pills ──────────────────────────────────────────────────────
+  const catPills = allCats.length === 0
+    ? `<p style="font-size:.83rem;color:var(--text-3);padding:.5rem 0;">請先至「資料集」上傳並貼標。</p>`
+    : allCats.map(c => {
+        const cnt  = allQ.filter(q => q.category === c || (q._fileTags && q._fileTags.includes(c))).length;
+        const isOn = selCats.has(c);
+        const tc   = tagColor(c);
+        return `<button data-cat="${c}" onclick="qsToggleCat(this)"
+          style="display:inline-flex;align-items:center;gap:.38rem;padding:.42rem .8rem;border-radius:9px;font-size:.82rem;font-weight:${isOn?700:400};cursor:pointer;transition:all .18s;
+                 background:${isOn?'rgba(200,150,62,.18)':'rgba(255,255,255,.04)'};
+                 color:${isOn?'#D4A85C':'var(--text-2)'};border:none;
+                 outline:1px solid ${isOn?'rgba(200,150,62,.42)':'var(--border)'};">
+          ${isOn?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
+          ${c}
+          <span style="font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.68rem;opacity:.6;">${cnt}</span>
+        </button>`;
+      }).join('');
+
+  // ── Pool counts ─────────────────────────────────────────────────────────
+  const inCat    = q => setup.cats.has(q.category) || (q._fileTags && q._fileTags.some(t => setup.cats.has(t)));
+  const poolAll    = catsOk ? allQ.filter(q => inCat(q)).length : 0;
+  const unusedNew  = catsOk ? allQ.filter(q => inCat(q) && !S.usedQIds.has(String(q.id))).length : 0;
+  const poolNew    = poolAll;  // total for slider max
+  const poolReview = catsOk ? allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q)).length : 0;
+  const poolWrong  = catsOk ? allQ.filter(q => S.wrongQs.has(String(q.id))  && inCat(q)).length : 0;
+
+  // ── Mode card builder ────────────────────────────────────────────────────
+  const modeCard = (id, svgPath, label, sub, color, colorDim, colorBorder) => {
+    const selected = setup.mode === id;
+    return `<div onclick="qsSelectMode('${id}')"
+      style="display:flex;align-items:center;gap:.9rem;padding:1rem 1.1rem;border-radius:12px;cursor:pointer;transition:all .18s;
+             background:${selected?colorDim:'rgba(255,255,255,.025)'};
+             outline:${selected?`1.5px solid ${colorBorder}`:'1px solid var(--border)'};">
+      <div style="width:40px;height:40px;border-radius:10px;background:${colorDim};border:1px solid ${colorBorder};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2">${svgPath}</svg>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:.9rem;font-weight:${selected?700:500};color:var(--text-1);margin-bottom:.15rem;">${label}</div>
+        <div style="font-size:.78rem;color:var(--text-2);">${sub}</div>
+      </div>
+      ${selected?`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`:''}
+    </div>`;
+  };
+
+  // ── Submode row (browse / retake) ────────────────────────────────────────
+  const showSubmode  = setup.mode === 'review' || setup.mode === 'wrong';
+  const subLabel     = setup.mode === 'review' ? '複習已標記題目' : '錯誤題目驗測';
+  const subColor     = setup.mode === 'wrong' ? '#F87171' : 'var(--gold)';
+  const subAccentBg  = setup.mode === 'wrong' ? 'rgba(248,113,113,.12)' : 'rgba(200,150,62,.12)';
+  const subAccentBdr = setup.mode === 'wrong' ? 'rgba(248,113,113,.4)' : 'rgba(200,150,62,.4)';
+
+  const submodeRow = showSubmode ? `
+    <div style="margin-top:.75rem;padding:.9rem 1rem;border-radius:11px;background:rgba(255,255,255,.02);border:1px solid var(--border);">
+      <p style="font-size:.72rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.65rem;">${subLabel}：選擇操作方式</p>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+        <button onclick="qsSelectSubMode('browse')"
+          style="flex:1;min-width:120px;padding:.65rem .8rem;border-radius:9px;font-size:.82rem;font-weight:${setup.submode==='browse'?700:400};cursor:pointer;transition:all .18s;
+                 background:${setup.submode==='browse'?'rgba(123,111,224,.15)':'rgba(255,255,255,.04)'};
+                 color:${setup.submode==='browse'?'var(--accent)':'var(--text-2)'};
+                 border:none;outline:1px solid ${setup.submode==='browse'?'var(--accent)':'var(--border)'};">
+          📖 呈現題目
+        </button>
+        <button onclick="qsSelectSubMode('retake')"
+          style="flex:1;min-width:120px;padding:.65rem .8rem;border-radius:9px;font-size:.82rem;font-weight:${setup.submode==='retake'?700:400};cursor:pointer;transition:all .18s;
+                 background:${setup.submode==='retake'?subAccentBg:'rgba(255,255,255,.04)'};
+                 color:${setup.submode==='retake'?subColor:'var(--text-2)'};
+                 border:none;outline:1px solid ${setup.submode==='retake'?subAccentBdr:'var(--border)'};">
+          🚀 重新測驗
+        </button>
+      </div>
+    </div>` : '';
+
+  // ── Section 3: count + name + launch ────────────────────────────────────
+  const modeOk = setup.mode === 'new' || setup.submode === 'retake';
+  let pool3 = [];
+  if (modeOk) {
+    if (setup.mode === 'review' || (setup.submode === 'retake' && setup.mode === 'review'))
+      pool3 = allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q));
+    else if (setup.mode === 'wrong' || (setup.submode === 'retake' && setup.mode === 'wrong'))
+      pool3 = allQ.filter(q => S.wrongQs.has(String(q.id)) && inCat(q));
+    else
+      pool3 = allQ.filter(q => inCat(q) && !S.usedQIds.has(String(q.id))); // only unused
+  }
+  const maxCount = pool3.length;
+  const count    = Math.max(1, Math.min(setup.count || 20, Math.max(maxCount, 1)));
+  if (setup.count !== count && maxCount > 0) setup.count = count;
+
+  const launchIcon = setup.mode === 'review' ? '📖' : setup.mode === 'wrong' ? '🎯' : '🚀';
+  const launchWord = setup.mode === 'review' ? '開始複習' : setup.mode === 'wrong' ? '開始驗測' : '開始測驗';
+
+  return `
+  <div class="page" style="max-width:680px;margin:0 auto;padding:3rem 1.5rem;">
+    <div style="margin-bottom:2rem;">
+      <div class="badge badge-g" style="margin-bottom:.7rem">智能模擬考</div>
+      <h2 style="font-size:1.8rem;font-weight:700;letter-spacing:-.035em;">設定測驗</h2>
+    </div>
+
+    <!-- ① 選分類 -->
+    <div class="g-card" style="padding:1.25rem;margin-bottom:1rem;cursor:default;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem;">
+        <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;">
+          ① 選擇題目分類
+          ${selCats.size > 0 ? `<span style="color:var(--accent);margin-left:.4rem;">已選 ${selCats.size} 類</span>` : ''}
+        </p>
+        <div style="display:flex;flex-direction:row;align-items:center;gap:.3rem;">
+          <button onclick="qsSelectAllCats(true)" style="font-size:.7rem;color:var(--accent);background:transparent;border:none;cursor:pointer;padding:.1rem .3rem;">全選</button>
+          <span style="color:var(--border)">|</span>
+          <button onclick="qsSelectAllCats(false)" style="font-size:.7rem;color:var(--text-3);background:transparent;border:none;cursor:pointer;padding:.1rem .3rem;">清除</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.45rem;">${catPills}</div>
+    </div>
+
+    <div id="qs-mode-and-count">${qsRenderModeSections()}</div>
+
+  </div>`;
+}
+
+/* ── Render only sections 2+3 for no-flash mode selection ── */
+function qsRenderModeSections() {
+  const setup  = S.quizSetup;
+  const allQ   = [...QUESTIONS, ...S.extraQs];
+  const inCat  = q => setup.cats.has(q.category) || (q._fileTags && q._fileTags.some(t => setup.cats.has(t)));
+  const catsOk = setup.cats.size > 0;
+  const poolAll    = catsOk ? allQ.filter(q => inCat(q)).length : 0;
+  const unusedNew  = catsOk ? allQ.filter(q => inCat(q) && !S.usedQIds.has(String(q.id))).length : 0;
+  const poolNew    = poolAll;  // total for slider max
+  const poolReview = catsOk ? allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q)).length : 0;
+  const poolWrong  = catsOk ? allQ.filter(q => S.wrongQs.has(String(q.id))  && inCat(q)).length : 0;
+
+  const modeCard = (id, svgPath, label, sub, color, colorDim, colorBorder) => {
+    const selected = setup.mode === id;
+    return `<div onclick="qsSelectMode('${id}')"
+      style="display:flex;align-items:center;gap:.9rem;padding:1rem 1.1rem;border-radius:12px;cursor:pointer;transition:all .18s;
+             background:${selected?colorDim:'rgba(255,255,255,.025)'};
+             outline:${selected?`1.5px solid ${colorBorder}`:'1px solid var(--border)'};">
+      <div style="width:40px;height:40px;border-radius:10px;background:${colorDim};border:1px solid ${colorBorder};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2">${svgPath}</svg>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:.9rem;font-weight:${selected?700:500};color:var(--text-1);margin-bottom:.15rem;">${label}</div>
+        <div style="font-size:.78rem;color:var(--text-2);">${sub}</div>
+      </div>
+      ${selected?`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`:''}
+    </div>`;
+  };
+
+  const showSubmode  = setup.mode === 'review' || setup.mode === 'wrong';
+  const subLabel     = setup.mode === 'review' ? '複習已標記題目' : '錯誤題目驗測';
+  const subColor     = setup.mode === 'wrong' ? '#F87171' : 'var(--gold)';
+  const subAccentBg  = setup.mode === 'wrong' ? 'rgba(248,113,113,.12)' : 'rgba(200,150,62,.12)';
+  const subAccentBdr = setup.mode === 'wrong' ? 'rgba(248,113,113,.4)'  : 'rgba(200,150,62,.4)';
+
+  const submodeRow = showSubmode ? `
+    <div style="margin-top:.75rem;padding:.9rem 1rem;border-radius:11px;background:rgba(255,255,255,.02);border:1px solid var(--border);">
+      <p style="font-size:.72rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.65rem;">${subLabel}：選擇操作方式</p>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+        <button onclick="qsSelectSubMode('browse')"
+          style="flex:1;min-width:120px;padding:.65rem .8rem;border-radius:9px;font-size:.82rem;font-weight:${setup.submode==='browse'?700:400};cursor:pointer;transition:all .18s;
+                 background:${setup.submode==='browse'?'rgba(123,111,224,.15)':'rgba(255,255,255,.04)'};
+                 color:${setup.submode==='browse'?'var(--accent)':'var(--text-2)'};
+                 border:none;outline:1px solid ${setup.submode==='browse'?'var(--accent)':'var(--border)'};">
+          📖 呈現題目
+        </button>
+        <button onclick="qsSelectSubMode('retake')"
+          style="flex:1;min-width:120px;padding:.65rem .8rem;border-radius:9px;font-size:.82rem;font-weight:${setup.submode==='retake'?700:400};cursor:pointer;transition:all .18s;
+                 background:${setup.submode==='retake'?subAccentBg:'rgba(255,255,255,.04)'};
+                 color:${setup.submode==='retake'?subColor:'var(--text-2)'};
+                 border:none;outline:1px solid ${setup.submode==='retake'?subAccentBdr:'var(--border)'};">
+          🚀 重新測驗
+        </button>
+      </div>
+    </div>` : '';
+
+  const modeOk = setup.mode === 'new' || setup.submode === 'retake';
+  let pool3 = [];
+  if (modeOk) {
+    if (setup.mode === 'review' || (setup.submode === 'retake' && setup.mode === 'review'))
+      pool3 = allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q));
+    else if (setup.mode === 'wrong' || (setup.submode === 'retake' && setup.mode === 'wrong'))
+      pool3 = allQ.filter(q => S.wrongQs.has(String(q.id)) && inCat(q));
+    else
+      pool3 = allQ.filter(q => inCat(q) && !S.usedQIds.has(String(q.id))); // only unused
+  }
+  const maxCount = pool3.length;
+  const count    = Math.max(1, Math.min(setup.count || 20, Math.max(maxCount, 1)));
+  if (setup.count !== count && maxCount > 0) setup.count = count;
+
+  const launchIcon = setup.mode === 'review' ? '📖' : setup.mode === 'wrong' ? '🎯' : '🚀';
+  const launchWord = setup.mode === 'review' ? '開始複習' : setup.mode === 'wrong' ? '開始驗測' : '開始測驗';
+
+  return `
+    <!-- ② 選模式 -->
+    <div class="g-card" style="padding:1.25rem;margin-bottom:1rem;cursor:default;transition:opacity .2s;${!catsOk?'opacity:.38;pointer-events:none;':''}" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
+      <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.85rem;">② 選擇測驗模式</p>
+      <div style="display:flex;flex-direction:column;gap:.5rem;">
+        ${modeCard('new',    '<polygon points="5 3 19 12 5 21 5 3"/>',
+          '開始新測驗', `${unusedNew} 題未考 / 共 ${poolNew} 題`,
+          '#C8963E','rgba(200,150,62,.12)','rgba(200,150,62,.35)')}
+        ${modeCard('review', '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
+          '複習已標記題目', poolReview > 0 ? `${poolReview} 題已標記` : '目前無標記題目',
+          '#C8963E','rgba(200,150,62,.12)','rgba(200,150,62,.35)')}
+        ${modeCard('wrong',  '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+          '錯誤題目驗測', poolWrong > 0 ? `${poolWrong} 題有紀錄` : '目前無錯誤紀錄',
+          '#F87171','rgba(248,113,113,.1)','rgba(248,113,113,.35)')}
+      </div>
+      ${submodeRow}
+    </div>
+
+    <!-- ③ 設定題數 -->
+    ${modeOk ? `
+    <div class="g-card" style="padding:1.25rem;cursor:default;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
+      <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.85rem;">
+        ③ 設定題數
+        <span style="color:var(--text-3);font-weight:400;margin-left:.4rem;">可用 ${maxCount} 題</span>
+      </p>
+      <div style="margin-bottom:1rem;">
+        <label style="font-size:.74rem;color:var(--text-3);display:block;margin-bottom:.4rem;">考卷名稱（選填）</label>
+        <input id="qs-name-inp" type="text" maxlength="40" placeholder="例：第一回合練習卷" value="${setup.name||''}"
+          oninput="S.quizSetup.name=this.value"
+          style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:.45rem .7rem;font-size:.85rem;color:var(--text-1);outline:none;font-family:inherit;transition:border-color .15s;"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.7rem;">
+        <label style="font-size:.74rem;color:var(--text-3);">題目數量</label>
+        <span style="display:flex;align-items:baseline;gap:.25rem;">
+          <span id="qs-count-display" class="mono" style="font-size:1.6rem;font-weight:600;color:var(--gold);">${count}</span>
+          <span style="font-size:.8rem;color:var(--text-3);">${setup.mode === 'new' ? '/ '+maxCount+' 未考'+(poolAll > maxCount ? ' (共 '+poolAll+' 題，已用 '+(poolAll-maxCount)+' 題)' : '') : '/ '+maxCount+' 題可用'}</span>
+        </span>
+      </div>
+      <input type="range" min="1" max="${Math.max(maxCount,1)}" value="${count}" step="1"
+        oninput="S.quizSetup.count=parseInt(this.value);const d=document.getElementById('qs-count-display');if(d)d.textContent=this.value;"
+        style="width:100%;accent-color:var(--gold);cursor:pointer;margin-bottom:1rem;">
+      <button onclick="launchQuiz()" ${!maxCount?'disabled':''} class="btn btn-primary"
+        style="width:100%;padding:.8rem;font-size:.97rem;font-weight:700;${!maxCount?'opacity:.4;cursor:not-allowed;':''}">
+        ${launchIcon} ${launchWord}
+      </button>
+    </div>` : ''}`;
+}
+
+function qsUpdateModeSections() {
+  const el = document.getElementById('qs-mode-and-count');
+  if (!el) { render(); return; }
+  el.innerHTML = qsRenderModeSections();
+}
+
+function qsToggleCat(el) {
+  const cat = el.dataset.cat;
+  const on  = S.quizSetup.cats.has(cat);
+  if (on) {
+    if (S.quizSetup.cats.size <= 1) return;
+    S.quizSetup.cats.delete(cat);
+  } else {
+    S.quizSetup.cats.add(cat);
+  }
+  // Re-render just this page (fast, single section)
+  render();
+}
+function qsSelectAllCats(all) {
+  if (!S.quizSetup) return;
+  const allCats = [...new Set(S.files.flatMap(f => f.tags || []))];
+  S.quizSetup.cats = all ? new Set(allCats) : new Set();
+  render();
+}
+function qsSelectMode(mode) {
+  if (!S.quizSetup) return;
+  S.quizSetup.mode    = (S.quizSetup.mode === mode) ? null : mode;
+  S.quizSetup.submode = null;
+  qsUpdateModeSections();  // targeted — no full-page flash
+}
+function qsSelectSubMode(submode) {
+  if (!S.quizSetup) return;
+  const allQ  = [...QUESTIONS,...S.extraQs];
+  const inCat = q => S.quizSetup.cats.has(q.category)||(q._fileTags&&q._fileTags.some(t=>S.quizSetup.cats.has(t)));
+
+  if (submode === 'browse') {
+    // 呈現題目 — enter browse mode
+    S.activeQs  = S.quizSetup.mode === 'review'
+      ? allQ.filter(q=>S.bookmarks.has(String(q.id))&&inCat(q))
+      : allQ.filter(q=>S.wrongQs.has(String(q.id))&&inCat(q));
+    S.browseSrc = { mode: S.quizSetup.mode, cats: new Set(S.quizSetup.cats) };
+    S.quizSetup = null;
+    S.quizMode  = 'browse';
+    render();
+  } else if (submode === 'retake') {
+    // 重新測驗 — just set submode; slider + launch button appear in qsRenderModeSections
+    const pool = S.quizSetup.mode === 'review'
+      ? allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q))
+      : allQ.filter(q => S.wrongQs.has(String(q.id)) && inCat(q));
+    if (!pool.length) {
+      showImportToast(S.quizSetup.mode === 'review' ? '目前無標記題目' : '目前無錯誤紀錄', 2500);
+      return;
+    }
+    S.quizSetup.submode = 'retake';
+    if (!S.quizSetup.count || S.quizSetup.count > pool.length) S.quizSetup.count = pool.length;
+    qsUpdateModeSections();
+  }
+}
+
+
+function initQuizSetup() {
+  S.quizSetup = { cats: new Set(), mode: null, submode: null, count: 20, name: '' };
+}
+function toggleMenuCat(cat) {
+  if (!S.quizSetup) initQuizSetup();
+  if (S.quizSetup.cats.has(cat)) {
+    if (S.quizSetup.cats.size <= 1) return;
+    S.quizSetup.cats.delete(cat);
+  } else {
+    S.quizSetup.cats.add(cat);
+  }
+  render();
+}
+function selectAllMenuCats(all) {
+  if (!S.quizSetup) initQuizSetup();
+  // Categories = ONLY tags the user has manually applied to files in Datasets
+  const allCats = [...new Set(S.files.flatMap(f => f.tags || []))].sort();
+  S.quizSetup.cats = all ? new Set(allCats) : new Set();
+  render();
+}
+function goToModeStep() {
+  if (!S.quizSetup) initQuizSetup();
+  S.quizSetup.step = 'mode';
+  render();
+}
+function pickMode(mode) {
+  S.quizSetup.mode = mode;
+  if (mode === 'new') {
+    // new quiz → go straight to count
+    S.quizSetup.step = 'count';
+    const allQ = [...QUESTIONS,...S.extraQs];
+    const inCat = q => S.quizSetup.cats.has(q.category)||(q._fileTags&&q._fileTags.some(t=>S.quizSetup.cats.has(t)));
+    const pool = allQ.filter(q=>inCat(q));
+    S.quizSetup.count = Math.min(pool.length, 20);
+  } else {
+    // review / wrong → let user choose: browse or retake
+    S.quizSetup.step = 'submode';
+  }
+  render();
+}
+
+/* ── Keep old openConfig/toggleConfigCat/setConfigCount for backward compat ── */
+function openConfig(mode) {
+  initQuizSetup();
+  if (mode) S.quizSetup.mode = mode;
+  render();
+}
+
+function getAvailPool() {
+  const setup = S.quizSetup;
+  if (!setup) return [];
+  const allQ = [...QUESTIONS, ...S.extraQs];
+  const inCat = q => setup.cats.has(q.category) ||
+    (q._fileTags && q._fileTags.some(t => setup.cats.has(t)));
+  if (setup.mode === 'review') return allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q));
+  if (setup.mode === 'wrong')  return allQ.filter(q => S.wrongQs.has(String(q.id))   && inCat(q));
+  return allQ.filter(q => inCat(q));
+}
+function toggleConfigCat(cat) {
+  const cfg = S.quizConfig;
+  if (cfg.cats.has(cat)) { if (cfg.cats.size <= 1) return; cfg.cats.delete(cat); }
+  else cfg.cats.add(cat);
+  const pool = getAvailPool();
+  cfg.count = Math.max(1, Math.min(cfg.count, pool.length));
+  render();
+}
+function setConfigCount(n) { S.quizConfig.count = n; render(); }
+function launchQuiz() {
+  const setup = S.quizSetup;
+  const pool  = getAvailPool();
+  if (!pool || !pool.length) return;
+  const count = Math.min(setup.count || pool.length, pool.length);
+  const mode  = setup.mode;
+
+  // ── No-repeat draw: prefer questions not yet drawn from this tag pool ──
+  // Only apply no-repeat for 'new' mode (review/wrong modes intentionally repeat)
+  let drawn;
+  if (mode === 'new') {
+    const unused = pool.filter(q => !S.usedQIds.has(String(q.id)));
+    const used   = pool.filter(q =>  S.usedQIds.has(String(q.id)));
+    const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
+
+    if (unused.length === 0) {
+      // All questions used — auto-reset this pool and start fresh
+      pool.forEach(q => S.usedQIds.delete(String(q.id)));
+      drawn = shuffle(pool).slice(0, count);
+      S._poolResetMsg = true; // show toast on result page
+    } else if (unused.length >= count) {
+      // Enough unused — draw only from unused
+      drawn = shuffle(unused).slice(0, count);
+    } else {
+      // Not enough unused — take all unused, fill remainder from used
+      const fill = shuffle(used).slice(0, count - unused.length);
+      drawn = shuffle([...unused, ...fill]);
+    }
+    // DO NOT mark as used here — only mark after quiz is completed (in finishQuiz)
+  } else {
+    // review / wrong modes: shuffle normally, no no-repeat tracking
+    drawn = [...pool].sort(() => Math.random() - 0.5).slice(0, count);
+  }
+
+  S.activeQs   = drawn;
+  S.answers    = drawn.map((q) => ({selected: q.isMulti ? [] : null, confirmed:false}));
+  S.currentQ   = 0;
+  // Save config BEFORE clearing setup — finishQuiz needs mode to mark usedQIds
+  const submode = setup.submode; // capture before clearing
+  S.quizConfig = {
+    mode:    mode,
+    submode: submode,
+    cats:    new Set(setup.cats),
+    count:   count,
+    name:    setup.name || '',
+  };
+  S.quizSetup = null;
+  // retake submode → always active quiz (one-by-one answering)
+  // review without retake → browse/review page (read-only)
+  S.quizMode = (mode === 'review' && submode !== 'retake') ? 'review' : 'active';
+  render();
+}
+
+
+/* Returns source annotation string for a question */
+function questionSource(q) {
+  const parts = [];
+  if (q._fileName) parts.push(q._fileName.replace(/\.[^.]+$/, '')); // strip extension
+  if (q._srcId)   parts.push('題 #' + q._srcId);
+  return parts.length ? parts.join(' · ') : null;
+}
+
+
+function quizActiveHTML() {
+  const q   = S.activeQs[S.currentQ];
+  const ans = S.answers[S.currentQ];
+  const bk  = S.bookmarks.has(String(q.id));
+  const isLast = S.currentQ === S.activeQs.length - 1;
+  const pct = (S.currentQ / S.activeQs.length) * 100;
+  const LT  = ['A','B','C','D'];
+
+  const optHTML = q.options.map((opt, i) => {
+    let cls = 'opt';
+    let style = '';
+    let handler = `selectOpt(${i})`;
+    if (ans.confirmed) {
+      cls += ' locked';
+      handler = '';
+      if (i === q.answer)                            cls += ' correct';
+      else if (i === ans.selected && i !== q.answer) cls += ' wrong';
+      else                                           style = 'opacity:.35;';
+    } else if (ans.selected === i) {
+      cls += ' sel';
+    }
+    return `
+    <button class="${cls}" style="${style}" onclick="${handler}">
+      <span style="width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.07);display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0;font-family:'Sora','Inter','Segoe UI',system-ui,-apple-system,sans-serif;">${LT[i]}</span>
+      <span style="line-height:1.55">${opt}</span>
+    </button>`;
+  }).join('');
+
+  // Explanation panel: always rendered but hidden if not confirmed, revealed via DOM
+  const explHTML = `
+  <div id="expl-panel" style="margin-top:1.25rem;padding:1rem 1.1rem;border-radius:12px;background:rgba(123,111,224,.07);border:1px solid var(--accent-border);display:${ans.confirmed?'block':'none'};">
+    <p style="font-size:.7rem;font-weight:700;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.5rem;">💡 詳細解析</p>
+    <p style="font-size:.87rem;line-height:1.72;color:var(--text-2);">${q.explanation}</p>
+    ${questionSource(q)?`<p style="margin-top:.6rem;font-size:.7rem;color:var(--text-3);border-top:1px solid rgba(255,255,255,.06);padding-top:.5rem;">📄 出處：${questionSource(q)}</p>`:''}
+  </div>`;
+
+  const actionBtn = ans.confirmed
+    ? `<button class="btn btn-primary" onclick="nextQuestion()">${isLast ? '完成測驗 →' : '下一題 →'}</button>`
+    : `<button id="confirm-btn" class="btn btn-primary" onclick="confirmAns()" ${ans.selected===null?'disabled':''}>確認答案</button>`;
+
+  return `
+  <div class="page" style="max-width:660px;margin:0 auto;padding:2.5rem 1.5rem;">
+
+    <!-- Progress -->
+    <div style="margin-bottom:1.85rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem;">
+        <button class="btn btn-ghost" onclick="navigate('quiz')" style="padding:.38rem .8rem;font-size:.78rem;">← 返回</button>
+        <span class="mono" style="font-size:.82rem;color:var(--text-2);">
+          <span style="color:var(--text-1);font-weight:600;">${S.currentQ+1}</span> / ${S.activeQs.length}
+        </span>
+        <span style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:7px;padding:.2rem .5rem;font-size:.73rem;color:var(--text-2);">${q.category}</span>
+      </div>
+      <div class="pb-bg"><div class="pb-fill" style="width:${pct}%"></div></div>
+    </div>
+
+    <!-- Question Card -->
+    <div style="background:rgba(20,20,32,.75);backdrop-filter:blur(18px);border:1px solid var(--border);border-radius:20px;padding:1.85rem;margin-bottom:1.1rem;">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;margin-bottom:1.4rem;">
+        <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
+          <span class="badge badge-n">Q.${S.currentQ+1}</span>
+        </div>
+        <button id="bk-btn" class="bk-btn ${bk?'on':''}" onclick="toggleBk(${q.id})" title="${bk?'取消標記':'標記此題'}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="${bk?'currentColor':'none'}" stroke="currentColor" stroke-width="2">
+            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+          </svg>
+        </button>
+      </div>
+
+      <p style="font-size:1rem;line-height:1.78;font-weight:400;margin-bottom:1.4rem;">${q.text}</p>
+
+      <div style="display:flex;flex-direction:column;gap:.55rem;">
+        ${optHTML}
+      </div>
+
+      ${explHTML}
+    </div>
+
+    <div id="action-btn" style="display:flex;justify-content:flex-end;">${actionBtn}</div>
+  </div>`;
+}
+
+
+function retakeQuiz() {
+  if (!S.quizConfig) return;
+  S.quizSetup = {
+    cats:    S.quizConfig.cats || new Set(),
+    mode:    S.quizConfig.mode,
+    submode: null,
+    count:   S.quizConfig.count,
+    name:    S.quizConfig.name,
+  };
+  launchQuiz();
+}
+
+function unconfirmAns() {
+  const ans = S.answers[S.currentQ];
+  if (!ans) return;
+  ans.confirmed = false;
+  render();
+}
+
+function prevQuestion() {
+  if (S.currentQ <= 0) return;
+  const ans = S.answers[S.currentQ];
+  if (ans) ans.confirmed = false;
+  S.currentQ--;
+  render();
+}
+
+function _syncQuestionTags(fid, tags) {
+  S.extraQs.forEach(q => {
+    if (q._fileId !== fid) return;
+    q._fileTags = [...tags];
+    if (tags.length > 0) q.category = tags[0];
+  });
+}
+
+
+function selectOpt(i) {
+  const ans = S.answers[S.currentQ];
+  const q   = S.activeQs[S.currentQ];
+  if (ans.confirmed) return;
+  if (q.isMulti) {
+    const sel = ans.selected;
+    const pos = sel.indexOf(i);
+    if (pos >= 0) sel.splice(pos, 1); else sel.push(i);
+    document.querySelectorAll('.opt').forEach((el, idx) => { el.classList.toggle('sel', sel.includes(idx)); });
+    const confirmBtn = document.getElementById('confirm-btn');
+    if (confirmBtn) { if (sel.length > 0) confirmBtn.removeAttribute('disabled'); else confirmBtn.setAttribute('disabled',''); }
+  } else {
+    if (ans.selected === i) return;
+    ans.selected = i;
+    document.querySelectorAll('.opt').forEach((el, idx) => { el.classList.toggle('sel', idx === i); });
+    const confirmBtn = document.getElementById('confirm-btn');
+    if (confirmBtn) confirmBtn.removeAttribute('disabled');
+  }
+}
+
+function confirmAns() {
+  const ans = S.answers[S.currentQ];
+  const q = S.activeQs[S.currentQ];
+  if (q.isMulti ? ans.selected.length === 0 : ans.selected === null) return;
+  ans.confirmed = true;
+  // DOM-only update for option states — no full render flash
+  const cSet = correctSet(q);
+  const sSet = q.isMulti ? new Set(ans.selected) : new Set([ans.selected]);
+  document.querySelectorAll('.opt').forEach((el, idx) => {
+    el.classList.add('locked'); el.onclick = null;
+    if (cSet.has(idx)) el.classList.add('correct');
+    else if (sSet.has(idx) && !cSet.has(idx)) el.classList.add('wrong');
+    else el.style.opacity = '0.35';
+  });
+  // Show explanation
+  const explPanel = document.getElementById('expl-panel');
+  if (explPanel) explPanel.style.display = 'block';
+  // Swap action button
+  const actionDiv = document.getElementById('action-btn');
+  if (actionDiv) {
+    const isLast = S.currentQ === S.activeQs.length - 1;
+    actionDiv.innerHTML = `<button class="btn btn-primary" onclick="nextQuestion()">${isLast ? '完成測驗 →' : '下一題 →'}</button>`;
+  }
+}
+
+function toggleBk(id) {
+  id = String(id); // normalize: ensure String comparison
+  const isOn = !S.bookmarks.has(id);
+  isOn ? S.bookmarks.add(id) : S.bookmarks.delete(id);
+
+  // Persist to localStorage + trigger cloud sync (debounced 600ms)
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(saveToStorage, 600);
+
+  // DOM-only update — no render, no flash
+  const btn = document.getElementById('bk-btn');
+  if (!btn) return;
+  btn.classList.toggle('on', isOn);
+  btn.title = isOn ? '取消標記' : '標記此題';
+  const svg = btn.querySelector('svg');
+  if (svg) svg.setAttribute('fill', isOn ? 'currentColor' : 'none');
+}
+
+function nextQuestion() {
+  // Auto-confirm current answer before moving
+  const ans = S.answers[S.currentQ];
+  const q0  = S.activeQs[S.currentQ];
+  const hasSelection = q0 && q0.isMulti
+    ? Array.isArray(ans.selected) && ans.selected.length > 0
+    : ans && ans.selected !== null;
+  if (hasSelection && !ans.confirmed) { ans.confirmed = true; }
+
+  if (S.currentQ === S.activeQs.length - 1) {
+    finishQuiz();
+  } else {
+    S.currentQ++;
+    render();
+  }
+}
+
+function finishQuiz() {
+  const score = S.activeQs.filter((q,i) => isCorrectAnswer(q, S.answers[i].selected)).length;
+  // Track wrong answers
+  S.activeQs.forEach((q,i) => {
+    const isCorrect = isCorrectAnswer(q, S.answers[i].selected);
+    if (!isCorrect) S.wrongQs.add(String(q.id));
+    else S.wrongQs.delete(String(q.id));
+  });
+  // Per-category breakdown
+  const catMap = {};
+  S.activeQs.forEach((q,i) => {
+    const c = q.category || '其他';
+    if (!catMap[c]) catMap[c] = {correct:0,total:0};
+    catMap[c].total++;
+    if (S.answers[i].selected === q.answer) catMap[c].correct++;
+  });
+  const quizName = (S.quizSetup && S.quizSetup.name && S.quizSetup.name.trim())
+    || `第 ${S.history.length+1} 回合`;
+  // Collect wrong + bookmarked IDs from this quiz only
+  const _wrongIds = S.activeQs
+    .filter((q,i) => !isCorrectAnswer(q, S.answers[i].selected))
+    .map(q => String(q.id));
+  const _bkIds = S.activeQs
+    .filter(q => S.bookmarks.has(String(q.id)))
+    .map(q => String(q.id));
+
+  S.history.push({
+    id: S.history.length + 1,
+    name: quizName,
+    date: new Date().toLocaleDateString('zh-TW'),
+    total: S.activeQs.length,
+    correct: score,
+    bk: _bkIds.length,
+    wrong: _wrongIds.length,
+    catStats: catMap,
+    dur: '—',
+    wrongIds: _wrongIds,
+    bkIds:    _bkIds,
+  });
+
+  // Mark questions as used (only for 'new' mode)
+  if (S.quizConfig && S.quizConfig.mode === 'new') {
+    S.activeQs.forEach(q => S.usedQIds.add(String(q.id)));
+  }
+
+  // Persist + sync to cloud
+  saveToStorage();
+  S.quizMode = 'result';
+  render();
+}
+
+/* ── Result ── */
+function quizResultHTML() {
+  const score = S.activeQs.filter((q,i) => isCorrectAnswer(q, S.answers[i].selected)).length;
+  const pct   = Math.round((score / S.activeQs.length) * 100);
+  const color = pct >= 80 ? '#4ADE80' : pct >= 60 ? '#FBBF24' : '#F87171';
+  const msg   = pct >= 80 ? '表現優異！🎉' : pct >= 60 ? '繼續加油！' : '建議再次複習';
+
+  const items = S.activeQs.map((q,i) => {
+    const ok = S.answers[i].selected === q.answer;
+    const bk = S.bookmarks.has(String(q.id));
+    const src = questionSource(q);
+    return `
+    <div class="r-item ${ok?'ok':'bad'}">
+      <div style="display:flex;align-items:flex-start;gap:.75rem;">
+        <span style="font-size:1rem;flex-shrink:0;margin-top:1px;">${ok?'✅':'❌'}</span>
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:.86rem;line-height:1.62;color:var(--text-1);">${q.text}</p>
+          ${!ok?`<p style="margin-top:.35rem;font-size:.79rem;color:var(--green);">✓ 正確答案：${correctAnswerLabel(q)}</p>`:''}
+        </div>
+        ${bk?`<span title="已標記" style="color:var(--gold);flex-shrink:0;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+        </span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const poolReset = S._poolResetMsg;
+  S._poolResetMsg  = false;
+
+  return `
+  <div class="page" style="max-width:640px;margin:0 auto;padding:3rem 1.5rem;">
+    ${poolReset ? `<div style="margin-bottom:1.2rem;padding:.75rem 1rem;border-radius:10px;background:rgba(123,111,224,.09);border:1px solid var(--accent-border);font-size:.82rem;color:var(--accent);">
+      ♻️ 此分類全部題目已出完一輪，已自動重置，重新從頭出題。
+    </div>` : ''}
+
+    <!-- Score -->
+    <div style="background:rgba(20,20,32,.8);border:1px solid var(--border);border-radius:22px;padding:2.25rem;text-align:center;margin-bottom:1.85rem;">
+      <div class="mono" style="font-size:3.8rem;font-weight:500;color:${color};margin-bottom:.35rem;line-height:1;">
+        ${score}<span style="font-size:1.8rem;color:var(--text-3)">/${S.activeQs.length}</span>
+      </div>
+      <div style="font-size:1rem;font-weight:600;color:${color};margin-bottom:.25rem;">${msg}</div>
+      <div style="color:var(--text-2);font-size:.84rem;">答對率 ${pct}%</div>
+
+      <div style="display:flex;justify-content:center;gap:2.5rem;margin-top:1.4rem;padding-top:1.4rem;border-top:1px solid var(--border);">
+        <div>
+          <div class="mono" style="font-size:1.5rem;font-weight:600;color:#4ADE80;">${score}</div>
+          <div style="font-size:.72rem;color:var(--text-3);margin-top:.15rem;">答對</div>
+        </div>
+        <div>
+          <div class="mono" style="font-size:1.5rem;font-weight:600;color:#F87171;">${S.activeQs.length-score}</div>
+          <div style="font-size:.72rem;color:var(--text-3);margin-top:.15rem;">答錯</div>
+        </div>
+        <div>
+          <div class="mono" style="font-size:1.5rem;font-weight:600;color:var(--gold);">${S.bookmarks.size}</div>
+          <div style="font-size:.72rem;color:var(--text-3);margin-top:.15rem;">已標記</div>
+        </div>
+        <div>
+          <div class="mono" style="font-size:1.5rem;font-weight:600;color:#F87171;">${S.activeQs.filter((q,i)=>!isCorrectAnswer(q,S.answers[i].selected)).length}</div>
+          <div style="font-size:.72rem;color:var(--text-3);margin-top:.15rem;">錯誤</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail -->
+    <p style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.85rem;">答題明細</p>
+    <div style="display:flex;flex-direction:column;gap:.55rem;margin-bottom:2rem;">${items}</div>
+
+    <!-- Actions -->
+    <div style="display:flex;flex-wrap:wrap;gap:.65rem;justify-content:center;">
+      <button class="btn btn-ghost" onclick="navigate('quiz')">返回選單</button>
+      <button class="btn btn-primary" onclick="retakeQuiz()">🔁 再出一份</button>
+    </div>
+  </div>`;
+}
+
+/* ── Review ── */
+function quizReviewHTML() {
+  const bkQs = S.activeQs.map((q,i) => ({q,i}));
+  if (bkQs.length === 0) {
+    return `
+    <div class="page" style="max-width:640px;margin:0 auto;padding:3rem 1.5rem;text-align:center;">
+      <p style="color:var(--text-3);margin-bottom:1rem;">目前沒有標記的題目。</p>
+      <button class="btn btn-primary" onclick="navigate('quiz')">返回選單</button>
+    </div>`;
+  }
+
+  const cards = bkQs.map(({q,i}, idx) => {
+    const ans = S.answers[i];  // i = index in activeQs
+    const hasAns = ans && ans.confirmed;
+    const ok = hasAns && isCorrectAnswer(q, ans.selected);
+    const borderColor = hasAns ? (ok ? 'rgba(74,222,128,.2)' : 'rgba(248,113,113,.2)') : 'var(--border)';
+
+    const optRows = q.options.map((opt,oi) => `
+    <div style="padding:.65rem .9rem;border-radius:9px;font-size:.85rem;display:flex;align-items:center;gap:.5rem;
+      background:${correctSet(q).has(oi)?'rgba(74,222,128,.07)':'rgba(255,255,255,.02)'};
+      border:1px solid ${correctSet(q).has(oi)?'rgba(74,222,128,.3)':'var(--border)'};
+      color:${correctSet(q).has(oi)?'#4ADE80':'var(--text-2)'};">
+      ${oi===q.answer
+        ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+        : '<span style="width:13px;display:inline-block"></span>'}
+      ${opt}
+    </div>`).join('');
+
+    return `
+    <div class="rv-card" style="border-color:${borderColor};">
+      <div class="rv-hdr" onclick="toggleRv(${idx})">
+        <div style="display:flex;align-items:center;gap:.65rem;flex:1;min-width:0;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="#C8963E" style="flex-shrink:0;"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+          <span style="font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${q.text.slice(0,58)}${q.text.length>58?'…':''}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;margin-left:.75rem;">
+          <span style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:.15rem .45rem;font-size:.7rem;color:var(--text-2);">${q.category}</span>
+          <svg id="ch-${idx}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" style="transition:transform .2s;flex-shrink:0;">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </div>
+      </div>
+      <div class="rv-body" id="rv-${idx}">
+        <div style="padding-top:1rem;">
+          <p style="font-size:.94rem;line-height:1.75;margin-bottom:1rem;">${q.text}</p>
+          <div style="display:flex;flex-direction:column;gap:.45rem;margin-bottom:.95rem;">${optRows}</div>
+          <div style="padding:.9rem 1rem;border-radius:10px;background:var(--accent-dim);border:1px solid var(--accent-border);">
+            <p style="font-size:.68rem;font-weight:700;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.4rem;">💡 解析</p>
+            <p style="font-size:.84rem;line-height:1.68;color:var(--text-2);">${q.explanation}</p>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="page" style="max-width:660px;margin:0 auto;padding:3rem 1.5rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;">
+      <div>
+        <div class="badge badge-g" style="margin-bottom:.5rem;">複習模式</div>
+        <h2 style="font-size:1.7rem;font-weight:700;letter-spacing:-.03em;">複習題目 <span style="color:var(--gold)">${bkQs.length}</span></h2>
+      </div>
+      <button class="btn btn-ghost" onclick="S.history.length?(S.quizMode='result',render()):navigate('quiz')" style="font-size:.83rem;">← 返回</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.7rem;">${cards}</div>
+  </div>`;
+}
+
+function toggleRv(idx) {
+  const body = document.getElementById('rv-'+idx);
+  const ch   = document.getElementById('ch-'+idx);
+  if (!body) return;
+  body.classList.toggle('open');
+  if (ch) ch.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+
+/* ╔══════════════════════════════════╗
+   ║         DASHBOARD PAGE           ║
+   ╚══════════════════════════════════╝ */
+
+
+
+function quizBrowseHTML() {
+  const qs = S.activeQs;
+  if (!qs.length) {
+    return `<div class="page" style="max-width:660px;margin:0 auto;padding:3rem 1.5rem;text-align:center;">
+      <p style="color:var(--text-3);margin-bottom:1rem;">沒有題目可顯示。</p>
+      <button class="btn btn-primary" onclick="goBackFromBrowse()">返回選單</button>
+    </div>`;
+  }
+  const ANS = ['A','B','C','D','E'];
+
+  const cards = qs.map((q, qi) => {
+    const bk = S.bookmarks.has(String(q.id));
+    const opts = q.options.map((opt, oi) => {
+      const isAns = correctSet(q).has(oi);
+      return `<div style="padding:.55rem .85rem;border-radius:8px;margin-bottom:.35rem;
+        background:${isAns?'rgba(74,222,128,.07)':'rgba(255,255,255,.02)'};
+        border:1px solid ${isAns?'rgba(74,222,128,.3)':'var(--border)'};
+        color:${isAns?'#4ADE80':'var(--text-2)'};font-size:.85rem;line-height:1.5;">
+        <span style="font-weight:700;margin-right:.35rem;">${ANS[oi]}.</span>${opt}
+        ${isAns?'<span style="margin-left:.3rem;font-size:.72rem;">✓</span>':''}
+      </div>`;
+    }).join('');
+
+    return `
+    <div class="g-card" style="padding:0;margin-bottom:.65rem;overflow:hidden;">
+      <!-- Header — click to expand/collapse -->
+      <div class="rv-hdr" onclick="toggleRv(${qi})" style="padding:.9rem 1.1rem;">
+        <div style="display:flex;align-items:center;gap:.6rem;min-width:0;">
+          <span class="badge badge-n" style="flex-shrink:0;">Q.${qi+1}</span>
+          ${q.isMulti?'<span class="badge" style="background:rgba(123,111,224,.15);color:var(--accent);border:1px solid var(--accent-border);font-size:.58rem;flex-shrink:0;">多選</span>':''}
+          <span style="font-size:.87rem;color:var(--text-1);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${q.text}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;margin-left:.5rem;">
+          <button class="bk-btn ${bk?'on':''}" onclick="event.stopPropagation();toggleBk('${q.id}')" style="width:28px;height:28px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="${bk?'currentColor':'none'}" stroke="currentColor" stroke-width="2">
+              <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+            </svg>
+          </button>
+          <svg id="ch-${qi}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            style="transition:transform .2s;color:var(--text-3);flex-shrink:0;">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+      </div>
+      <!-- Body — hidden by default, toggled by toggleRv() -->
+      <div class="rv-body" id="rv-${qi}">
+        <p style="font-size:.9rem;line-height:1.75;margin-bottom:.85rem;color:var(--text-1);">${q.text}</p>
+        ${q.isMulti?'<p style="font-size:.72rem;color:var(--accent);margin-bottom:.6rem;">多選題 — 可選多個正確答案</p>':''}
+        ${opts}
+        ${q.explanation?`<p style="margin-top:.75rem;font-size:.8rem;color:var(--text-3);border-top:1px solid var(--border);padding-top:.65rem;line-height:1.6;">${q.explanation}</p>`:''}
+      ${questionSource(q)?`<p style="margin-top:.4rem;font-size:.7rem;color:var(--text-3);">📄 出處：${questionSource(q)}</p>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="page" style="max-width:660px;margin:0 auto;padding:clamp(.75rem,3vw,1.5rem);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <button class="btn btn-ghost" onclick="goBackFromBrowse()" style="font-size:.85rem;">← 返回</button>
+      <span style="font-size:.82rem;color:var(--text-2);">${qs.length} 題・點題目展開</span>
+    </div>
+    ${cards}
+  </div>`;
+}
+
+function goBackFromBrowse() {
+  S.quizMode  = 'menu';
+  S.activeQs  = [];
+  S.browseSrc = null;
+  navigate('quiz');
+}
+
+function removeBrowseItem(idx, mode) {
+  if (idx < 0 || idx >= S.activeQs.length) return;
+  const q = S.activeQs[idx];
+  if (mode === 'review') {
+    S.bookmarks.delete(String(q.id));
+    S.activeQs.splice(idx, 1);
+    saveToStorage();
+    render();
+  } else if (mode === 'wrong') {
+    S.wrongQs.delete(String(q.id));
+    S.activeQs.splice(idx, 1);
+    saveToStorage();
+    render();
+  }
+}
+
+function downloadHistoryCSV(histId, type) {
+  const entry = S.history.find(h => h.id === histId);
+  if (!entry) return;
+  const ids  = type === 'wrong' ? (entry.wrongIds || []) : (entry.bkIds || []);
+  if (!ids.length) { alert('這次測驗沒有' + (type==='wrong'?'錯誤':'標記') + '的題目。'); return; }
+  const allQ = [...(typeof QUESTIONS !== 'undefined' ? QUESTIONS : []), ...S.extraQs];
+  const pool = ids.map(id => allQ.find(q => String(q.id) === String(id))).filter(Boolean);
+  if (!pool.length) { alert('找不到對應題目。'); return; }
+  const ANS = ['A','B','C','D','E'];
+  const header = ['id','exam','question','option_a','option_b','option_c','option_d','option_e','answer','explanation'];
+  const rows = pool.map((q,i) => [
+    i+1, q.category||'', q.text||'',
+    q.options?.[0]||'', q.options?.[1]||'', q.options?.[2]||'',
+    q.options?.[3]||'', q.options?.[4]||'',
+    (q.isMulti ? [...q.answer].sort((a,b)=>a-b).map(i=>ANS[i]).join('') : ANS[q.answer])||'',
+    q.explanation||''
+  ]);
+  const tags = [...new Set(pool.map(q => q.category||'').filter(Boolean))];
+  const typeLabel = type === 'wrong' ? '錯誤題目' : '標記題目';
+  const meta = ['# 考卷：'+(entry.name||'測驗 #'+entry.id),
+                '# 類型：'+typeLabel,
+                '# 資料集標籤：'+(tags.join('、')||'（未分類）'),
+                '# 題數：'+pool.length+' 題',
+                '# 匯出時間：'+new Date().toLocaleString('zh-TW'),'#'].join('\n');
+  const esc = v => { const s=String(v).replace(/"/g,'""'); return (s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s+'"':s; };
+  const csv = '\uFEFF' + meta + '\n' + [header,...rows].map(r=>r.map(esc).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (entry.name||'測驗')+'-'+typeLabel+'.csv';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+
+
+async function forceSyncToCloud() {
+  function setMsg(text, color) {
+    const el = document.getElementById('backup-msg');
+    if (el) { el.textContent = text; el.style.color = color; }
+  }
+
+  if (!_supa || !_currentUser) {
+    setMsg('⚠️ 請先登入帳號才能同步雲端。', '#F87171'); return;
+  }
+
+  setMsg('連線確認中…', 'var(--text-3)');
+
+  try {
+    await syncToCloud();
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('zh-TW', { year:'numeric', month:'numeric', day:'numeric' });
+    const timeStr = now.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false });
+    setMsg('✅ 同步雲端成功　' + dateStr + ' ' + timeStr, '#4ADE80');
+  } catch(e) {
+    const reason = e.message || String(e);
+    console.error('[Supa] sync failed:', reason);
+    setMsg('❌ ' + reason, '#F87171');
+  }
+}
+
+
+function dashHTML() {
+  const allQ = [...QUESTIONS, ...S.extraQs];
+  const dt   = S.dashTag;
+
+  // ── File tag stats ──────────────────────────────────────────────────
+  const fileTagStats = [];
+  S.files.forEach(f => {
+    (f.tags||[]).forEach(tag => {
+      let e = fileTagStats.find(x=>x.tag===tag);
+      if (!e) { e={tag,qCount:0}; fileTagStats.push(e); }
+      e.qCount += f.imported||0;
+    });
+  });
+
+  const tagPills = fileTagStats.length > 0
+    ? [`<button id="dash-pill-__all__" onclick="setDashTag(null)"
+        style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .85rem;border-radius:10px;cursor:pointer;border:none;transition:all .18s;
+          background:${!dt?'var(--accent)':'rgba(255,255,255,.05)'};
+          color:${!dt?'#fff':'var(--text-2)'};
+          outline:1px solid ${!dt?'var(--accent)':'var(--border)'};font-size:.8rem;font-weight:600;">
+        全部
+      </button>`,
+      ...fileTagStats.map(s => {
+        const tc = tagColor(s.tag);
+        const on = dt === s.tag;
+        return `<button id="dash-pill-${s.tag.replace(/[^a-zA-Z0-9]/g,'_')}" data-tag="${s.tag.replace(/"/g,'&quot;')}" onclick="setDashTag(this.dataset.tag)"
+          style="display:inline-flex;align-items:center;gap:.5rem;padding:.45rem .9rem;border-radius:10px;cursor:pointer;border:none;transition:all .18s;
+            background:${on?tc.color:tc.bg};color:${on?'#111':tc.color};
+            outline:1px solid ${on?tc.color:tc.border};font-size:.8rem;font-weight:${on?700:500};">
+          ${on?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><polyline points="20 6 9 17 4 12"/></svg>':''}
+          ${s.tag}
+          <span style="font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.7rem;opacity:.75;">${s.qCount}題</span>
+        </button>`;
+      })
+    ].join('')
+    : `<p style="font-size:.84rem;color:var(--text-3);">尚未匯入題目，請至「資料集」上傳並貼標。</p>`;
+
+  return `
+  <div class="page" style="max-width:900px;margin:0 auto;padding:3rem 1.5rem;">
+    <div style="margin-bottom:2rem;">
+      <div class="badge badge-gr" style="margin-bottom:.7rem">學習儀表板</div>
+      <h2 style="font-size:1.8rem;font-weight:700;letter-spacing:-.035em;">學習成效總覽</h2>
+    </div>
+
+    <!-- Tag filter (static shell) -->
+    <div style="margin-bottom:1.75rem;padding:1.2rem 1.4rem;border-radius:14px;background:rgba(20,20,32,.6);border:1px solid var(--border);">
+      <p style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.85rem;">
+        資料集來源標籤
+        <span id="dash-filter-label" style="font-size:.68rem;font-weight:400;color:var(--accent);margin-left:.6rem;">${dt?`· 篩選中：${dt}`:''}</span>
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;">${tagPills}</div>
+    </div>
+
+    <!-- Dynamic stats section (updated without full render) -->
+    <div id="dash-stats">${dashStatsHTML()}</div>
+  </div>`;
+}
+
+function dashStatsHTML() {
+  const allQ = [...QUESTIONS, ...S.extraQs];
+  const dt   = S.dashTag;
+
+  const qInTag   = q => !dt || q.category === dt;
+  const hInTag   = h => !dt || (h.catStats && h.catStats[dt]);
+  const hCorrect = h => dt ? (h.catStats?.[dt]?.correct||0) : h.correct;
+  const hTotal   = h => dt ? (h.catStats?.[dt]?.total  ||0) : h.total;
+  const filtHist = S.history.filter(hInTag);
+
+  const tot   = filtHist.length;
+  const totC  = filtHist.reduce((s,h)=>s+hCorrect(h),0);
+  const totQ  = filtHist.reduce((s,h)=>s+hTotal(h),0);
+  const totW  = allQ.filter(q=>S.wrongQs.has(String(q.id))&&qInTag(q)).length;
+  const totBk = allQ.filter(q=>S.bookmarks.has(String(q.id))&&qInTag(q)).length;
+  const rate  = totQ>0 ? Math.round((totC/totQ)*100) : 0;
+  const rateColor  = rate>=80?'#4ADE80':rate>=60?'#FBBF24':'#F87171';
+  const emptyState = tot === 0;
+
+  // Category bars
+  const catMap = {};
+  filtHist.forEach(h => {
+    if (!h.catStats) return;
+    const entries = dt ? [[dt,h.catStats[dt]]] : Object.entries(h.catStats);
+    entries.forEach(([cat,st]) => {
+      if (!st) return;
+      if (!catMap[cat]) catMap[cat]={correct:0,total:0};
+      catMap[cat].correct += st.correct;
+      catMap[cat].total   += st.total;
+    });
+  });
+  const catEntries = Object.entries(catMap).sort((a,b)=>b[1].total-a[1].total);
+  const catBars = catEntries.length > 0
+    ? catEntries.map(([cat,st]) => {
+        const p  = Math.round((st.correct/st.total)*100);
+        const bc = p>=80?'linear-gradient(90deg,#4ADE80,#22C55E)':p>=60?'linear-gradient(90deg,#FBBF24,#F59E0B)':'linear-gradient(90deg,#F87171,#EF4444)';
+        const pc = p>=80?'#4ADE80':p>=60?'#FBBF24':'#F87171';
+        return `<div style="margin-bottom:.95rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.38rem;">
+            <span style="font-size:.84rem;color:var(--text-1);">${cat}</span>
+            <span class="mono" style="font-size:.75rem;color:var(--text-2);">${st.correct}/${st.total} <span style="color:${pc}">(${p}%)</span></span>
+          </div>
+          <div class="pb-bg" style="height:5px;">
+            <div style="height:100%;width:${p}%;background:${bc};border-radius:999px;transition:width .6s ease;"></div>
+          </div>
+        </div>`;
+      }).join('')
+    : `<p style="font-size:.83rem;color:var(--text-3);text-align:center;padding:1.5rem 0;">${dt?`「${dt}」尚無測驗紀錄`:'完成測驗後將顯示各分類答對率'}</p>`;
+
+  // History rows
+  const histRows = filtHist.length > 0
+    ? [...filtHist].reverse().map(h => {
+        const c = hCorrect(h), t = hTotal(h);
+        const r = t>0 ? Math.round((c/t)*100) : 0;
+        const rc = r>=80?'#4ADE80':r>=60?'#FBBF24':'#F87171';
+        return `<div class="h-row">
+          <div style="font-size:.86rem;font-weight:500;">${h.name||('測驗 #'+h.id)}</div>
+          <div style="font-size:.82rem;color:var(--text-2);">${h.date}</div>
+          <div class="mono" style="font-size:.84rem;color:#4ADE80;">${c}/${t}</div>
+          <div class="mono" style="font-size:.84rem;color:${rc};font-weight:600;">${r}%</div>
+          <div style="font-size:.82rem;color:var(--gold);">${h.bk>0?`🔖 ${h.bk}`:'—'}</div>
+        </div>`;
+      }).join('')
+    : `<div style="padding:2rem;text-align:center;color:var(--text-3);font-size:.85rem;">${dt?`「${dt}」尚無測驗紀錄。`:'尚無測驗紀錄，完成第一次測驗後將顯示於此。'}</div>`;
+
+  const dlWrong = totW>0 ? `<button onclick="downloadQuestionsCSV('wrong','${(dt||'').replace(/'/g,"\\'")}')" title="下載錯誤題目 CSV"
+    style="background:transparent;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;border-radius:5px;display:flex;transition:color .15s;"
+    onmouseover="this.style.color='#F87171'" onmouseout="this.style.color='var(--text-3)'">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  </button>` : '';
+  const dlBk   = totBk>0 ? `<button onclick="downloadQuestionsCSV('bookmarked','${(dt||'').replace(/'/g,"\\'")}')" title="下載標記題目 CSV"
+    style="background:transparent;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;border-radius:5px;display:flex;transition:color .15s;"
+    onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text-3)'">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  </button>` : '';
+
+  return `
+  <!-- Stat Cards -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.9rem;margin-bottom:1.8rem;">
+    <div class="s-card">
+      <p style="font-size:.68rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem;">測驗次數</p>
+      <div class="mono" style="font-size:2.3rem;font-weight:500;color:var(--accent);line-height:1.1;">${tot||'—'}</div>
+      <p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">${tot>0?'次':'尚無紀錄'}</p>
+    </div>
+    <div class="s-card">
+      <p style="font-size:.68rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem;">答對率</p>
+      <div class="mono" style="font-size:2.3rem;font-weight:500;color:${emptyState?'var(--text-3)':rateColor};line-height:1.1;">${emptyState?'—':rate+'%'}</div>
+      <p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">${emptyState?'尚無紀錄':totC+'/'+totQ+' 題'}</p>
+    </div>
+    <div class="s-card" style="position:relative;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
+        <p style="font-size:.68rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">累計錯誤題</p>
+        ${dlWrong}
+      </div>
+      <div class="mono" style="font-size:2.3rem;font-weight:500;color:${totW>0?'#F87171':'var(--text-3)'};line-height:1.1;">${totW||'—'}</div>
+      <p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">待加強</p>
+    </div>
+    <div class="s-card" style="position:relative;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
+        <p style="font-size:.68rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">已標記題目</p>
+        ${dlBk}
+      </div>
+      <div class="mono" style="font-size:2.3rem;font-weight:500;color:${totBk>0?'var(--gold)':'var(--text-3)'};line-height:1.1;">${totBk||'—'}</div>
+      <p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">待複習</p>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.5rem;">
+    <div class="s-card">
+      <p style="font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:1.1rem;">測驗分數趨勢${dt?` · ${dt}`:''}</p>
+      ${emptyState?`<div style="height:160px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.82rem;">完成測驗後顯示趨勢圖</div>`:`<canvas id="scoreChart"></canvas>`}
+    </div>
+    <div class="s-card">
+      <p style="font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:1.1rem;">各分類答對率${dt?` · ${dt}`:''}</p>
+      ${catBars}
+    </div>
+  </div>
+
+  <!-- History Table -->
+  <div style="background:rgba(20,20,32,.7);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+    <div style="padding:1.1rem 1.1rem .9rem;border-bottom:1px solid var(--border);">
+      <p style="font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">測驗歷史紀錄${dt?` · ${dt}`:''}</p>
+    </div>
+    ${filtHist.length>0?`<div class="h-row" style="background:rgba(255,255,255,.015);">
+      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">考卷名稱</div>
+      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">日期</div>
+      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">答題</div>
+      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">答對率</div>
+      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">標記</div>
+    </div>`:''}
+    ${histRows}
+  </div>
+
+  <!-- ── 進度備份 / 還原 ── -->
+  <div class="g-card" style="padding:1.25rem;margin-top:1.5rem;cursor:default;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
+    <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem;">進度備份 / 還原</p>
+    <p style="font-size:.8rem;color:var(--text-3);margin-bottom:1rem;line-height:1.6;">將書籤、錯誤紀錄、測驗歷史完整備份成 JSON 檔，可在任何裝置匯入還原。</p>
+    <div style="display:flex;flex-direction:column;gap:.5rem;">
+      <button onclick="exportProgress()" class="btn btn-ghost"
+        style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;touch-action:manipulation;padding:.65rem 1rem;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0;">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span>匯出進度備份</span>
+      </button>
+      <label style="width:100%;">
+        <input type="file" accept=".json" style="display:none;" onchange="importProgress(this)">
+        <span class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;cursor:pointer;touch-action:manipulation;padding:.65rem 1rem;box-sizing:border-box;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0;">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span>匯入進度備份</span>
+        </span>
+      </label>
+      <button onclick="forceSyncToCloud()" class="btn btn-ghost"
+        style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;touch-action:manipulation;padding:.65rem 1rem;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0;">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
+        </svg>
+        <span>立即同步到雲端</span>
+      </button>
+    </div>
+    <div id="backup-msg" style="margin-top:.65rem;font-size:.78rem;min-height:1.2em;"></div>
+  </div>
+  `;
+}
+
+/* setDashTag: DOM-only pill update + targeted stats refresh */
+function setDashTag(tag) {
+  S.dashTag = (S.dashTag === tag) ? null : tag;
+  const dt  = S.dashTag;
+
+  // 1. Update tag pill visual states (DOM only - no flash)
+  document.querySelectorAll('[id^="dash-pill-"]').forEach(btn => {
+    const isAll  = btn.id === 'dash-pill-__all__';
+    const btnTag = btn.dataset.tag;
+    const on     = isAll ? !dt : (dt === btnTag);
+    if (isAll) {
+      btn.style.background = on ? 'var(--accent)' : 'rgba(255,255,255,.05)';
+      btn.style.color      = on ? '#fff' : 'var(--text-2)';
+      btn.style.outline    = '1px solid ' + (on ? 'var(--accent)' : 'var(--border)');
+    } else {
+      const tc = tagColor(btnTag);
+      btn.style.background = on ? tc.color : tc.bg;
+      btn.style.color      = on ? '#111' : tc.color;
+      btn.style.outline    = '1px solid ' + (on ? tc.color : tc.border);
+      btn.style.fontWeight = on ? '700' : '500';
+      // Toggle checkmark svg
+      const existing = btn.querySelector('svg');
+      if (on && !existing) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.setAttribute('width','11'); svg.setAttribute('height','11');
+        svg.setAttribute('viewBox','0 0 24 24'); svg.setAttribute('fill','none');
+        svg.setAttribute('stroke','currentColor'); svg.setAttribute('stroke-width','2.8');
+        const poly = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+        poly.setAttribute('points','20 6 9 17 4 12');
+        svg.appendChild(poly);
+        btn.insertBefore(svg, btn.firstChild);
+      } else if (!on && existing) {
+        existing.remove();
+      }
+    }
+  });
+
+  // 2. Update subtitle
+  const label = document.getElementById('dash-filter-label');
+  if (label) label.textContent = dt ? `· 篩選中：${dt}` : '';
+
+  // 3. Replace stats section with smooth fade
+  const statsEl = document.getElementById('dash-stats');
+  if (statsEl) {
+    statsEl.style.transition = 'opacity .12s';
+    statsEl.style.opacity    = '0';
+    setTimeout(() => {
+      statsEl.innerHTML  = dashStatsHTML();
+      statsEl.style.opacity = '1';
+      // Re-init chart after DOM update
+      setTimeout(initChart, 30);
+    }, 120);
+  }
+
+  // Auto-save (debounced)
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(saveToStorage, 600);
+}
+
+
+function initChart() {
+  const canvas = document.getElementById('scoreChart');
+  if (!canvas) return;
+
+  // Pure Canvas line chart — no CDN required
+  const dt = S.dashTag;
+  const filtHist = dt
+    ? S.history.filter(h => h.catStats && h.catStats[dt])
+    : S.history;
+  if (!filtHist.length) return;
+
+  const hC = h => dt ? (h.catStats?.[dt]?.correct || 0) : h.correct;
+  const hT = h => dt ? (h.catStats?.[dt]?.total   || 1) : h.total;
+  const data   = filtHist.map(h => { const t = hT(h); return t > 0 ? Math.round((hC(h)/t)*100) : 0; });
+  const labels = filtHist.map(h => h.name ? h.name.slice(0,8) : '#'+h.id);
+
+  const dpr  = window.devicePixelRatio || 1;
+  const W    = canvas.parentElement.clientWidth || 320;
+  const H    = 160;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx  = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const PAD  = { top:18, right:12, bottom:36, left:34 };
+  const cW   = W - PAD.left - PAD.right;
+  const cH   = H - PAD.top  - PAD.bottom;
+  const n    = data.length;
+
+  // Grid lines & Y labels
+  ctx.strokeStyle = 'rgba(255,255,255,.07)';
+  ctx.fillStyle   = 'rgba(255,255,255,.3)';
+  ctx.font        = '10px JetBrains Mono, monospace';
+  ctx.textAlign   = 'right';
+  [0,25,50,75,100].forEach(pct => {
+    const y = PAD.top + cH * (1 - pct/100);
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y); ctx.stroke();
+    ctx.fillText(pct+'%', PAD.left - 4, y + 3.5);
+  });
+
+  if (n < 2) {
+    // Single point
+    const x = PAD.left + cW/2;
+    const y = PAD.top + cH * (1 - data[0]/100);
+    const col = data[0]>=80?'#4ADE80':data[0]>=60?'#FBBF24':'#F87171';
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2);
+    ctx.fillStyle = col; ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.5)'; ctx.textAlign='center';
+    ctx.fillText(data[0]+'%', x, y-10);
+    return;
+  }
+
+  // X positions
+  const xs = data.map((_,i) => PAD.left + i * cW/(n-1));
+  const ys = data.map(v   => PAD.top  + cH * (1 - v/100));
+
+  // Fill area
+  const grad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top+cH);
+  grad.addColorStop(0,   'rgba(123,111,224,.25)');
+  grad.addColorStop(1,   'rgba(123,111,224,.01)');
+  ctx.beginPath();
+  ctx.moveTo(xs[0], ys[0]);
+  for (let i=1; i<n; i++) {
+    const cpx = (xs[i-1]+xs[i])/2;
+    ctx.bezierCurveTo(cpx,ys[i-1], cpx,ys[i], xs[i],ys[i]);
+  }
+  ctx.lineTo(xs[n-1], PAD.top+cH);
+  ctx.lineTo(xs[0],   PAD.top+cH);
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(xs[0], ys[0]);
+  for (let i=1; i<n; i++) {
+    const cpx = (xs[i-1]+xs[i])/2;
+    ctx.bezierCurveTo(cpx,ys[i-1], cpx,ys[i], xs[i],ys[i]);
+  }
+  ctx.strokeStyle = 'rgba(123,111,224,.9)'; ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Points + tooltips
+  data.forEach((v, i) => {
+    const col = v>=80?'#4ADE80':v>=60?'#FBBF24':'#F87171';
+    ctx.beginPath(); ctx.arc(xs[i], ys[i], 4, 0, Math.PI*2);
+    ctx.fillStyle = col; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 1; ctx.stroke();
+    // Value label above point (show for first, last, and peaks/valleys)
+    const isEdge = i===0 || i===n-1;
+    const isPeak = n>2 && (i===0||i===n-1||v!==data[i-1]&&v!==data[i+1]);
+    if (isEdge || n<=5) {
+      ctx.fillStyle='rgba(255,255,255,.7)'; ctx.font='9px JetBrains Mono,monospace';
+      ctx.textAlign='center';
+      ctx.fillText(v+'%', xs[i], ys[i]-9);
+    }
+    // X label
+    ctx.fillStyle='rgba(255,255,255,.35)'; ctx.font='9px sans-serif';
+    ctx.textAlign='center';
+    const lbl = labels[i].length>6 ? labels[i].slice(0,5)+'…' : labels[i];
+    ctx.fillText(lbl, xs[i], H - PAD.bottom + 14);
+  });
+}
+
+/* ── Download questions as CSV ── */
+function downloadQuestionsCSV(type, tagFilter) {
+  const allQ  = [...QUESTIONS, ...S.extraQs];
+  const tag   = tagFilter || S.dashTag || null;
+  const inTag = q => !tag || q.category === tag;
+  let pool, filename;
+  if (type === 'wrong') {
+    pool     = allQ.filter(q => S.wrongQs.has(String(q.id)) && inTag(q));
+    filename = (tag ? tag+'_' : '') + '錯誤題目.csv';
+  } else {
+    pool     = allQ.filter(q => S.bookmarks.has(String(q.id)) && inTag(q));
+    filename = (tag ? tag+'_' : '') + '標記題目.csv';
+  }
+  if (!pool.length) return;
+
+  const ANS = ['A','B','C','D','E'];
+  // Match the same format as downloadTemplate()
+  const header = ['id','exam','question','option_a','option_b','option_c','option_d','option_e','answer','explanation'];
+  const rows = pool.map((q,i) => [
+    i+1,
+    q.category||'',
+    q.text||'',
+    q.options?.[0]||'',
+    q.options?.[1]||'',
+    q.options?.[2]||'',
+    q.options?.[3]||'',
+    q.options?.[4]||'',
+    (q.isMulti ? [...q.answer].sort((a,b)=>a-b).map(i=>['A','B','C','D','E'][i]).join('') : ['A','B','C','D','E'][q.answer])||'',
+    q.explanation||'',
+  ]);
+
+  const escCSV = v => {
+    const s = String(v).replace(/"/g,'""');
+    return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"'+s+'"' : s;
+  };
+  const tagLabel = tag ? tag : '全部分類';
+  const typeLabel = type === 'wrong' ? '錯誤題目' : '標記題目';
+  const metaLines = [
+    '# 資料集：' + tagLabel,
+    '# 類型：'   + typeLabel,
+    '# 題數：'   + pool.length + ' 題',
+    '# 匯出時間：' + new Date().toLocaleString('zh-TW'),
+    '#',
+  ].join('\n');
+  const csv = metaLines + '\n' + [header, ...rows]
+    .map(r => r.map(escCSV).join(','))
+    .join('\n');
+
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ╔══════════════════════════════════╗
+   ║     PERSISTENT STORAGE (localStorage)      ║
+   ╚══════════════════════════════════╝ */
+// STORAGE_KEY replaced by getStorageKey()
+
+function saveToStorage() {
+  try {
+    const payload = {
+      v:         2,
+      files:     S.files.map(({ _file, ...f }) => f),  // strip un-serialisable File objects
+      extraQs:   S.extraQs,
+      bookmarks: [...S.bookmarks],
+      wrongQs:   [...S.wrongQs],
+      usedQIds:  [...S.usedQIds],
+      history:   S.history,
+      dashTag:   S.dashTag,
+      tagFilter: S.tagFilter,
+    };
+    localStorage.setItem(getStorageKey(), JSON.stringify(payload));
+    scheduleSyncToCloud();
+  } catch(e) {
+    console.warn('[NeuroLearn] save failed:', e);
+  }
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(getStorageKey());
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (!d || d.v !== 2) return false;
+
+    if (Array.isArray(d.files)) {
+      S.files    = d.files;
+      // restore nextFid so new uploads get unique IDs
+      S.nextFid  = d.files.length > 0 ? Math.max(...d.files.map(f => f.id + 1)) : 4;
+    }
+    if (Array.isArray(d.extraQs))   S.extraQs   = d.extraQs;
+    if (Array.isArray(d.bookmarks)) S.bookmarks  = new Set(d.bookmarks.map(String));
+    if (Array.isArray(d.wrongQs))   S.wrongQs    = new Set(d.wrongQs.map(String));
+    if (Array.isArray(d.usedQIds))  S.usedQIds   = new Set(d.usedQIds.map(String));
+    if (Array.isArray(d.history))   S.history    = d.history;
+    if (d.dashTag   !== undefined)  S.dashTag    = d.dashTag;
+    if (d.tagFilter !== undefined)  S.tagFilter  = d.tagFilter;
+    return true;
+  } catch(e) {
+    console.warn('[NeuroLearn] load failed:', e);
+    return false;
+  }
+}
+
+function clearAllData() {
+  if (!confirm('確定要清除所有本機資料？\n（題庫、測驗紀錄、書籤、錯誤紀錄都將刪除）')) return;
+  localStorage.removeItem(getStorageKey());
+  location.reload();
+}
+
+/* Auto-save: debounced 600ms after every render() */
+let _autoSaveTimer = null;
+
+/* ╔══════════════════════════════════╗
+   ║             BOOT                 ║
+   ╚══════════════════════════════════╝ */
+// Restore persisted state from localStorage
+loadFromStorage();
+render();
+if (typeof supabase !== 'undefined') {
+  initSupabase();
+} else {
+  window.addEventListener('load', function() { initSupabase(); });
+}
+</script>
+</body>
+</html>
