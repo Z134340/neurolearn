@@ -1677,12 +1677,15 @@ function quizMenuHTML_page() {
     </div>` : '';
 
   // ── Section 3: count + name + launch ────────────────────────────────────
-  const modeOk = setup.mode !== null && (setup.mode === 'new' || setup.submode === 'retake');
+  const modeOk = setup.mode === 'new' || setup.submode === 'retake';
   let pool3 = [];
   if (modeOk) {
-    if (setup.mode === 'review') pool3 = allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q));
-    else if (setup.mode === 'wrong') pool3 = allQ.filter(q => S.wrongQs.has(String(q.id)) && inCat(q));
-    else pool3 = allQ.filter(q => inCat(q) && !S.usedQIds.has(String(q.id))); // only unused
+    if (setup.mode === 'review' || (setup.submode === 'retake' && setup.mode === 'review'))
+      pool3 = allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q));
+    else if (setup.mode === 'wrong' || (setup.submode === 'retake' && setup.mode === 'wrong'))
+      pool3 = allQ.filter(q => S.wrongQs.has(String(q.id)) && inCat(q));
+    else
+      pool3 = allQ.filter(q => inCat(q) && !S.usedQIds.has(String(q.id))); // only unused
   }
   const maxCount = pool3.length;
   const count    = Math.max(1, Math.min(setup.count || 20, Math.max(maxCount, 1)));
@@ -1775,12 +1778,15 @@ function qsRenderModeSections() {
       </div>
     </div>` : '';
 
-  const modeOk = setup.mode !== null && (setup.mode === 'new' || setup.submode === 'retake');
+  const modeOk = setup.mode === 'new' || setup.submode === 'retake';
   let pool3 = [];
   if (modeOk) {
-    if (setup.mode === 'review') pool3 = allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q));
-    else if (setup.mode === 'wrong') pool3 = allQ.filter(q => S.wrongQs.has(String(q.id)) && inCat(q));
-    else pool3 = allQ.filter(q => inCat(q) && !S.usedQIds.has(String(q.id))); // only unused
+    if (setup.mode === 'review' || (setup.submode === 'retake' && setup.mode === 'review'))
+      pool3 = allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q));
+    else if (setup.mode === 'wrong' || (setup.submode === 'retake' && setup.mode === 'wrong'))
+      pool3 = allQ.filter(q => S.wrongQs.has(String(q.id)) && inCat(q));
+    else
+      pool3 = allQ.filter(q => inCat(q) && !S.usedQIds.has(String(q.id))); // only unused
   }
   const maxCount = pool3.length;
   const count    = Math.max(1, Math.min(setup.count || 20, Math.max(maxCount, 1)));
@@ -1825,7 +1831,7 @@ function qsRenderModeSections() {
         <label style="font-size:.74rem;color:var(--text-3);">題目數量</label>
         <span style="display:flex;align-items:baseline;gap:.25rem;">
           <span id="qs-count-display" class="mono" style="font-size:1.6rem;font-weight:600;color:var(--gold);">${count}</span>
-          <span style="font-size:.8rem;color:var(--text-3);">/ ${maxCount} 未考</span>
+          <span style="font-size:.8rem;color:var(--text-3);">${setup.mode === 'new' ? '/ '+maxCount+' 未考'+(poolAll > maxCount ? ' (共 '+poolAll+' 題，已用 '+(poolAll-maxCount)+' 題)' : '') : '/ '+maxCount+' 題可用'}</span>
         </span>
       </div>
       <input type="range" min="1" max="${Math.max(maxCount,1)}" value="${count}" step="1"
@@ -1870,9 +1876,11 @@ function qsSelectMode(mode) {
 }
 function qsSelectSubMode(submode) {
   if (!S.quizSetup) return;
+  const allQ  = [...QUESTIONS,...S.extraQs];
+  const inCat = q => S.quizSetup.cats.has(q.category)||(q._fileTags&&q._fileTags.some(t=>S.quizSetup.cats.has(t)));
+
   if (submode === 'browse') {
-    const allQ  = [...QUESTIONS,...S.extraQs];
-    const inCat = q => S.quizSetup.cats.has(q.category)||(q._fileTags&&q._fileTags.some(t=>S.quizSetup.cats.has(t)));
+    // 呈現題目 — enter browse mode
     S.activeQs  = S.quizSetup.mode === 'review'
       ? allQ.filter(q=>S.bookmarks.has(String(q.id))&&inCat(q))
       : allQ.filter(q=>S.wrongQs.has(String(q.id))&&inCat(q));
@@ -1880,10 +1888,18 @@ function qsSelectSubMode(submode) {
     S.quizSetup = null;
     S.quizMode  = 'browse';
     render();
-  } else {
-    // 'retake' — toggle or set
-    S.quizSetup.submode = (S.quizSetup.submode === submode) ? null : submode;
-    qsUpdateModeSections();  // targeted — no full-page flash
+  } else if (submode === 'retake') {
+    // 重新測驗 — just set submode; slider + launch button appear in qsRenderModeSections
+    const pool = S.quizSetup.mode === 'review'
+      ? allQ.filter(q => S.bookmarks.has(String(q.id)) && inCat(q))
+      : allQ.filter(q => S.wrongQs.has(String(q.id)) && inCat(q));
+    if (!pool.length) {
+      showImportToast(S.quizSetup.mode === 'review' ? '目前無標記題目' : '目前無錯誤紀錄', 2500);
+      return;
+    }
+    S.quizSetup.submode = 'retake';
+    if (!S.quizSetup.count || S.quizSetup.count > pool.length) S.quizSetup.count = pool.length;
+    qsUpdateModeSections();
   }
 }
 
@@ -1992,9 +2008,19 @@ function launchQuiz() {
   S.activeQs   = drawn;
   S.answers    = drawn.map((q) => ({selected: q.isMulti ? [] : null, confirmed:false}));
   S.currentQ   = 0;
-  S.quizSetup  = null;
-  S.quizConfig = null;
-  S.quizMode   = mode === 'review' ? 'review' : 'active';
+  // Save config BEFORE clearing setup — finishQuiz needs mode to mark usedQIds
+  const submode = setup.submode; // capture before clearing
+  S.quizConfig = {
+    mode:    mode,
+    submode: submode,
+    cats:    new Set(setup.cats),
+    count:   count,
+    name:    setup.name || '',
+  };
+  S.quizSetup = null;
+  // retake submode → always active quiz (one-by-one answering)
+  // review without retake → browse/review page (read-only)
+  S.quizMode = (mode === 'review' && submode !== 'retake') ? 'review' : 'active';
   render();
 }
 
