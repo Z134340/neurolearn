@@ -309,7 +309,8 @@ const SUPA_KEY = 'sb_publishable_A3vHSsoyjb_KMZDUbCNHdQ_hs0O87su';
 let _supa = null;
 let _currentUser = null;
 let _cloudSyncTimer = null;
-let _accessToken = null;  // cached JWT — no network needed for sync
+let _accessToken = null;  // cached JWT — no network needed 
+let _lastSyncTime = null;  // timestamp of last successful cloud syncfor sync
 
 const STORAGE_KEY_BASE = 'neurolearn_v2';
 function getStorageKey() {
@@ -358,6 +359,7 @@ async function syncToCloud() {
 
     xhr.onload = function() {
       if (xhr.status >= 200 && xhr.status < 300) {
+        _lastSyncTime = new Date();
         console.log('[Supa] Synced ✓ HTTP', xhr.status);
         resolve();
       } else {
@@ -2492,6 +2494,27 @@ function dashStatsHTML() {
   const allQ = [...QUESTIONS, ...S.extraQs];
   const dt   = S.dashTag;
 
+  // Sync status banner
+  const syncBanner = (() => {
+    if (!_currentUser) return '';
+    if (!_lastSyncTime) {
+      return `<div style="display:flex;align-items:center;gap:.5rem;padding:.5rem .85rem;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid var(--border);margin-bottom:1.1rem;font-size:.75rem;color:var(--text-3);">
+        <span style="color:#FBBF24;">⏳</span>
+        <span>尚未同步至雲端，操作後將自動同步</span>
+      </div>`;
+    }
+    const d = _lastSyncTime;
+    const dateStr = d.toLocaleDateString('zh-TW', { year:'numeric', month:'numeric', day:'numeric' });
+    const timeStr = d.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .85rem;border-radius:9px;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.2);margin-bottom:1.1rem;font-size:.75rem;">
+      <div style="display:flex;align-items:center;gap:.45rem;color:#4ADE80;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+        <span>已同步雲端</span>
+      </div>
+      <span style="color:var(--text-3);">${dateStr}&nbsp;${timeStr}</span>
+    </div>`;
+  })();
+
   const qInTag   = q => !dt || q.category === dt;
   const hInTag   = h => !dt || (h.catStats && h.catStats[dt]);
   const hCorrect = h => dt ? (h.catStats?.[dt]?.correct||0) : h.correct;
@@ -2565,6 +2588,8 @@ function dashStatsHTML() {
   </button>` : '';
 
   return `
+  ${syncBanner}
+
   <!-- Stat Cards -->
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.9rem;margin-bottom:1.8rem;">
     <div class="s-card">
