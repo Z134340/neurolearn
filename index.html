@@ -1904,7 +1904,7 @@ function quizActiveHTML() {
   const confirmDisabled = q.isMulti ? (ans.selected.length === 0 ? 'disabled' : '') : (ans.selected === null ? 'disabled' : '');
   const actionBtn = ans.confirmed
     ? `<div style="display:flex;gap:.5rem;flex-wrap:wrap;">${prevBtn}${editBtn}<button class="btn btn-primary" onclick="nextQuestion()" style="touch-action:manipulation;flex:1;min-height:44px;">${isLast?'完成測驗 →':'下一題 →'}</button></div>`
-    : `<div style="display:flex;gap:.5rem;flex-wrap:wrap;">${prevBtn}<button id="confirm-btn" class="btn btn-primary" onclick="confirmAns()" style="touch-action:manipulation;flex:1;min-height:44px;" ${confirmDisabled}>確認答案</button></div>`;
+    : `<div style="display:flex;gap:.5rem;align-items:center;">${prevBtn}<button id="confirm-btn" class="btn btn-primary" onclick="confirmAns()" style="touch-action:manipulation;min-height:44px;padding:.6rem 1.8rem;font-size:.95rem;" ${confirmDisabled}>確認答案</button></div>`;
 
   return `
   <div class="page" style="max-width:660px;margin:0 auto;padding:clamp(.75rem,3vw,2rem) clamp(.75rem,4vw,1.5rem);">
@@ -2527,7 +2527,7 @@ function dashStatsHTML() {
         const pc = p>=80?'#4ADE80':p>=60?'#FBBF24':'#F87171';
         return `<div style="margin-bottom:.95rem">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.38rem;">
-            <span style="font-size:.84rem;color:var(--text-1);">${cat}</span>
+            <span style="font-size:.82rem;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;">${cat}</span>
             <span class="mono" style="font-size:.75rem;color:var(--text-2);">${st.correct}/${st.total} <span style="color:${pc}">(${p}%)</span></span>
           </div>
           <div class="pb-bg" style="height:5px;">
@@ -2596,7 +2596,7 @@ function dashStatsHTML() {
   </div>
 
   <!-- Charts row -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.5rem;">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem;margin-bottom:1.5rem;">
     <div class="s-card">
       <p style="font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:1.1rem;">測驗分數趨勢${dt?` · ${dt}`:''}</p>
       ${emptyState?`<div style="height:160px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.82rem;">完成測驗後顯示趨勢圖</div>`:`<canvas id="scoreChart"></canvas>`}
