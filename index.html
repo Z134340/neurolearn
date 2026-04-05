@@ -1080,36 +1080,41 @@ function datasetsHTML() {
 
   return `
   <div class="page" style="max-width:720px;margin:0 auto;padding:clamp(1rem,4vw,3rem) clamp(.75rem,4vw,1.5rem);">
-    <!-- Header -->
-    <div style="margin-bottom:1.5rem;">
-      <div class="badge badge-v" style="margin-bottom:.6rem">訓練資料集</div>
-      <h2 style="font-size:1.6rem;font-weight:700;letter-spacing:-.03em;margin-bottom:.3rem;">上傳教材</h2>
-      <p style="color:var(--text-2);font-size:.86rem;">已匯入 <span style="color:var(--accent);font-weight:600;">${importedTotal}</span> 題可供模擬考使用</p>
-      ${_lastSyncTime ? `<p style="font-size:.7rem;color:var(--text-3);margin-top:.15rem;">☁️ 雲端同步：${_lastSyncTime.toLocaleDateString('zh-TW')} ${_lastSyncTime.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false})}</p>` : (_currentUser ? '<p style="font-size:.7rem;color:#FBBF24;margin-top:.15rem;">⏳ 尚未取得雲端資料，請點「從雲端更新」</p>' : '')}
-    </div>
-    <!-- Action buttons — wrap on mobile -->
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem;align-items:center;">
+    <!-- Header: title left, 3 compact buttons right -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:1.75rem;">
+
+      <!-- Left: title + sync status -->
+      <div style="min-width:0;flex:1;">
+        <div class="badge badge-v" style="margin-bottom:.4rem;font-size:.6rem;">訓練資料集</div>
+        <h2 style="font-size:1.4rem;font-weight:700;letter-spacing:-.03em;">上傳教材</h2>
+        ${_lastSyncTime
+          ? `<p style="font-size:.62rem;color:var(--text-3);margin-top:.1rem;">☁️ ${_lastSyncTime.toLocaleDateString('zh-TW')} ${_lastSyncTime.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false})}</p>`
+          : (_currentUser ? '<p style="font-size:.62rem;color:#FBBF24;margin-top:.1rem;">⏳ 尚未同步</p>' : '')}
+      </div>
+
+      <!-- Right: 3 action buttons, always same row -->
+      <div style="display:flex;gap:.35rem;flex-shrink:0;align-items:center;">
         <button onclick="refreshFromCloud()" id="cloud-refresh-btn"
-          style="display:inline-flex;align-items:center;gap:.5rem;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:.6rem 1.2rem;font-size:.84rem;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;box-shadow:0 2px 12px rgba(123,111,224,.25);">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
-          從雲端更新
+          style="display:inline-flex;align-items:center;gap:.3rem;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.44rem .7rem;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
+          雲端更新
         </button>
         <button onclick="downloadTemplate()"
-          style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(123,111,224,.12);border:1px solid var(--accent-border);color:var(--accent);border-radius:10px;padding:.55rem 1rem;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .18s;"
-          onmouseover="this.style.background='rgba(123,111,224,.22)'" onmouseout="this.style.background='rgba(123,111,224,.12)'">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          下載題目匯入範本
+          style="display:inline-flex;align-items:center;gap:.3rem;background:rgba(123,111,224,.1);border:1px solid var(--accent-border);color:var(--accent);border-radius:8px;padding:.42rem .65rem;font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap;touch-action:manipulation;transition:background .15s;"
+          onmouseover="this.style.background='rgba(123,111,224,.2)'" onmouseout="this.style.background='rgba(123,111,224,.1)'">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          題目範本
         </button>
-        <button onclick="clearAllData()"
-          style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:#F87171;border-radius:10px;padding:.55rem 1rem;font-size:.82rem;font-weight:600;cursor:pointer;touch-action:manipulation;transition:all .18s;"
-          onmouseover="this.style.background='rgba(248,113,113,.18)'" onmouseout="this.style.background='rgba(248,113,113,.08)'" title="清除所有本機儲存資料">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        <button onclick="clearAllData()" title="清除所有本機資料"
+          style="display:inline-flex;align-items:center;gap:.3rem;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.22);color:#F87171;border-radius:8px;padding:.42rem .65rem;font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap;touch-action:manipulation;transition:background .15s;"
+          onmouseover="this.style.background='rgba(248,113,113,.18)'" onmouseout="this.style.background='rgba(248,113,113,.08)'">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           清除所有資料
         </button>
       </div>
     </div>
 
-    <!-- Drop Zone -->
+        <!-- Drop Zone -->
     <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
       <input type="file" id="fileInput" style="display:none" multiple accept=".pdf,.docx,.csv,.xlsx" onchange="handleFileSelect(this.files)">
       <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.5" style="margin:0 auto .9rem;">
