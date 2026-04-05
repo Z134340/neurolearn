@@ -1254,11 +1254,11 @@ async function extractTextFromFile(file) {
 /* ── CSV Question Import ── */
 /* ── Shared import helpers ── */
 function _mergeQuestions(parsed, fObj) {
-  const existing = new Set(S.extraQs.map(q => q.text.slice(0,40)));
+  const existing = new Set(S.extraQs.map(q => q.text.trim()));
   const fileTags = fObj ? (fObj.tags && fObj.tags.length ? fObj.tags : []) : [];
   let added = 0;
   parsed.forEach(q => {
-    if (!existing.has(q.text.slice(0,40))) {
+    if (!existing.has(q.text.trim())) {
       q.id = 10000 + S.extraQs.length;
       // Category comes from file's first tag, fallback to exam/category field
       q.category = fileTags[0] || q.category || '匯入題目';
@@ -1266,7 +1266,7 @@ function _mergeQuestions(parsed, fObj) {
       q._fileId   = fObj ? fObj.id : null;
       q._fileName = fObj ? fObj.name : null;  // 來源檔名
       S.extraQs.push(q);
-      existing.add(q.text.slice(0,40));
+      existing.add(q.text.trim());
       added++;
     }
   });
@@ -1366,15 +1366,14 @@ function downloadTemplate() {
 
 function parseQuestionCSV(text) {
   if (text.charCodeAt(0)===0xFEFF) text=text.slice(1);
-  const lines = text.split(/\r?\n/);
-  if (lines.length<2) return [];
-  const headers = parseCSVLine(lines[0]).map(h=>h.trim().toLowerCase());
+  const allRows = parseCSVText(text);
+  if (allRows.length<2) return [];
+  const headers = allRows[0].map(h=>h.trim().toLowerCase());
   const rows=[];
-  for(let i=1;i<lines.length;i++){
-    if(!lines[i].trim()) continue;
-    const cols=parseCSVLine(lines[i]);
+  for(let i=1;i<allRows.length;i++){
+    if(allRows[i].length===1 && !allRows[i][0].trim()) continue;
     const row={};
-    headers.forEach((h,j)=>{ row[h]=cols[j]?.trim()||''; });
+    headers.forEach((h,j)=>{ row[h]=(allRows[i][j]||'').trim(); });
     rows.push(row);
   }
   return parseQuestionRows(rows);
@@ -1411,6 +1410,29 @@ function parseQuestionRows(rows) {
   return results;
 }
 
+/* RFC 4180 CSV parser — handles multi-line quoted fields, escaped quotes */
+function parseCSVText(text) {
+  const rows=[]; let cur=[]; let cell=''; let inQ=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(inQ){
+      if(ch==='"'){
+        if(i+1<text.length&&text[i+1]==='"'){cell+='"';i++;}
+        else inQ=false;
+      } else { cell+=ch; }
+    } else {
+      if(ch==='"') inQ=true;
+      else if(ch===','){cur.push(cell);cell='';}
+      else if(ch==='\r'){if(text[i+1]==='\n')i++;cur.push(cell);cell='';rows.push(cur);cur=[];}
+      else if(ch==='\n'){cur.push(cell);cell='';rows.push(cur);cur=[];}
+      else cell+=ch;
+    }
+  }
+  if(cell||cur.length){cur.push(cell);rows.push(cur);}
+  return rows;
+}
+
+/* Legacy single-line parser — kept for backward compat */
 function parseCSVLine(line) {
   const r=[];let cur='',inQ=false;
   for(let i=0;i<line.length;i++){
