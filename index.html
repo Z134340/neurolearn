@@ -432,6 +432,7 @@ async function loadCloudProgress() {
     }
     saveToStorage();
     console.log('[Supa] Cloud progress loaded. Last sync:', data.updated_at);
+    render(); // cloud-first: always refresh view with authoritative cloud data
   } catch(e) { console.warn('[Supa] loadCloudProgress error:', e); }
 }
 
@@ -469,7 +470,7 @@ function initSupabase() {
       }
       updateNavUser();
       if (event === 'SIGNED_IN' && !prev) {
-        resetState(); loadFromStorage(); await loadCloudProgress(); render();
+        resetState(); loadFromStorage(); await loadCloudProgress(); // render() is called inside loadCloudProgress
       }
       if (event === 'SIGNED_OUT') {
         resetState(); loadFromStorage(); render();
@@ -487,7 +488,7 @@ function initSupabase() {
           _currentUser  = data?.session?.user ?? null;
           _accessToken  = data?.session?.access_token ?? null;  // restore token
           updateNavUser();
-          if (_currentUser) loadCloudProgress().then(() => render());
+          if (_currentUser) loadCloudProgress(); // render() called inside
         });
       }
     } else {
@@ -495,7 +496,7 @@ function initSupabase() {
         _currentUser = data?.session?.user ?? null;
         _accessToken = data?.session?.access_token ?? null;
         updateNavUser();
-        if (_currentUser) loadCloudProgress().then(() => render());
+        if (_currentUser) loadCloudProgress(); // render() called inside
       });
     }
   } catch(e) { console.warn('[Supa] init failed:', e); }
@@ -984,6 +985,20 @@ function refreshFilterBar() {
     ${allTags.map(tag=>{const tc=tagColor(tag);const active=S.tagFilter===tag;return `<span data-tag="${tag.replace(/"/g,'&quot;')}" onclick="setTagFilter(this.dataset.tag)" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`;}).join('')}`;
 }
 
+
+async function refreshFromCloud() {
+  if (!_supa || !_currentUser) { showImportToast('请先登入帳號', 2000); return; }
+  showImportToast('從雲端載入中...', 1500);
+  try {
+    await loadCloudProgress();
+    render();
+    showImportToast('✅ 已從雲端更新資料集', 2500);
+  } catch(e) {
+    showImportToast('❌ 更新失敗：' + (e.message || e), 3000);
+  }
+}
+
+
 function datasetsHTML() {
   const allTags      = [...new Set(S.files.flatMap(f => f.tags || []))];
   const displayFiles = S.tagFilter ? S.files.filter(f => (f.tags||[]).includes(S.tagFilter)) : S.files;
@@ -1119,19 +1134,14 @@ function handleFileSelect(files) {
       render(); // first file — need to build list
     }
   }
-  // Persist file metadata immediately (covers all file types)
-  saveToStorage();
   // Non-importable: update badge after 2.2s without full re-render
   setTimeout(() => {
-    let changed = false;
     S.files.forEach(f => {
       if (f.status === 'processing' && !['csv','xlsx'].includes(f.type)) {
         f.status = 'ready';
         refreshCard(f.id);
-        changed = true;
       }
     });
-    if (changed) saveToStorage();
   }, 2200);
 }
 
@@ -1151,9 +1161,6 @@ function removeFile(id) {
   S.files = S.files.filter(f => f.id !== id);
   if (S.editingTagFid === id) S.editingTagFid = null;
 
-  // Persist removal immediately (before animation)
-  saveToStorage();
-
   // Fade out and remove card from DOM
   const cardEl = document.getElementById('fcard-'+id);
   if (cardEl) {
@@ -1166,7 +1173,7 @@ function removeFile(id) {
       cardEl.style.marginBottom = '0';
       setTimeout(() => { cardEl.remove(); refreshFilterBar(); }, 240);
     }, 180);
-  }
+  } else if (S.page === 'datasets') saveToStorage();
   render();
 }
 
@@ -1262,11 +1269,11 @@ async function extractTextFromFile(file) {
 /* ── CSV Question Import ── */
 /* ── Shared import helpers ── */
 function _mergeQuestions(parsed, fObj) {
-  const existing = new Set(S.extraQs.map(q => q.text.trim()));
+  const existing = new Set(S.extraQs.map(q => q.text.slice(0,40)));
   const fileTags = fObj ? (fObj.tags && fObj.tags.length ? fObj.tags : []) : [];
   let added = 0;
   parsed.forEach(q => {
-    if (!existing.has(q.text.trim())) {
+    if (!existing.has(q.text.slice(0,40))) {
       q.id = 10000 + S.extraQs.length;
       // Category comes from file's first tag, fallback to exam/category field
       q.category = fileTags[0] || q.category || '匯入題目';
@@ -1274,14 +1281,14 @@ function _mergeQuestions(parsed, fObj) {
       q._fileId   = fObj ? fObj.id : null;
       q._fileName = fObj ? fObj.name : null;  // 來源檔名
       S.extraQs.push(q);
-      existing.add(q.text.trim());
+      existing.add(q.text.slice(0,40));
       added++;
     }
   });
   if (fObj) { fObj.importing=false; fObj.imported=added; fObj.status='ready'; refreshCard(fObj.id); }
   const msg = added > 0 ? `✅ 成功匯入 ${added} 題（來源分類：${fileTags.join('、')||'未標記'}）` : `⚠️ 所有題目已存在，無新增`;
   showImportToast(msg, 5000);
-  saveToStorage();
+  if (added > 0) { saveToStorage(); scheduleSyncToCloud(); }
 }
 
 function importCSVQuestions(file, fObj) {
@@ -1296,7 +1303,6 @@ function importCSVQuestions(file, fObj) {
     } catch(err) {
       if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
       showImportToast(`❌ 解析失敗：${err.message}`, 5000);
-      saveToStorage();
     }
   };
   reader.readAsText(file, 'UTF-8');
@@ -1307,7 +1313,6 @@ function importXLSXQuestions(file, fObj) {
   if (typeof XLSX === 'undefined') {
     if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
     showImportToast('❌ 離線模式無法匯入 XLSX，請改用 CSV 格式', 5000);
-    saveToStorage();
     return;
   }
   if (fObj) { fObj.importing=true; refreshCard(fObj.id); }
@@ -1331,7 +1336,6 @@ function importXLSXQuestions(file, fObj) {
     } catch(err) {
       if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
       showImportToast(`❌ XLSX 解析失敗：${err.message}`, 5000);
-      saveToStorage();
     }
   };
   reader.readAsArrayBuffer(file);
@@ -1377,14 +1381,15 @@ function downloadTemplate() {
 
 function parseQuestionCSV(text) {
   if (text.charCodeAt(0)===0xFEFF) text=text.slice(1);
-  const allRows = parseCSVText(text);
-  if (allRows.length<2) return [];
-  const headers = allRows[0].map(h=>h.trim().toLowerCase());
+  const lines = text.split(/\r?\n/);
+  if (lines.length<2) return [];
+  const headers = parseCSVLine(lines[0]).map(h=>h.trim().toLowerCase());
   const rows=[];
-  for(let i=1;i<allRows.length;i++){
-    if(allRows[i].length===1 && !allRows[i][0].trim()) continue;
+  for(let i=1;i<lines.length;i++){
+    if(!lines[i].trim()) continue;
+    const cols=parseCSVLine(lines[i]);
     const row={};
-    headers.forEach((h,j)=>{ row[h]=(allRows[i][j]||'').trim(); });
+    headers.forEach((h,j)=>{ row[h]=cols[j]?.trim()||''; });
     rows.push(row);
   }
   return parseQuestionRows(rows);
@@ -1421,29 +1426,6 @@ function parseQuestionRows(rows) {
   return results;
 }
 
-/* RFC 4180 CSV parser — handles multi-line quoted fields, escaped quotes */
-function parseCSVText(text) {
-  const rows=[]; let cur=[]; let cell=''; let inQ=false;
-  for(let i=0;i<text.length;i++){
-    const ch=text[i];
-    if(inQ){
-      if(ch==='"'){
-        if(i+1<text.length&&text[i+1]==='"'){cell+='"';i++;}
-        else inQ=false;
-      } else { cell+=ch; }
-    } else {
-      if(ch==='"') inQ=true;
-      else if(ch===','){cur.push(cell);cell='';}
-      else if(ch==='\r'){if(text[i+1]==='\n')i++;cur.push(cell);cell='';rows.push(cur);cur=[];}
-      else if(ch==='\n'){cur.push(cell);cell='';rows.push(cur);cur=[];}
-      else cell+=ch;
-    }
-  }
-  if(cell||cur.length){cur.push(cell);rows.push(cur);}
-  return rows;
-}
-
-/* Legacy single-line parser — kept for backward compat */
 function parseCSVLine(line) {
   const r=[];let cur='',inQ=false;
   for(let i=0;i<line.length;i++){
@@ -3054,9 +3036,11 @@ let _autoSaveTimer = null;
    ╚══════════════════════════════════╝ */
 // Restore persisted state from localStorage
 loadFromStorage();
+// Cloud-first: render immediately with local data as visual fallback,
+// then cloud data overwrites automatically via loadCloudProgress → render()
 render();
 if (typeof supabase !== 'undefined') {
-  initSupabase();
+  initSupabase(); // will call loadCloudProgress() → render() when ready
 } else {
   window.addEventListener('load', function() { initSupabase(); });
 }
