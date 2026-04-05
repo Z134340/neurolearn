@@ -377,7 +377,7 @@ async function syncToCloud() {
 async function loadCloudProgress() {
   if (!_supa || !_currentUser) return;
   try {
-    const { data, error } = await _supa.from('user_progress').select('data').eq('user_id', _currentUser.id).maybeSingle();
+    const { data, error } = await _supa.from('user_progress').select('data, updated_at').eq('user_id', _currentUser.id).maybeSingle();
     if (error || !data) return;
     const d = data.data; if (!d) return;
     if (Array.isArray(d.history))   S.history   = d.history;
@@ -389,14 +389,18 @@ async function loadCloudProgress() {
     if (d.dashTag !== undefined)    S.dashTag   = d.dashTag;
     if (d.tagFilter !== undefined)  S.tagFilter = d.tagFilter;
     if (S.files.length > 0) S.nextFid = Math.max(...S.files.map(f => f.id + 1));
+    // Set sync timestamp from server's updated_at (real last-sync time)
+    if (data.updated_at) {
+      _lastSyncTime = new Date(data.updated_at);
+    }
     saveToStorage();
-    console.log('[Supa] Cloud progress loaded.');
+    console.log('[Supa] Cloud progress loaded. Last sync:', data.updated_at);
   } catch(e) { console.warn('[Supa] loadCloudProgress error:', e); }
 }
 
 function scheduleSyncToCloud() {
   clearTimeout(_cloudSyncTimer);
-  _cloudSyncTimer = setTimeout(() => syncToCloud().catch(e => console.warn('[Supa] background sync error:', e.message || e)), 2000);
+  _cloudSyncTimer = setTimeout(() => syncToCloud().then(() => { _lastSyncTime = new Date(); }).catch(e => console.warn('[Supa] background sync error:', e.message || e)), 2000);
 }
 
 function updateNavUser() {
@@ -2407,12 +2411,8 @@ async function forceSyncToCloud() {
     if (el) { el.textContent = text; el.style.color = color; }
   }
 
-  if (!_supa || !_currentUser) {
+  if (!_supa || !_currentUser || !_accessToken) {
     setMsg('⚠️ 請先登入帳號才能同步雲端。', '#F87171');
-    return;
-  }
-  if (!_accessToken) {
-    setMsg('⚠️ Token 尚未就緒，請重新整理頁面後再試。', '#F87171');
     return;
   }
 
@@ -2420,10 +2420,22 @@ async function forceSyncToCloud() {
 
   try {
     await syncToCloud();
-    var now      = new Date();
-    var dateStr  = now.toLocaleDateString('zh-TW');
-    var timeStr  = now.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
+    _lastSyncTime = new Date();
+    var dateStr = _lastSyncTime.toLocaleDateString('zh-TW');
+    var timeStr = _lastSyncTime.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
     setMsg('✅ 同步雲端成功　' + dateStr + ' ' + timeStr, '#4ADE80');
+    // Update the sync banner in-place without full re-render
+    var banner = document.getElementById('sync-banner');
+    if (banner) {
+      banner.style.background  = 'rgba(74,222,128,.05)';
+      banner.style.borderColor = 'rgba(74,222,128,.2)';
+      banner.innerHTML =
+        '<div style="display:flex;align-items:center;gap:.45rem;color:#4ADE80;">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>' +
+          '<span>已同步雲端</span>' +
+        '</div>' +
+        '<span style="color:var(--text-3);">' + dateStr + ' ' + timeStr + '</span>';
+    }
   } catch(e) {
     var reason = e.message || String(e);
     console.error('[Supa] forceSyncToCloud error:', reason);
@@ -2498,7 +2510,7 @@ function dashStatsHTML() {
   const syncBanner = (() => {
     if (!_currentUser) return '';
     if (!_lastSyncTime) {
-      return `<div style="display:flex;align-items:center;gap:.5rem;padding:.5rem .85rem;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid var(--border);margin-bottom:1.1rem;font-size:.75rem;color:var(--text-3);">
+      return `<div id="sync-banner" style="display:flex;align-items:center;gap:.5rem;padding:.5rem .85rem;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid var(--border);margin-bottom:1.1rem;font-size:.75rem;color:var(--text-3);">
         <span style="color:#FBBF24;">⏳</span>
         <span>尚未同步至雲端，操作後將自動同步</span>
       </div>`;
@@ -2506,7 +2518,7 @@ function dashStatsHTML() {
     const d = _lastSyncTime;
     const dateStr = d.toLocaleDateString('zh-TW', { year:'numeric', month:'numeric', day:'numeric' });
     const timeStr = d.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .85rem;border-radius:9px;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.2);margin-bottom:1.1rem;font-size:.75rem;">
+    return `<div id="sync-banner" style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .85rem;border-radius:9px;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.2);margin-bottom:1.1rem;font-size:.75rem;">
       <div style="display:flex;align-items:center;gap:.45rem;color:#4ADE80;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
         <span>已同步雲端</span>
