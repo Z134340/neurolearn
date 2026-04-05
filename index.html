@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="theme-color" content="#0B0B12">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>NeuroLearn — 智能學習平台</title>
@@ -62,14 +62,12 @@
   /* ─── Navbar ─── */
   #navbar{
     position:fixed;top:0;left:0;right:0;
-    /* height = 62px + iPhone status bar (safe-area-inset-top) */
-    height:calc(62px + env(safe-area-inset-top, 0px));
-    background:rgba(11,11,18,0.95);
+    height:62px;
+    background:rgba(11,11,18,0.97);
     backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
     border-bottom:1px solid var(--border);
-    z-index:200;display:flex;align-items:flex-end;
-    padding:0 1.75rem env(safe-area-inset-bottom, 0px) 1.75rem;
-    padding-top:env(safe-area-inset-top, 0px);
+    z-index:200;display:flex;align-items:center;
+    padding:0 1.25rem;
     justify-content:space-between;
     box-sizing:border-box;
   }
@@ -92,7 +90,7 @@
   .nav-link.active{color:var(--accent);background:var(--accent-dim)}
 
   /* ─── Page ─── */
-  #page-content{min-height:100svh;padding-top:calc(62px + env(safe-area-inset-top, 0px));position:relative;z-index:1}
+  #page-content{min-height:100svh;padding-top:62px;position:relative;z-index:1}
   .page{animation:fadeUp .38s cubic-bezier(.4,0,.2,1)}
   @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 
@@ -269,6 +267,8 @@
     .page{animation:none}
     .g-card{border-radius:14px}
     .btn{min-height:44px}
+    /* iPhone safe-area bottom only */
+    #page-content{padding-bottom:env(safe-area-inset-bottom,0px)}
   }
   @media(max-width:400px){
     .nav-link-text{display:none}
