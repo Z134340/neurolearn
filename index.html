@@ -1080,35 +1080,37 @@ function datasetsHTML() {
 
   return `
   <div class="page" style="max-width:720px;margin:0 auto;padding:clamp(1rem,4vw,3rem) clamp(.75rem,4vw,1.5rem);">
-    <!-- Header: title left, 3 compact buttons right -->
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:1.75rem;">
+    <!-- Header: title row, then buttons row -->
+    <div style="margin-bottom:1.5rem;">
 
-      <!-- Left: title + sync status -->
-      <div style="min-width:0;flex:1;">
-        <div class="badge badge-v" style="margin-bottom:.4rem;font-size:.6rem;">訓練資料集</div>
-        <h2 style="font-size:1.4rem;font-weight:700;letter-spacing:-.03em;">上傳教材</h2>
+      <!-- Row 1: badge + title + sync -->
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem;">
+        <div>
+          <div class="badge badge-v" style="margin-bottom:.4rem;font-size:.6rem;">訓練資料集</div>
+          <h2 style="font-size:1.55rem;font-weight:700;letter-spacing:-.03em;white-space:nowrap;">上傳教材</h2>
+        </div>
         ${_lastSyncTime
-          ? `<p style="font-size:.62rem;color:var(--text-3);margin-top:.1rem;">☁️ ${_lastSyncTime.toLocaleDateString('zh-TW')} ${_lastSyncTime.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false})}</p>`
-          : (_currentUser ? '<p style="font-size:.62rem;color:#FBBF24;margin-top:.1rem;">⏳ 尚未同步</p>' : '')}
+          ? `<span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">☁️ ${_lastSyncTime.toLocaleDateString('zh-TW')} ${_lastSyncTime.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false})}</span>`
+          : (_currentUser ? '<span style="font-size:.65rem;color:#FBBF24;white-space:nowrap;">⏳ 尚未同步</span>' : '')}
       </div>
 
-      <!-- Right: 3 action buttons, always same row -->
-      <div style="display:flex;gap:.35rem;flex-shrink:0;align-items:center;">
+      <!-- Row 2: 3 action buttons, same line -->
+      <div style="display:flex;gap:.4rem;align-items:center;">
         <button onclick="refreshFromCloud()" id="cloud-refresh-btn"
-          style="display:inline-flex;align-items:center;gap:.3rem;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.44rem .7rem;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
+          style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;background:var(--accent);color:#fff;border:none;border-radius:9px;padding:.5rem .7rem;font-size:.78rem;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
           雲端更新
         </button>
         <button onclick="downloadTemplate()"
-          style="display:inline-flex;align-items:center;gap:.3rem;background:rgba(123,111,224,.1);border:1px solid var(--accent-border);color:var(--accent);border-radius:8px;padding:.42rem .65rem;font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap;touch-action:manipulation;transition:background .15s;"
+          style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;background:rgba(123,111,224,.1);border:1px solid var(--accent-border);color:var(--accent);border-radius:9px;padding:.5rem .7rem;font-size:.78rem;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap;transition:background .15s;"
           onmouseover="this.style.background='rgba(123,111,224,.2)'" onmouseout="this.style.background='rgba(123,111,224,.1)'">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           題目範本
         </button>
-        <button onclick="clearAllData()" title="清除所有本機資料"
-          style="display:inline-flex;align-items:center;gap:.3rem;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.22);color:#F87171;border-radius:8px;padding:.42rem .65rem;font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap;touch-action:manipulation;transition:background .15s;"
+        <button onclick="clearAllData()" title="清除所有本機儲存資料"
+          style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.22);color:#F87171;border-radius:9px;padding:.5rem .7rem;font-size:.78rem;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap;transition:background .15s;"
           onmouseover="this.style.background='rgba(248,113,113,.18)'" onmouseout="this.style.background='rgba(248,113,113,.08)'">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           清除所有資料
         </button>
       </div>
