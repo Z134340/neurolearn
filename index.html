@@ -1119,14 +1119,19 @@ function handleFileSelect(files) {
       render(); // first file — need to build list
     }
   }
+  // Persist file metadata immediately (covers all file types)
+  saveToStorage();
   // Non-importable: update badge after 2.2s without full re-render
   setTimeout(() => {
+    let changed = false;
     S.files.forEach(f => {
       if (f.status === 'processing' && !['csv','xlsx'].includes(f.type)) {
         f.status = 'ready';
         refreshCard(f.id);
+        changed = true;
       }
     });
+    if (changed) saveToStorage();
   }, 2200);
 }
 
@@ -1146,6 +1151,9 @@ function removeFile(id) {
   S.files = S.files.filter(f => f.id !== id);
   if (S.editingTagFid === id) S.editingTagFid = null;
 
+  // Persist removal immediately (before animation)
+  saveToStorage();
+
   // Fade out and remove card from DOM
   const cardEl = document.getElementById('fcard-'+id);
   if (cardEl) {
@@ -1158,7 +1166,7 @@ function removeFile(id) {
       cardEl.style.marginBottom = '0';
       setTimeout(() => { cardEl.remove(); refreshFilterBar(); }, 240);
     }, 180);
-  } else if (S.page === 'datasets') saveToStorage();
+  }
   render();
 }
 
@@ -1273,7 +1281,7 @@ function _mergeQuestions(parsed, fObj) {
   if (fObj) { fObj.importing=false; fObj.imported=added; fObj.status='ready'; refreshCard(fObj.id); }
   const msg = added > 0 ? `✅ 成功匯入 ${added} 題（來源分類：${fileTags.join('、')||'未標記'}）` : `⚠️ 所有題目已存在，無新增`;
   showImportToast(msg, 5000);
-  if (added > 0) { saveToStorage(); scheduleSyncToCloud(); }
+  saveToStorage();
 }
 
 function importCSVQuestions(file, fObj) {
@@ -1288,6 +1296,7 @@ function importCSVQuestions(file, fObj) {
     } catch(err) {
       if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
       showImportToast(`❌ 解析失敗：${err.message}`, 5000);
+      saveToStorage();
     }
   };
   reader.readAsText(file, 'UTF-8');
@@ -1298,6 +1307,7 @@ function importXLSXQuestions(file, fObj) {
   if (typeof XLSX === 'undefined') {
     if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
     showImportToast('❌ 離線模式無法匯入 XLSX，請改用 CSV 格式', 5000);
+    saveToStorage();
     return;
   }
   if (fObj) { fObj.importing=true; refreshCard(fObj.id); }
@@ -1321,6 +1331,7 @@ function importXLSXQuestions(file, fObj) {
     } catch(err) {
       if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
       showImportToast(`❌ XLSX 解析失敗：${err.message}`, 5000);
+      saveToStorage();
     }
   };
   reader.readAsArrayBuffer(file);
