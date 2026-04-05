@@ -1840,85 +1840,115 @@ function questionSource(q) {
 
 
 function quizActiveHTML() {
-  const q   = S.activeQs[S.currentQ];
-  const ans = S.answers[S.currentQ];
-  const bk  = S.bookmarks.has(String(q.id));
+  const q      = S.activeQs[S.currentQ];
+  const ans    = S.answers[S.currentQ];
+  const bk     = S.bookmarks.has(String(q.id));
   const isLast = S.currentQ === S.activeQs.length - 1;
-  const pct = (S.currentQ / S.activeQs.length) * 100;
-  const LT  = ['A','B','C','D'];
+  const pct    = (S.currentQ / S.activeQs.length) * 100;
+  const LT     = ['A','B','C','D','E'];  // ← 5 options
+
+  // Multi-select state
+  const selSet     = q.isMulti ? new Set(ans.selected) : null;
+  const correctSet = q.isMulti ? new Set(q.answer) : null;
 
   const optHTML = q.options.map((opt, i) => {
-    let cls = 'opt';
-    let style = '';
+    let cls     = 'opt';
+    let style   = '';
     let handler = `selectOpt(${i})`;
+
     if (ans.confirmed) {
       cls += ' locked';
       handler = '';
-      if (i === q.answer)                            cls += ' correct';
-      else if (i === ans.selected && i !== q.answer) cls += ' wrong';
-      else                                           style = 'opacity:.35;';
-    } else if (ans.selected === i) {
-      cls += ' sel';
+      const isCor = q.isMulti ? correctSet.has(i) : (i === q.answer);
+      const isSel = q.isMulti ? selSet.has(i) : (i === ans.selected);
+      if (isCor)              cls += ' correct';
+      else if (isSel)         cls += ' wrong';
+      else                    style = 'opacity:.35;';
+    } else {
+      const isSel = q.isMulti ? selSet.has(i) : (ans.selected === i);
+      if (isSel) cls += ' sel';
     }
+
+    // Letter badge (single) vs checkbox (multi)
+    const badge = q.isMulti
+      ? `<span style="width:22px;height:22px;border-radius:5px;border:1.5px solid ${
+          ans.confirmed && correctSet.has(i) ? '#4ADE80'
+          : (!ans.confirmed && selSet.has(i)) ? 'var(--accent)'
+          : 'rgba(255,255,255,.25)'
+        };display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;flex-shrink:0;
+          background:${!ans.confirmed && selSet.has(i) ? 'rgba(123,111,224,.2)' : 'transparent'};">${
+          selSet.has(i) || (ans.confirmed && correctSet.has(i)) ? '✓' : ''
+        }</span>`
+      : `<span style="width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.07);display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0;">${LT[i]}</span>`;
+
     return `
     <button class="${cls}" style="${style}" onclick="${handler}">
-      <span style="width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.07);display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0;font-family:'Sora','Inter','Segoe UI',system-ui,-apple-system,sans-serif;">${LT[i]}</span>
-      <span style="line-height:1.55">${opt}</span>
+      ${badge}
+      <span style="line-height:1.6;font-size:.92rem;">${LT[i]}. ${opt}</span>
     </button>`;
   }).join('');
 
-  // Explanation panel: always rendered but hidden if not confirmed, revealed via DOM
+  // Explanation panel
+  const src = questionSource(q);
   const explHTML = `
-  <div id="expl-panel" style="margin-top:1.25rem;padding:1rem 1.1rem;border-radius:12px;background:rgba(123,111,224,.07);border:1px solid var(--accent-border);display:${ans.confirmed?'block':'none'};">
-    <p style="font-size:.7rem;font-weight:700;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.5rem;">💡 詳細解析</p>
-    <p style="font-size:.87rem;line-height:1.72;color:var(--text-2);">${q.explanation}</p>
-    ${questionSource(q)?`<p style="margin-top:.6rem;font-size:.7rem;color:var(--text-3);border-top:1px solid rgba(255,255,255,.06);padding-top:.5rem;">📄 出處：${questionSource(q)}</p>`:''}
+  <div id="expl-panel" style="margin-top:1.1rem;padding:.9rem 1rem;border-radius:12px;background:rgba(123,111,224,.07);border:1px solid var(--accent-border);display:${ans.confirmed?'block':'none'};">
+    <p style="font-size:.68rem;font-weight:700;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.4rem;">💡 詳細解析</p>
+    <p style="font-size:.85rem;line-height:1.72;color:var(--text-2);">${q.explanation}</p>
+    ${src?`<p style="margin-top:.5rem;font-size:.68rem;color:var(--text-3);border-top:1px solid rgba(255,255,255,.06);padding-top:.4rem;">📄 出處：${src}</p>`:''}
   </div>`;
 
+  const hasPrev = S.currentQ > 0;
+  const prevBtn = hasPrev ? `<button class="btn btn-ghost" onclick="prevQuestion()" style="touch-action:manipulation;font-size:.85rem;min-height:44px;padding:.5rem .9rem;">← 上一題</button>` : '';
+  const editBtn = ans.confirmed ? `<button class="btn btn-ghost" onclick="unconfirmAns()" style="touch-action:manipulation;font-size:.83rem;min-height:44px;padding:.5rem .9rem;">✏️ 修改</button>` : '';
+
+  const confirmDisabled = q.isMulti ? (ans.selected.length === 0 ? 'disabled' : '') : (ans.selected === null ? 'disabled' : '');
   const actionBtn = ans.confirmed
-    ? `<button class="btn btn-primary" onclick="nextQuestion()">${isLast ? '完成測驗 →' : '下一題 →'}</button>`
-    : `<button id="confirm-btn" class="btn btn-primary" onclick="confirmAns()" ${ans.selected===null?'disabled':''}>確認答案</button>`;
+    ? `<div style="display:flex;gap:.5rem;flex-wrap:wrap;">${prevBtn}${editBtn}<button class="btn btn-primary" onclick="nextQuestion()" style="touch-action:manipulation;flex:1;min-height:44px;">${isLast?'完成測驗 →':'下一題 →'}</button></div>`
+    : `<div style="display:flex;gap:.5rem;flex-wrap:wrap;">${prevBtn}<button id="confirm-btn" class="btn btn-primary" onclick="confirmAns()" style="touch-action:manipulation;flex:1;min-height:44px;" ${confirmDisabled}>確認答案</button></div>`;
 
   return `
-  <div class="page" style="max-width:660px;margin:0 auto;padding:2.5rem 1.5rem;">
+  <div class="page" style="max-width:660px;margin:0 auto;padding:clamp(.75rem,3vw,2rem) clamp(.75rem,4vw,1.5rem);">
 
     <!-- Progress -->
-    <div style="margin-bottom:1.85rem;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem;">
-        <button class="btn btn-ghost" onclick="navigate('quiz')" style="padding:.38rem .8rem;font-size:.78rem;">← 返回</button>
+    <div style="margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem;">
+        <button class="btn btn-ghost" onclick="navigate('quiz')" style="padding:.35rem .75rem;font-size:.78rem;min-height:40px;">← 返回</button>
         <span class="mono" style="font-size:.82rem;color:var(--text-2);">
           <span style="color:var(--text-1);font-weight:600;">${S.currentQ+1}</span> / ${S.activeQs.length}
         </span>
-        <span style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:7px;padding:.2rem .5rem;font-size:.73rem;color:var(--text-2);">${q.category}</span>
+        <span style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:7px;padding:.18rem .5rem;font-size:.72rem;color:var(--text-2);">${q.category}</span>
       </div>
       <div class="pb-bg"><div class="pb-fill" style="width:${pct}%"></div></div>
     </div>
 
     <!-- Question Card -->
-    <div style="background:rgba(20,20,32,.75);backdrop-filter:blur(18px);border:1px solid var(--border);border-radius:20px;padding:1.85rem;margin-bottom:1.1rem;">
+    <div style="background:rgba(20,20,32,.75);backdrop-filter:blur(18px);border:1px solid var(--border);border-radius:18px;padding:clamp(.85rem,3vw,1.6rem);margin-bottom:1rem;">
 
       <!-- Header -->
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;margin-bottom:1.4rem;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem;margin-bottom:1.1rem;">
         <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
           <span class="badge badge-n">Q.${S.currentQ+1}</span>
+          ${q.isMulti ? '<span class="badge" style="background:rgba(123,111,224,.15);color:var(--accent);border:1px solid var(--accent-border);font-size:.6rem;letter-spacing:.04em;">多選題</span>' : ''}
         </div>
-        <button id="bk-btn" class="bk-btn ${bk?'on':''}" onclick="toggleBk(${q.id})" title="${bk?'取消標記':'標記此題'}">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="${bk?'currentColor':'none'}" stroke="currentColor" stroke-width="2">
+        <button id="bk-btn" class="bk-btn ${bk?'on':''}" onclick="toggleBk('${q.id}')" title="${bk?'取消標記':'標記此題'}" style="min-width:36px;min-height:36px;touch-action:manipulation;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="${bk?'currentColor':'none'}" stroke="currentColor" stroke-width="2">
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
           </svg>
         </button>
       </div>
 
-      <p style="font-size:1rem;line-height:1.78;font-weight:400;margin-bottom:1.4rem;">${q.text}</p>
+      ${q.isMulti ? '<p style="font-size:.75rem;color:var(--accent);margin-bottom:.75rem;font-weight:600;">⬜ 可選多個答案，全選完再確認</p>' : ''}
 
-      <div style="display:flex;flex-direction:column;gap:.55rem;">
+      <p style="font-size:clamp(.9rem,2.5vw,1rem);line-height:1.78;font-weight:400;margin-bottom:1.2rem;word-break:break-word;">${q.text}</p>
+
+      <div style="display:flex;flex-direction:column;gap:.45rem;">
         ${optHTML}
       </div>
 
       ${explHTML}
     </div>
 
-    <div id="action-btn" style="display:flex;justify-content:flex-end;">${actionBtn}</div>
+    <div id="action-btn">${actionBtn}</div>
   </div>`;
 }
 
