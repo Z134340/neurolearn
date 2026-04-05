@@ -990,18 +990,43 @@ function refreshFilterBar() {
 
 async function refreshFromCloud() {
   if (!_supa || !_currentUser) {
-    showImportToast('⚠️ 請先登入帳號才能同步雲端', 2500); return;
+    alert('請先登入帳號才能同步雲端'); return;
   }
   var btn = document.getElementById('cloud-refresh-btn');
-  if (btn) { btn.style.opacity = '.5'; btn.style.pointerEvents = 'none'; }
-  showImportToast('☁️ 從雲端載入中...', 1500);
+  if (btn) { btn.textContent = '同步中...'; btn.style.opacity='.6'; btn.style.pointerEvents='none'; }
+
   try {
-    await loadCloudProgress(); // render() is called inside
-    showImportToast('✅ 已從雲端更新（' + S.files.length + ' 個資料集，' + S.extraQs.length + ' 題）', 3500);
+    var resp = await _supa.from('user_progress').select('data, updated_at').eq('user_id', _currentUser.id).maybeSingle();
+    if (resp.error) throw new Error(resp.error.message);
+    if (!resp.data || !resp.data.data) {
+      alert('雲端尚無資料。\n請先在其他裝置完成上傳並同步。');
+      return;
+    }
+    var d = resp.data.data;
+    if (Array.isArray(d.history))   S.history   = d.history;
+    if (Array.isArray(d.bookmarks)) S.bookmarks = new Set(d.bookmarks.map(String));
+    if (Array.isArray(d.wrongQs))   S.wrongQs   = new Set(d.wrongQs.map(String));
+    if (Array.isArray(d.usedQIds))  S.usedQIds  = new Set(d.usedQIds.map(String));
+    if (Array.isArray(d.files))     S.files     = d.files;
+    if (Array.isArray(d.extraQs))   S.extraQs   = d.extraQs;
+    if (d.dashTag   !== undefined)  S.dashTag   = d.dashTag;
+    if (d.tagFilter !== undefined)  S.tagFilter = d.tagFilter;
+    if (S.files.length > 0) S.nextFid = Math.max(...S.files.map(function(f){return f.id+1;}));
+    if (resp.data.updated_at) _lastSyncTime = new Date(resp.data.updated_at);
+    saveToStorage();
+    render();
+    var fc = Array.isArray(d.files) ? d.files.length : 0;
+    var qc = Array.isArray(d.extraQs) ? d.extraQs.length : 0;
+    var ts = _lastSyncTime ? _lastSyncTime.toLocaleString('zh-TW') : '';
+    alert('✅ 雲端更新成功\n資料集：' + fc + ' 個 / 題目：' + qc + ' 題\n同步時間：' + ts);
   } catch(e) {
-    showImportToast('❌ 更新失敗：' + (e.message || e), 3500);
+    console.error('[Cloud] refreshFromCloud error:', e);
+    alert('❌ 更新失敗：' + (e.message || String(e)));
   } finally {
-    if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = ''; }
+    if (btn) {
+      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg> 從雲端更新';
+      btn.style.opacity='1'; btn.style.pointerEvents='';
+    }
   }
 }
 
@@ -1020,7 +1045,7 @@ function datasetsHTML() {
         <div class="badge badge-v" style="margin-bottom:.7rem">訓練資料集</div>
         <h2 style="font-size:1.8rem;font-weight:700;letter-spacing:-.035em;margin-bottom:.4rem;">上傳教材</h2>
         <p style="color:var(--text-2);font-size:.88rem;">已匯入 <span style="color:var(--accent);font-weight:600;">${importedTotal}</span> 題可供模擬考使用</p>
-        ${_lastSyncTime ? `<p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">☁️ 雲端同步：${_lastSyncTime.toLocaleDateString('zh-TW')} ${_lastSyncTime.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false})}</p>` : (_currentUser ? '<p style="font-size:.72rem;color:#FBBF24;margin-top:.2rem;">⏳ 雲端同步中...</p>' : '')}
+        ${_lastSyncTime ? `<p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">☁️ 雲端同步：${_lastSyncTime.toLocaleDateString('zh-TW')} ${_lastSyncTime.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false})}</p>` : (_currentUser ? '<p style="font-size:.72rem;color:#FBBF24;margin-top:.2rem;">⏳ 尚未取得雲端資料，請點「從雲端更新」</p>' : '')}
       </div>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;flex-shrink:0;align-items:center;">
         <button onclick="refreshFromCloud()" id="cloud-refresh-btn"
