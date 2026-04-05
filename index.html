@@ -2535,7 +2535,7 @@ function dashStatsHTML() {
           </div>
         </div>`;
       }).join('')
-    : `<p style="font-size:.83rem;color:var(--text-3);text-align:center;padding:1.5rem 0;">${dt?`「${dt}」尚無測驗紀錄`:'完成測驗後將顯示各分類答對率'}</p>`;
+    : `<p style="font-size:.83rem;color:var(--text-3);text-align:center;padding:1.5rem 0;">${dt?`「${dt}」尚無測驗紀錄`:'完成測驗後將顯示趨勢圖'}</p>`;
 
   // History rows
   const histRows = filtHist.length > 0
@@ -2596,15 +2596,11 @@ function dashStatsHTML() {
   </div>
 
   <!-- Charts row -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem;margin-bottom:1.5rem;">
-    <div class="s-card">
-      <p style="font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:1.1rem;">測驗分數趨勢${dt?` · ${dt}`:''}</p>
-      ${emptyState?`<div style="height:160px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.82rem;">完成測驗後顯示趨勢圖</div>`:`<canvas id="scoreChart"></canvas>`}
-    </div>
-    <div class="s-card">
-      <p style="font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:1.1rem;">各分類答對率${dt?` · ${dt}`:''}</p>
-      ${catBars}
-    </div>
+  <div class="s-card" style="margin-bottom:1.5rem;overflow:hidden;">
+    <p style="font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:1rem;">測驗分數趨勢${dt?` · ${dt}`:''}</p>
+    ${emptyState
+      ? `<div style="height:160px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.82rem;">完成測驗後顯示趨勢圖</div>`
+      : `<div style="width:100%;overflow:hidden;"><canvas id="scoreChart" style="max-width:100%;display:block;"></canvas></div>`}
   </div>
 
   <!-- History Table -->
@@ -2732,13 +2728,16 @@ function initChart() {
   const data   = filtHist.map(h => { const t = hT(h); return t > 0 ? Math.round((hC(h)/t)*100) : 0; });
   const labels = filtHist.map(h => h.name ? h.name.slice(0,8) : '#'+h.id);
 
-  const dpr  = window.devicePixelRatio || 1;
-  const W    = canvas.parentElement.clientWidth || 320;
-  const H    = 160;
+  const dpr      = window.devicePixelRatio || 1;
+  // Use the wrapping div width (already inside s-card with overflow:hidden)
+  const container = canvas.parentElement;
+  const W    = Math.max(200, container.clientWidth || container.offsetWidth || 320);
+  const H    = Math.min(180, Math.round(W * 0.42)); // aspect ratio ~2.4:1
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
-  canvas.style.width  = W + 'px';
+  canvas.style.width  = '100%';
   canvas.style.height = H + 'px';
+  canvas.style.maxWidth = '100%';
 
   const ctx  = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
