@@ -334,7 +334,7 @@ function resetState() {
 async function syncToCloud() {
   if (!_supa || !_currentUser) return;
 
-  const token = _accessToken;
+  let token = _accessToken;
   if (!token) throw new Error('請重新登入後再同步。');
 
   const payload = JSON.stringify({
@@ -352,31 +352,63 @@ async function syncToCloud() {
     updated_at: new Date().toISOString(),
   });
 
-  // XMLHttpRequest — has a native, guaranteed timeout property
-  return new Promise(function(resolve, reject) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', SUPA_URL + '/rest/v1/user_progress?on_conflict=user_id');
-    xhr.timeout = 10000; // 10 seconds hard timeout (native, always works)
-    xhr.setRequestHeader('Content-Type',  'application/json');
-    xhr.setRequestHeader('apikey',        SUPA_KEY);
-    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-    xhr.setRequestHeader('Prefer',        'resolution=merge-duplicates');
+  // XHR upsert — 10s native timeout, returns the xhr object
+  function doUpsert(authToken) {
+    return new Promise(function(resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', SUPA_URL + '/rest/v1/user_progress?on_conflict=user_id');
+      xhr.timeout = 10000;
+      xhr.setRequestHeader('Content-Type',  'application/json');
+      xhr.setRequestHeader('apikey',        SUPA_KEY);
+      xhr.setRequestHeader('Authorization', 'Bearer ' + authToken);
+      xhr.setRequestHeader('Prefer',        'resolution=merge-duplicates');
+      xhr.onload    = function() { resolve(xhr); };
+      xhr.onerror   = function() { reject(new Error('網路錯誤，請確認連線。')); };
+      xhr.ontimeout = function() { reject(new Error('連線逾時（10秒），Supabase 無回應。')); };
+      xhr.send(payload);
+    });
+  }
 
-    xhr.onload = function() {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        _lastSyncTime = new Date();
-        console.log('[Supa] Synced ✓ HTTP', xhr.status);
-        resolve();
-      } else {
-        var msg = 'HTTP ' + xhr.status;
-        try { var j = JSON.parse(xhr.responseText); msg = j.message || j.hint || j.error || msg; } catch(_) {}
-        reject(new Error('Supabase 錯誤：' + msg));
-      }
-    };
-    xhr.onerror   = function() { reject(new Error('網路錯誤，請確認連線。')); };
-    xhr.ontimeout = function() { reject(new Error('連線逾時（10秒），Supabase 無回應。')); };
-    xhr.send(payload);
-  });
+  // First attempt
+  var xhr1 = await doUpsert(token);
+  if (xhr1.status >= 200 && xhr1.status < 300) {
+    console.log('[Supa] Synced ✓ HTTP', xhr1.status);
+    return;
+  }
+
+  // Check if JWT expired (Supabase returns 401 + "JWT expired" message)
+  var errMsg1 = '';
+  try { errMsg1 = (JSON.parse(xhr1.responseText).message || '').toLowerCase(); } catch(_) {}
+  var jwtExpired = xhr1.status === 401 && (errMsg1.includes('jwt expired') || errMsg1.includes('token is expired') || errMsg1.includes('expired'));
+
+  if (jwtExpired) {
+    console.log('[Supa] JWT expired — refreshing token and retrying...');
+    var refreshResult;
+    try {
+      refreshResult = await _supa.auth.refreshSession();
+    } catch(e) {
+      throw new Error('Token 刷新失敗，請重新登入。');
+    }
+    var newToken = refreshResult?.data?.session?.access_token;
+    if (!newToken) throw new Error('登入已過期，請重新登入後再同步。');
+
+    _accessToken = newToken;
+    console.log('[Supa] Token refreshed ✓ retrying sync...');
+
+    var xhr2 = await doUpsert(newToken);
+    if (xhr2.status >= 200 && xhr2.status < 300) {
+      console.log('[Supa] Synced ✓ (after token refresh) HTTP', xhr2.status);
+      return;
+    }
+    var msg2 = 'HTTP ' + xhr2.status;
+    try { var j2 = JSON.parse(xhr2.responseText); msg2 = j2.message || j2.hint || j2.error || msg2; } catch(_) {}
+    throw new Error('同步失敗：' + msg2);
+  }
+
+  // Other HTTP errors
+  var msg = 'HTTP ' + xhr1.status;
+  try { var j = JSON.parse(xhr1.responseText); msg = j.message || j.hint || j.error || msg; } catch(_) {}
+  throw new Error('Supabase 錯誤：' + msg);
 }
 
 async function loadCloudProgress() {
@@ -429,7 +461,12 @@ function initSupabase() {
     _supa.auth.onAuthStateChange(async (event, session) => {
       const prev = _currentUser;
       _currentUser  = session?.user ?? null;
-      _accessToken  = session?.access_token ?? null;  // cache for instant sync
+      _accessToken  = session?.access_token ?? null;  // always update cache
+      if (event === 'TOKEN_REFRESHED') {
+        // Token silently refreshed by SDK — just update the cached token, no UI change
+        console.log('[Supa] Token refreshed ✓');
+        return;
+      }
       updateNavUser();
       if (event === 'SIGNED_IN' && !prev) {
         resetState(); loadFromStorage(); await loadCloudProgress(); render();
