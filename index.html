@@ -431,7 +431,9 @@ async function loadCloudProgress() {
       _lastSyncTime = new Date(data.updated_at);
     }
     saveToStorage();
-    console.log('[Supa] Cloud progress loaded. Last sync:', data.updated_at);
+    const filesCount = Array.isArray(d.files) ? d.files.length : 0;
+    const questionsCount = Array.isArray(d.extraQs) ? d.extraQs.length : 0;
+    console.log('[Supa] Cloud loaded — files:', filesCount, 'questions:', questionsCount, 'sync:', data.updated_at);
     render(); // cloud-first: always refresh view with authoritative cloud data
   } catch(e) { console.warn('[Supa] loadCloudProgress error:', e); }
 }
@@ -987,14 +989,19 @@ function refreshFilterBar() {
 
 
 async function refreshFromCloud() {
-  if (!_supa || !_currentUser) { showImportToast('请先登入帳號', 2000); return; }
-  showImportToast('從雲端載入中...', 1500);
+  if (!_supa || !_currentUser) {
+    showImportToast('⚠️ 請先登入帳號才能同步雲端', 2500); return;
+  }
+  var btn = document.getElementById('cloud-refresh-btn');
+  if (btn) { btn.style.opacity = '.5'; btn.style.pointerEvents = 'none'; }
+  showImportToast('☁️ 從雲端載入中...', 1500);
   try {
-    await loadCloudProgress();
-    render();
-    showImportToast('✅ 已從雲端更新資料集', 2500);
+    await loadCloudProgress(); // render() is called inside
+    showImportToast('✅ 已從雲端更新（' + S.files.length + ' 個資料集，' + S.extraQs.length + ' 題）', 3500);
   } catch(e) {
-    showImportToast('❌ 更新失敗：' + (e.message || e), 3000);
+    showImportToast('❌ 更新失敗：' + (e.message || e), 3500);
+  } finally {
+    if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = ''; }
   }
 }
 
@@ -1013,8 +1020,14 @@ function datasetsHTML() {
         <div class="badge badge-v" style="margin-bottom:.7rem">訓練資料集</div>
         <h2 style="font-size:1.8rem;font-weight:700;letter-spacing:-.035em;margin-bottom:.4rem;">上傳教材</h2>
         <p style="color:var(--text-2);font-size:.88rem;">已匯入 <span style="color:var(--accent);font-weight:600;">${importedTotal}</span> 題可供模擬考使用</p>
+        ${_lastSyncTime ? `<p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">☁️ 雲端同步：${_lastSyncTime.toLocaleDateString('zh-TW')} ${_lastSyncTime.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false})}</p>` : (_currentUser ? '<p style="font-size:.72rem;color:#FBBF24;margin-top:.2rem;">⏳ 雲端同步中...</p>' : '')}
       </div>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;flex-shrink:0;">
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;flex-shrink:0;align-items:center;">
+        <button onclick="refreshFromCloud()" id="cloud-refresh-btn"
+          style="display:inline-flex;align-items:center;gap:.5rem;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:.6rem 1.2rem;font-size:.84rem;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;box-shadow:0 2px 12px rgba(123,111,224,.25);">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
+          從雲端更新
+        </button>
         <button onclick="downloadTemplate()"
           style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(123,111,224,.12);border:1px solid var(--accent-border);color:var(--accent);border-radius:10px;padding:.55rem 1rem;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .18s;"
           onmouseover="this.style.background='rgba(123,111,224,.22)'" onmouseout="this.style.background='rgba(123,111,224,.12)'">
