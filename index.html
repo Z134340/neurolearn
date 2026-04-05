@@ -992,17 +992,51 @@ async function refreshFromCloud() {
   if (!_supa || !_currentUser) {
     alert('請先登入帳號才能同步雲端'); return;
   }
+  var token = _accessToken;
+  if (!token) {
+    alert('Token 未就緒，請重新整理頁面後再試。'); return;
+  }
+
   var btn = document.getElementById('cloud-refresh-btn');
-  if (btn) { btn.textContent = '同步中...'; btn.style.opacity='.6'; btn.style.pointerEvents='none'; }
+  if (btn) {
+    btn.textContent = '同步中...';
+    btn.style.opacity = '.6';
+    btn.style.pointerEvents = 'none';
+  }
+
+  // Use native fetch with AbortController — 10s hard timeout, works on iPhone
+  var controller = new AbortController();
+  var timer = setTimeout(function() { controller.abort(); }, 10000);
 
   try {
-    var resp = await _supa.from('user_progress').select('data, updated_at').eq('user_id', _currentUser.id).maybeSingle();
-    if (resp.error) throw new Error(resp.error.message);
-    if (!resp.data || !resp.data.data) {
-      alert('雲端尚無資料。\n請先在其他裝置完成上傳並同步。');
+    var url = SUPA_URL + '/rest/v1/user_progress?select=data,updated_at&user_id=eq.' + encodeURIComponent(_currentUser.id) + '&limit=1';
+    var res = await fetch(url, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        'apikey':        SUPA_KEY,
+        'Authorization': 'Bearer ' + token,
+        'Accept':        'application/json',
+      }
+    });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      var errText = '';
+      try { var errJ = await res.json(); errText = errJ.message || errJ.error || ('HTTP ' + res.status); } catch(_) { errText = 'HTTP ' + res.status; }
+      throw new Error(errText);
+    }
+
+    var rows = await res.json();
+    if (!rows || rows.length === 0 || !rows[0].data) {
+      alert('雲端尚無資料。請先在其他裝置完成上傳並同步。');
       return;
     }
-    var d = resp.data.data;
+
+    var row = rows[0];
+    var d = row.data;
+
+    // Apply to state
     if (Array.isArray(d.history))   S.history   = d.history;
     if (Array.isArray(d.bookmarks)) S.bookmarks = new Set(d.bookmarks.map(String));
     if (Array.isArray(d.wrongQs))   S.wrongQs   = new Set(d.wrongQs.map(String));
@@ -1011,21 +1045,26 @@ async function refreshFromCloud() {
     if (Array.isArray(d.extraQs))   S.extraQs   = d.extraQs;
     if (d.dashTag   !== undefined)  S.dashTag   = d.dashTag;
     if (d.tagFilter !== undefined)  S.tagFilter = d.tagFilter;
-    if (S.files.length > 0) S.nextFid = Math.max(...S.files.map(function(f){return f.id+1;}));
-    if (resp.data.updated_at) _lastSyncTime = new Date(resp.data.updated_at);
+    if (S.files.length > 0) S.nextFid = Math.max.apply(null, S.files.map(function(f){return f.id+1;}));
+    if (row.updated_at) _lastSyncTime = new Date(row.updated_at);
     saveToStorage();
     render();
-    var fc = Array.isArray(d.files) ? d.files.length : 0;
+
+    var fc = Array.isArray(d.files)   ? d.files.length   : 0;
     var qc = Array.isArray(d.extraQs) ? d.extraQs.length : 0;
     var ts = _lastSyncTime ? _lastSyncTime.toLocaleString('zh-TW') : '';
-    alert('✅ 雲端更新成功\n資料集：' + fc + ' 個 / 題目：' + qc + ' 題\n同步時間：' + ts);
+    alert('✅ 雲端更新成功  資料集：' + fc + ' 個 / 題目：' + qc + ' 題  同步時間：' + ts);
+
   } catch(e) {
-    console.error('[Cloud] refreshFromCloud error:', e);
-    alert('❌ 更新失敗：' + (e.message || String(e)));
+    clearTimeout(timer);
+    var msg = e.name === 'AbortError' ? '連線逾時（10秒），請確認網路後重試。' : (e.message || String(e));
+    console.error('[Cloud] refreshFromCloud error:', msg);
+    alert('❌ 更新失敗：' + msg);
   } finally {
     if (btn) {
       btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg> 從雲端更新';
-      btn.style.opacity='1'; btn.style.pointerEvents='';
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = '';
     }
   }
 }
