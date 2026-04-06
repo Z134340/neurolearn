@@ -2308,24 +2308,68 @@ function finishQuiz() {
     .filter(q => S.bookmarks.has(String(q.id)))
     .map(q => String(q.id));
 
-  // Push history for all modes — retakes are marked with mode label
   const isRetakeMode = S.quizConfig && (S.quizConfig.mode === 'review' || S.quizConfig.mode === 'wrong');
-  const retakeLabel = isRetakeMode
-    ? (S.quizConfig.mode === 'review' ? '📖複習' : '🎯驗測')
-    : '';
-  S.history.push({
-    id: S.history.length + 1,
-    name: retakeLabel ? (retakeLabel + '：' + quizName) : quizName,
-    date: new Date().toLocaleDateString('zh-TW'),
-    total: S.activeQs.length,
-    correct: score,
-    bk: _bkIds.length,
-    wrong: _wrongIds.length,
-    catStats: catMap,
-    dur: '—',
-    wrongIds: _wrongIds,
-    bkIds:    _bkIds,
-  });
+
+  if (isRetakeMode) {
+    // For retake modes: find the most recent history entry that overlaps with
+    // the current quiz questions, then OVERWRITE it with the latest result.
+    const activeIds = new Set(S.activeQs.map(q => String(q.id)));
+    let targetIdx = -1;
+    for (let hi = S.history.length - 1; hi >= 0; hi--) {
+      const h = S.history[hi];
+      // Check overlap: does this entry contain any of our current questions?
+      const prevIds = new Set([
+        ...(h.wrongIds || []),
+        ...(h.bkIds   || []),
+      ]);
+      // Also check via catStats question count (fallback)
+      const overlap = [...activeIds].some(id => prevIds.has(id));
+      if (overlap || (h.total === S.activeQs.length)) {
+        targetIdx = hi; break;
+      }
+    }
+    if (targetIdx >= 0) {
+      // Overwrite the found entry with latest result
+      const modeLabel = S.quizConfig.mode === 'review' ? '📖複習驗收' : '🎯錯題驗收';
+      S.history[targetIdx] = Object.assign({}, S.history[targetIdx], {
+        name:     modeLabel + '：' + (S.history[targetIdx].name || quizName),
+        date:     new Date().toLocaleDateString('zh-TW'),
+        total:    S.activeQs.length,
+        correct:  score,
+        bk:       _bkIds.length,
+        wrong:    _wrongIds.length,
+        catStats: catMap,
+        wrongIds: _wrongIds,
+        bkIds:    _bkIds,
+      });
+    } else {
+      // No matching entry found — append as new
+      S.history.push({
+        id: S.history.length + 1,
+        name: (S.quizConfig.mode === 'review' ? '📖複習' : '🎯驗測') + '：' + quizName,
+        date: new Date().toLocaleDateString('zh-TW'),
+        total: S.activeQs.length, correct: score,
+        bk: _bkIds.length, wrong: _wrongIds.length,
+        catStats: catMap, dur: '—',
+        wrongIds: _wrongIds, bkIds: _bkIds,
+      });
+    }
+  } else {
+    // New mode: always push a fresh history entry
+    S.history.push({
+      id: S.history.length + 1,
+      name: quizName,
+      date: new Date().toLocaleDateString('zh-TW'),
+      total: S.activeQs.length,
+      correct: score,
+      bk: _bkIds.length,
+      wrong: _wrongIds.length,
+      catStats: catMap,
+      dur: '—',
+      wrongIds: _wrongIds,
+      bkIds:    _bkIds,
+    });
+  }
 
   // Mark questions as used (only for 'new' mode)
   if (S.quizConfig && S.quizConfig.mode === 'new') {
