@@ -317,6 +317,7 @@ let _supa = null;
 let _currentUser = null;
 let _cloudSyncTimer = null;
 let _accessToken = null;  // cached JWT — no network needed 
+let _blockCloudRender = false; // prevent cloud re-render from overwriting fresh quiz result
 let _lastSyncTime = null;  // timestamp of last successful cloud syncfor sync
 
 const STORAGE_KEY_BASE = 'neurolearn_v2';
@@ -436,7 +437,7 @@ async function loadCloudProgress() {
     const filesCount = Array.isArray(d.files) ? d.files.length : 0;
     const questionsCount = Array.isArray(d.extraQs) ? d.extraQs.length : 0;
     console.log('[Supa] Cloud loaded — files:', filesCount, 'questions:', questionsCount, 'sync:', data.updated_at);
-    render(); // cloud-first: always refresh view with authoritative cloud data
+    if (!_blockCloudRender) render(); // cloud-first, but not during active quiz
   } catch(e) { console.warn('[Supa] loadCloudProgress error:', e); }
 }
 
@@ -2060,7 +2061,7 @@ function quizActiveHTML() {
 
     // Letter badge (single) vs checkbox (multi)
     const badge = q.isMulti
-      ? `<span style="width:22px;height:22px;border-radius:5px;border:1.5px solid ${
+      ? `<span data-cb style="width:22px;height:22px;border-radius:5px;border:1.5px solid ${
           ans.confirmed && correctSet.has(i) ? '#4ADE80'
           : (!ans.confirmed && selSet.has(i)) ? 'var(--accent)'
           : 'rgba(255,255,255,.25)'
@@ -2163,9 +2164,11 @@ function unconfirmAns() {
 
 function prevQuestion() {
   if (S.currentQ <= 0) return;
-  const ans = S.answers[S.currentQ];
-  if (ans) ans.confirmed = false;
   S.currentQ--;
+  // Unconfirm the question we navigated TO — keep existing selections
+  const destAns = S.answers[S.currentQ];
+  if (destAns) destAns.confirmed = false;
+  // Multi-select: keep ans.selected array intact so user sees their previous picks
   render();
 }
 
@@ -2186,7 +2189,18 @@ function selectOpt(i) {
     const sel = ans.selected;
     const pos = sel.indexOf(i);
     if (pos >= 0) sel.splice(pos, 1); else sel.push(i);
-    document.querySelectorAll('.opt').forEach((el, idx) => { el.classList.toggle('sel', sel.includes(idx)); });
+    // Update .opt selected class AND the checkbox badge text for each option
+    document.querySelectorAll('.opt').forEach((el, idx) => {
+      const isSelected = sel.includes(idx);
+      el.classList.toggle('sel', isSelected);
+      // Update the checkbox badge SVG/span inside the button
+      const badge = el.querySelector('span[data-cb]');
+      if (badge) {
+        badge.textContent = isSelected ? '✓' : '';
+        badge.style.borderColor = isSelected ? 'var(--accent)' : 'rgba(255,255,255,.25)';
+        badge.style.background  = isSelected ? 'rgba(123,111,224,.2)' : 'transparent';
+      }
+    });
     const confirmBtn = document.getElementById('confirm-btn');
     if (confirmBtn) { if (sel.length > 0) confirmBtn.removeAttribute('disabled'); else confirmBtn.setAttribute('disabled',''); }
   } else {
@@ -2261,6 +2275,9 @@ function nextQuestion() {
 function finishQuiz() {
   const score = S.activeQs.filter((q,i) => isCorrectAnswer(q, S.answers[i].selected)).length;
   // Track wrong answers
+  // Update wrongQs based on this quiz result (works for all modes)
+  // Correct answers → remove from wrongQs (learned!)
+  // Incorrect answers → add to wrongQs (still needs practice)
   S.activeQs.forEach((q,i) => {
     const isCorrect = isCorrectAnswer(q, S.answers[i].selected);
     if (!isCorrect) S.wrongQs.add(String(q.id));
@@ -2272,7 +2289,7 @@ function finishQuiz() {
     const c = q.category || '其他';
     if (!catMap[c]) catMap[c] = {correct:0,total:0};
     catMap[c].total++;
-    if (S.answers[i].selected === q.answer) catMap[c].correct++;
+    if (isCorrectAnswer(q, S.answers[i].selected)) catMap[c].correct++;
   });
   const quizName = (S.quizSetup && S.quizSetup.name && S.quizSetup.name.trim())
     || `第 ${S.history.length+1} 回合`;
@@ -2284,9 +2301,14 @@ function finishQuiz() {
     .filter(q => S.bookmarks.has(String(q.id)))
     .map(q => String(q.id));
 
+  // Push history for all modes — retakes are marked with mode label
+  const isRetakeMode = S.quizConfig && (S.quizConfig.mode === 'review' || S.quizConfig.mode === 'wrong');
+  const retakeLabel = isRetakeMode
+    ? (S.quizConfig.mode === 'review' ? '📖複習' : '🎯驗測')
+    : '';
   S.history.push({
     id: S.history.length + 1,
-    name: quizName,
+    name: retakeLabel ? (retakeLabel + '：' + quizName) : quizName,
     date: new Date().toLocaleDateString('zh-TW'),
     total: S.activeQs.length,
     correct: score,
@@ -2302,6 +2324,10 @@ function finishQuiz() {
   if (S.quizConfig && S.quizConfig.mode === 'new') {
     S.activeQs.forEach(q => S.usedQIds.add(String(q.id)));
   }
+
+  // Block cloud sync from overwriting the result we're about to show
+  _blockCloudRender = true;
+  setTimeout(() => { _blockCloudRender = false; }, 5000); // release after 5s
 
   // Persist + sync to cloud
   saveToStorage();
