@@ -1357,11 +1357,18 @@ async function extractTextFromFile(file) {
 /* ── Shared import helpers ── */
 function _mergeQuestions(parsed, fObj) {
   // Dedup key = full question text (40-char prefix caused false-duplicate drops)
-  const existing = new Set(S.extraQs.map(q => q.text.trim()));
+  // Dedup within the SAME file upload: use fileId+text key
+  // Questions with same text from DIFFERENT files are allowed (different source)
+  const existing = new Set(S.extraQs.map(q => {
+    const fid = q._fileId !== undefined && q._fileId !== null ? String(q._fileId) : '';
+    return fid + '||' + q.text.trim();
+  }));
+  const incomingFileId = fObj ? String(fObj.id) : '';
   const fileTags = fObj ? (fObj.tags && fObj.tags.length ? fObj.tags : []) : [];
   let added = 0;
   parsed.forEach(q => {
-    if (!existing.has(q.text.trim())) {
+    const dedupeKey = incomingFileId + '||' + q.text.trim();
+    if (!existing.has(dedupeKey)) {
       q.id = 10000 + S.extraQs.length;
       // Category comes from file's first tag, fallback to exam/category field
       q.category = fileTags[0] || q.category || '匯入題目';
@@ -1369,7 +1376,7 @@ function _mergeQuestions(parsed, fObj) {
       q._fileId   = fObj ? fObj.id : null;
       q._fileName = fObj ? fObj.name : null;  // 來源檔名
       S.extraQs.push(q);
-      existing.add(q.text.trim());
+      existing.add(dedupeKey);
       added++;
     }
   });
