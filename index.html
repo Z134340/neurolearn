@@ -1355,11 +1355,12 @@ async function extractTextFromFile(file) {
 /* ── CSV Question Import ── */
 /* ── Shared import helpers ── */
 function _mergeQuestions(parsed, fObj) {
-  const existing = new Set(S.extraQs.map(q => q.text.slice(0,40)));
+  // Dedup key = full question text (40-char prefix caused false-duplicate drops)
+  const existing = new Set(S.extraQs.map(q => q.text.trim()));
   const fileTags = fObj ? (fObj.tags && fObj.tags.length ? fObj.tags : []) : [];
   let added = 0;
   parsed.forEach(q => {
-    if (!existing.has(q.text.slice(0,40))) {
+    if (!existing.has(q.text.trim())) {
       q.id = 10000 + S.extraQs.length;
       // Category comes from file's first tag, fallback to exam/category field
       q.category = fileTags[0] || q.category || '匯入題目';
@@ -1367,7 +1368,7 @@ function _mergeQuestions(parsed, fObj) {
       q._fileId   = fObj ? fObj.id : null;
       q._fileName = fObj ? fObj.name : null;  // 來源檔名
       S.extraQs.push(q);
-      existing.add(q.text.slice(0,40));
+      existing.add(q.text.trim());
       added++;
     }
   });
@@ -1466,16 +1467,16 @@ function downloadTemplate() {
 }
 
 function parseQuestionCSV(text) {
-  if (text.charCodeAt(0)===0xFEFF) text=text.slice(1);
-  const lines = text.split(/\r?\n/);
-  if (lines.length<2) return [];
-  const headers = parseCSVLine(lines[0]).map(h=>h.trim().toLowerCase());
-  const rows=[];
-  for(let i=1;i<lines.length;i++){
-    if(!lines[i].trim()) continue;
-    const cols=parseCSVLine(lines[i]);
-    const row={};
-    headers.forEach((h,j)=>{ row[h]=cols[j]?.trim()||''; });
+  // Use RFC-4180 parser that correctly handles quoted fields with embedded newlines
+  const allRows = parseCSVFull(text);
+  if (allRows.length < 2) return [];
+  const headers = allRows[0].map(h => h.trim().toLowerCase());
+  const rows = [];
+  for (let i = 1; i < allRows.length; i++) {
+    const cols = allRows[i];
+    if (cols.every(c => !c.trim())) continue; // skip blank rows
+    const row = {};
+    headers.forEach((h, j) => { row[h] = (cols[j] || '').trim(); });
     rows.push(row);
   }
   return parseQuestionRows(rows);
@@ -1512,6 +1513,7 @@ function parseQuestionRows(rows) {
   return results;
 }
 
+// parseCSVLine kept for backward compat — parseCSVFull handles multi-line cells
 function parseCSVLine(line) {
   const r=[];let cur='',inQ=false;
   for(let i=0;i<line.length;i++){
@@ -1522,6 +1524,44 @@ function parseCSVLine(line) {
     else cur+=ch;
   }
   r.push(cur);return r;
+}
+
+// RFC-4180 compliant CSV parser — handles quoted fields with embedded newlines
+function parseCSVFull(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // strip BOM
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n'); // normalize line endings
+  const rows = [];
+  let i = 0, n = text.length;
+  while (i < n) {
+    const cols = [];
+    // Parse one row
+    while (true) {
+      if (i < n && text[i] === '"') {
+        // Quoted field
+        i++; // skip opening quote
+        let val = '';
+        while (i < n) {
+          if (text[i] === '"') {
+            if (i+1 < n && text[i+1] === '"') { val += '"'; i += 2; } // escaped quote
+            else { i++; break; } // closing quote
+          } else {
+            val += text[i++];
+          }
+        }
+        cols.push(val);
+      } else {
+        // Unquoted field — read until comma or newline
+        let val = '';
+        while (i < n && text[i] !== ',' && text[i] !== '\n') val += text[i++];
+        cols.push(val);
+      }
+      if (i < n && text[i] === ',') { i++; continue; } // next field
+      if (i < n && text[i] === '\n') { i++; break; }  // end of row
+      break; // EOF
+    }
+    rows.push(cols);
+  }
+  return rows;
 }
 
 /* ╔══════════════════════════════════╗
