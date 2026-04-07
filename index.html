@@ -2319,7 +2319,7 @@ function finishQuiz() {
       const original  = S.history[latestIdx];
       // Preserve the original round name, update result fields
       const baseName = (original.name || quizName)
-        .replace(/^(標記|錯誤)[：: ]*/,''); // remove old label if re-retaking
+        .replace(/^(標記|錯誤|📖複習驗收|🎯錯題驗收|📖複習|🎯驗測)[：: ]*/,'').replace(/^(標記|錯誤|📖複習驗收|🎯錯題驗收|📖複習|🎯驗測)[：: ]*/,''); // strip all old labels
       S.history[latestIdx] = {
         id:       original.id,
         name:     modeLabel + '：' + baseName,
