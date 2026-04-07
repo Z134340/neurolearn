@@ -2801,7 +2801,7 @@ function dashStatsHTML() {
         const c = hCorrect(h), t = hTotal(h);
         const r = t>0 ? Math.round((c/t)*100) : 0;
         const rc = r>=80?'#4ADE80':r>=60?'#FBBF24':'#F87171';
-        return `<div class="h-row">
+        return `<div class="h-row" style="min-height:48px;">
           <div style="font-size:.86rem;font-weight:500;">${h.name||('測驗 #'+h.id)}</div>
           <div style="font-size:.82rem;color:var(--text-2);">${h.date}</div>
           <div class="mono" style="font-size:.84rem;color:#4ADE80;">${c}/${t}</div>
@@ -2873,7 +2873,7 @@ function dashStatsHTML() {
   </div>
 
   <!-- History Table -->
-  <div style="background:rgba(20,20,32,.7);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+  <div style="background:rgba(20,20,32,.7);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:16px;overflow:hidden;min-height:540px;display:flex;flex-direction:column;">
     <div style="padding:1.1rem 1.1rem .9rem;border-bottom:1px solid var(--border);">
       <p style="font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">測驗歷史紀錄${dt?` · ${dt}`:''}</p>
     </div>
