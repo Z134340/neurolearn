@@ -331,7 +331,7 @@ function resetState() {
   S.browseSrc = null; S.importMsg = null; S.editingTagFid = null; S.chart = null;
   S.bookmarks = new Set(); S.wrongQs = new Set(); S.usedQIds = new Set();
   S.history = []; S.files = []; S.extraQs = []; S.nextFid = 4;
-  S.dashTag = null; S.tagFilter = null; S.page = 'home';
+  S.dashTag = null; S.tagFilter = null; S._dashHistPage = 0; S.page = 'home';
 }
 
 async function syncToCloud() {
@@ -2308,59 +2308,24 @@ function finishQuiz() {
     .filter(q => S.bookmarks.has(String(q.id)))
     .map(q => String(q.id));
 
+  // All modes push a history entry — retakes get a label prefix
   const isRetakeMode = S.quizConfig && (S.quizConfig.mode === 'review' || S.quizConfig.mode === 'wrong');
-
-  if (isRetakeMode) {
-    // Always overwrite the most recent history entry (the original test they're reviewing)
-    // This ensures "last result wins" behavior
-    const modeLabel = S.quizConfig.mode === 'review' ? '標記' : '錯誤';
-    if (S.history.length > 0) {
-      const latestIdx = S.history.length - 1;
-      const original  = S.history[latestIdx];
-      // Preserve the original round name, update result fields
-      const baseName = (original.name || quizName)
-        .replace(/^(標記|錯誤|📖複習驗收|🎯錯題驗收|📖複習|🎯驗測)[：: ]*/,'').replace(/^(標記|錯誤|📖複習驗收|🎯錯題驗收|📖複習|🎯驗測)[：: ]*/,''); // strip all old labels
-      S.history[latestIdx] = {
-        id:       original.id,
-        name:     modeLabel + '：' + baseName,
-        date:     new Date().toLocaleDateString('zh-TW'),
-        total:    S.activeQs.length,
-        correct:  score,
-        bk:       _bkIds.length,
-        wrong:    _wrongIds.length,
-        catStats: catMap,
-        dur:      original.dur || '—',
-        wrongIds: _wrongIds,
-        bkIds:    _bkIds,
-      };
-    } else {
-      // No history yet — push as new
-      S.history.push({
-        id: 1,
-        name: modeLabel + '：' + quizName,
-        date: new Date().toLocaleDateString('zh-TW'),
-        total: S.activeQs.length, correct: score,
-        bk: _bkIds.length, wrong: _wrongIds.length,
-        catStats: catMap, dur: '—',
-        wrongIds: _wrongIds, bkIds: _bkIds,
-      });
-    }
-    } else {
-    // New mode: always push a fresh history entry
-    S.history.push({
-      id: S.history.length + 1,
-      name: quizName,
-      date: new Date().toLocaleDateString('zh-TW'),
-      total: S.activeQs.length,
-      correct: score,
-      bk: _bkIds.length,
-      wrong: _wrongIds.length,
-      catStats: catMap,
-      dur: '—',
-      wrongIds: _wrongIds,
-      bkIds:    _bkIds,
-    });
-  }
+  const modePrefix = isRetakeMode
+    ? (S.quizConfig.mode === 'review' ? '標記：' : '錯誤：')
+    : '';
+  S.history.push({
+    id:       S.history.length + 1,
+    name:     modePrefix + quizName,
+    date:     new Date().toLocaleDateString('zh-TW'),
+    total:    S.activeQs.length,
+    correct:  score,
+    bk:       _bkIds.length,
+    wrong:    _wrongIds.length,
+    catStats: catMap,
+    dur:      '—',
+    wrongIds: _wrongIds,
+    bkIds:    _bkIds,
+  });
 
   // Mark questions as used (only for 'new' mode)
   if (S.quizConfig && S.quizConfig.mode === 'new') {
@@ -2824,8 +2789,15 @@ function dashStatsHTML() {
     : `<p style="font-size:.83rem;color:var(--text-3);text-align:center;padding:1.5rem 0;">${dt?`「${dt}」尚無測驗紀錄`:'完成測驗後將顯示趨勢圖'}</p>`;
 
   // History rows
+  const reversed = [...filtHist].reverse();
+  const PAGE_SIZE = 10;
+  const safePage = typeof S._dashHistPage === 'number' ? S._dashHistPage : 0;
+  S._dashHistPage = safePage;
+  const totalPages = Math.max(1, Math.ceil(reversed.length / PAGE_SIZE));
+  const pageSlice = reversed.slice(safePage * PAGE_SIZE, (safePage+1) * PAGE_SIZE);
+
   const histRows = filtHist.length > 0
-    ? [...filtHist].reverse().map(h => {
+    ? pageSlice.map(h => {
         const c = hCorrect(h), t = hTotal(h);
         const r = t>0 ? Math.round((c/t)*100) : 0;
         const rc = r>=80?'#4ADE80':r>=60?'#FBBF24':'#F87171';
@@ -2838,6 +2810,15 @@ function dashStatsHTML() {
         </div>`;
       }).join('')
     : `<div style="padding:2rem;text-align:center;color:var(--text-3);font-size:.85rem;">${dt?`「${dt}」尚無測驗紀錄。`:'尚無測驗紀錄，完成第一次測驗後將顯示於此。'}</div>`;
+
+  const canPrev = safePage > 0;
+  const canNext = safePage < totalPages - 1;
+  const pageBtns = totalPages > 1 ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.75rem;padding-top:.65rem;border-top:1px solid var(--border);">
+      <button onclick="S._dashHistPage=Math.max(0,S._dashHistPage-1);var el=document.getElementById('dash-stats');if(el){el.innerHTML=dashStatsHTML();setTimeout(initChart,30);}" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canPrev?'':'opacity:.3;pointer-events:none;'}" ${canPrev?'':'disabled'}>← 較舊</button>
+      <span style="font-size:.75rem;color:var(--text-3);">第 ${safePage+1} / ${totalPages} 頁 · 共 ${reversed.length} 筆</span>
+      <button onclick="S._dashHistPage=Math.min(${totalPages-1},S._dashHistPage+1);var el=document.getElementById('dash-stats');if(el){el.innerHTML=dashStatsHTML();setTimeout(initChart,30);}" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canNext?'':'opacity:.3;pointer-events:none;'}" ${canNext?'':'disabled'}>較新 →</button>
+    </div>` : '';
 
   const dlWrong = totW>0 ? `<button onclick="downloadQuestionsCSV('wrong','${(dt||'').replace(/'/g,"\\'")}')" title="下載錯誤題目 CSV"
     style="background:transparent;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;border-radius:5px;display:flex;transition:color .15s;"
@@ -2904,6 +2885,7 @@ function dashStatsHTML() {
       <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">標記</div>
     </div>`:''}
     ${histRows}
+    ${pageBtns}
   </div>
 
   <!-- ── 進度備份 / 還原 ── -->
