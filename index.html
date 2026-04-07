@@ -2311,42 +2311,33 @@ function finishQuiz() {
   const isRetakeMode = S.quizConfig && (S.quizConfig.mode === 'review' || S.quizConfig.mode === 'wrong');
 
   if (isRetakeMode) {
-    // For retake modes: find the most recent history entry that overlaps with
-    // the current quiz questions, then OVERWRITE it with the latest result.
-    const activeIds = new Set(S.activeQs.map(q => String(q.id)));
-    let targetIdx = -1;
-    for (let hi = S.history.length - 1; hi >= 0; hi--) {
-      const h = S.history[hi];
-      // Check overlap: does this entry contain any of our current questions?
-      const prevIds = new Set([
-        ...(h.wrongIds || []),
-        ...(h.bkIds   || []),
-      ]);
-      // Also check via catStats question count (fallback)
-      const overlap = [...activeIds].some(id => prevIds.has(id));
-      if (overlap || (h.total === S.activeQs.length)) {
-        targetIdx = hi; break;
-      }
-    }
-    if (targetIdx >= 0) {
-      // Overwrite the found entry with latest result
-      const modeLabel = S.quizConfig.mode === 'review' ? '📖複習驗收' : '🎯錯題驗收';
-      S.history[targetIdx] = Object.assign({}, S.history[targetIdx], {
-        name:     modeLabel + '：' + (S.history[targetIdx].name || quizName),
+    // Always overwrite the most recent history entry (the original test they're reviewing)
+    // This ensures "last result wins" behavior
+    const modeLabel = S.quizConfig.mode === 'review' ? '標記' : '錯誤';
+    if (S.history.length > 0) {
+      const latestIdx = S.history.length - 1;
+      const original  = S.history[latestIdx];
+      // Preserve the original round name, update result fields
+      const baseName = (original.name || quizName)
+        .replace(/^(標記|錯誤)[：: ]*/,''); // remove old label if re-retaking
+      S.history[latestIdx] = {
+        id:       original.id,
+        name:     modeLabel + '：' + baseName,
         date:     new Date().toLocaleDateString('zh-TW'),
         total:    S.activeQs.length,
         correct:  score,
         bk:       _bkIds.length,
         wrong:    _wrongIds.length,
         catStats: catMap,
+        dur:      original.dur || '—',
         wrongIds: _wrongIds,
         bkIds:    _bkIds,
-      });
+      };
     } else {
-      // No matching entry found — append as new
+      // No history yet — push as new
       S.history.push({
-        id: S.history.length + 1,
-        name: (S.quizConfig.mode === 'review' ? '📖複習' : '🎯驗測') + '：' + quizName,
+        id: 1,
+        name: modeLabel + '：' + quizName,
         date: new Date().toLocaleDateString('zh-TW'),
         total: S.activeQs.length, correct: score,
         bk: _bkIds.length, wrong: _wrongIds.length,
@@ -2354,7 +2345,7 @@ function finishQuiz() {
         wrongIds: _wrongIds, bkIds: _bkIds,
       });
     }
-  } else {
+    } else {
     // New mode: always push a fresh history entry
     S.history.push({
       id: S.history.length + 1,
@@ -3013,108 +3004,117 @@ function initChart() {
   const canvas = document.getElementById('scoreChart');
   if (!canvas) return;
 
-  // Pure Canvas line chart — no CDN required
   const dt = S.dashTag;
-  const filtHist = dt
-    ? S.history.filter(h => h.catStats && h.catStats[dt])
-    : S.history;
+  const filtHist = dt ? S.history.filter(h => h.catStats && h.catStats[dt]) : S.history;
   if (!filtHist.length) return;
 
   const hC = h => dt ? (h.catStats?.[dt]?.correct || 0) : h.correct;
   const hT = h => dt ? (h.catStats?.[dt]?.total   || 1) : h.total;
   const data   = filtHist.map(h => { const t = hT(h); return t > 0 ? Math.round((hC(h)/t)*100) : 0; });
-  const labels = filtHist.map(h => h.name ? h.name.slice(0,8) : '#'+h.id);
+  // Label: strip mode prefix (📖/🎯), use round number
+  const labels = filtHist.map((h, i) => {
+    const raw = h.name || ('#' + h.id);
+    // Extract just the round number e.g. "第 3 回合" → "#3"
+    const m = raw.match(/第\s*(\d+)\s*回/);
+    return m ? '#' + m[1] : String(i + 1);
+  });
 
-  const dpr      = window.devicePixelRatio || 1;
-  // Use the wrapping div width (already inside s-card with overflow:hidden)
+  const dpr = window.devicePixelRatio || 1;
   const container = canvas.parentElement;
-  const W    = Math.max(200, container.clientWidth || container.offsetWidth || 320);
-  const H    = Math.min(180, Math.round(W * 0.42)); // aspect ratio ~2.4:1
+  const W = Math.max(200, container.clientWidth || container.offsetWidth || 320);
+  const H = Math.min(180, Math.round(W * 0.40));
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
-  canvas.style.width  = '100%';
-  canvas.style.height = H + 'px';
+  canvas.style.width    = '100%';
+  canvas.style.height   = H + 'px';
   canvas.style.maxWidth = '100%';
 
-  const ctx  = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
 
-  const PAD  = { top:18, right:12, bottom:36, left:34 };
-  const cW   = W - PAD.left - PAD.right;
-  const cH   = H - PAD.top  - PAD.bottom;
-  const n    = data.length;
+  const PAD = { top: 20, right: 14, bottom: 32, left: 36 };
+  const cW  = W - PAD.left - PAD.right;
+  const cH  = H - PAD.top  - PAD.bottom;
+  const n   = data.length;
 
-  // Grid lines & Y labels
+  // Grid lines + Y labels
   ctx.strokeStyle = 'rgba(255,255,255,.07)';
-  ctx.fillStyle   = 'rgba(255,255,255,.3)';
-  ctx.font        = '10px JetBrains Mono, monospace';
+  ctx.fillStyle   = 'rgba(255,255,255,.28)';
+  ctx.font        = `${Math.max(8, Math.round(10 * Math.min(1, W/300)))}px monospace`;
   ctx.textAlign   = 'right';
-  [0,25,50,75,100].forEach(pct => {
-    const y = PAD.top + cH * (1 - pct/100);
+  [0, 25, 50, 75, 100].forEach(pct => {
+    const y = PAD.top + cH * (1 - pct / 100);
     ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y); ctx.stroke();
-    ctx.fillText(pct+'%', PAD.left - 4, y + 3.5);
+    ctx.fillText(pct + '%', PAD.left - 5, y + 3.5);
   });
 
   if (n < 2) {
-    // Single point
-    const x = PAD.left + cW/2;
-    const y = PAD.top + cH * (1 - data[0]/100);
-    const col = data[0]>=80?'#4ADE80':data[0]>=60?'#FBBF24':'#F87171';
-    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2);
+    const x = PAD.left + cW / 2;
+    const y = PAD.top + cH * (1 - data[0] / 100);
+    const col = data[0] >= 80 ? '#4ADE80' : data[0] >= 60 ? '#FBBF24' : '#F87171';
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2);
     ctx.fillStyle = col; ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.5)'; ctx.textAlign='center';
-    ctx.fillText(data[0]+'%', x, y-10);
+    ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.textAlign = 'center';
+    ctx.fillText(data[0] + '%', x, y - 10);
     return;
   }
 
-  // X positions
-  const xs = data.map((_,i) => PAD.left + i * cW/(n-1));
-  const ys = data.map(v   => PAD.top  + cH * (1 - v/100));
+  const xs = data.map((_, i) => PAD.left + i * cW / (n - 1));
+  const ys = data.map(v => PAD.top + cH * (1 - v / 100));
 
   // Fill area
-  const grad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top+cH);
-  grad.addColorStop(0,   'rgba(123,111,224,.25)');
-  grad.addColorStop(1,   'rgba(123,111,224,.01)');
+  const grad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + cH);
+  grad.addColorStop(0, 'rgba(123,111,224,.22)');
+  grad.addColorStop(1, 'rgba(123,111,224,.01)');
   ctx.beginPath();
   ctx.moveTo(xs[0], ys[0]);
-  for (let i=1; i<n; i++) {
-    const cpx = (xs[i-1]+xs[i])/2;
-    ctx.bezierCurveTo(cpx,ys[i-1], cpx,ys[i], xs[i],ys[i]);
+  for (let i = 1; i < n; i++) {
+    const cpx = (xs[i - 1] + xs[i]) / 2;
+    ctx.bezierCurveTo(cpx, ys[i - 1], cpx, ys[i], xs[i], ys[i]);
   }
-  ctx.lineTo(xs[n-1], PAD.top+cH);
-  ctx.lineTo(xs[0],   PAD.top+cH);
+  ctx.lineTo(xs[n - 1], PAD.top + cH);
+  ctx.lineTo(xs[0], PAD.top + cH);
   ctx.closePath();
   ctx.fillStyle = grad; ctx.fill();
 
   // Line
   ctx.beginPath();
   ctx.moveTo(xs[0], ys[0]);
-  for (let i=1; i<n; i++) {
-    const cpx = (xs[i-1]+xs[i])/2;
-    ctx.bezierCurveTo(cpx,ys[i-1], cpx,ys[i], xs[i],ys[i]);
+  for (let i = 1; i < n; i++) {
+    const cpx = (xs[i - 1] + xs[i]) / 2;
+    ctx.bezierCurveTo(cpx, ys[i - 1], cpx, ys[i], xs[i], ys[i]);
   }
-  ctx.strokeStyle = 'rgba(123,111,224,.9)'; ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(123,111,224,.85)'; ctx.lineWidth = 1.5 * dpr / dpr;
   ctx.stroke();
 
-  // Points + tooltips
+  // Points + labels
+  const fontSize = Math.max(8, Math.round(9 * Math.min(1, W / 280)));
   data.forEach((v, i) => {
-    const col = v>=80?'#4ADE80':v>=60?'#FBBF24':'#F87171';
-    ctx.beginPath(); ctx.arc(xs[i], ys[i], 4, 0, Math.PI*2);
+    const col = v >= 80 ? '#4ADE80' : v >= 60 ? '#FBBF24' : '#F87171';
+    // Dot
+    ctx.beginPath(); ctx.arc(xs[i], ys[i], 3.5, 0, Math.PI * 2);
     ctx.fillStyle = col; ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 1; ctx.stroke();
-    // Value label above point (show for first, last, and peaks/valleys)
-    const isEdge = i===0 || i===n-1;
-    const isPeak = n>2 && (i===0||i===n-1||v!==data[i-1]&&v!==data[i+1]);
-    if (isEdge || n<=5) {
-      ctx.fillStyle='rgba(255,255,255,.7)'; ctx.font='9px JetBrains Mono,monospace';
-      ctx.textAlign='center';
-      ctx.fillText(v+'%', xs[i], ys[i]-9);
+    ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 0.8; ctx.stroke();
+
+    // Value label above dot — only show on sparse charts or edges
+    if (n <= 8 || i === 0 || i === n - 1) {
+      ctx.fillStyle = 'rgba(255,255,255,.75)';
+      ctx.font = fontSize + 'px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(v + '%', xs[i], ys[i] - 7);
     }
-    // X label
-    ctx.fillStyle='rgba(255,255,255,.35)'; ctx.font='9px sans-serif';
-    ctx.textAlign='center';
-    const lbl = labels[i].length>6 ? labels[i].slice(0,5)+'…' : labels[i];
-    ctx.fillText(lbl, xs[i], H - PAD.bottom + 14);
+
+    // X label (round number) — stagger if crowded to avoid overlap
+    const lbl = labels[i];
+    const spacing = n > 1 ? cW / (n - 1) : cW;
+    if (spacing >= 20 || i === 0 || i === n - 1 || i % Math.ceil(n / 8) === 0) {
+      ctx.fillStyle = 'rgba(255,255,255,.38)';
+      ctx.font = fontSize + 'px sans-serif';
+      ctx.textAlign = 'center';
+      // Clamp label x so first/last don't clip edges
+      const lx = Math.min(Math.max(xs[i], PAD.left + 8), PAD.left + cW - 8);
+      ctx.fillText(lbl, lx, H - PAD.bottom + 14);
+    }
   });
 }
 
