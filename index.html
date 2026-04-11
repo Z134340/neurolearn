@@ -405,116 +405,281 @@ function resetState() {
   S.dashTag = null; S.tagFilter = null; S._dashHistPage = 0; S.page = 'home';
 }
 
-async function syncToCloud() {
-  if (!_supa || !_currentUser) return;
+// ── Normalized Cloud Sync (v3 schema) ─────────────────────────────────────
+// Tables: exam_files, exam_questions, quiz_sessions, user_state
+// Legacy fallback: user_progress (JSONB blob) — auto-migrated on first login
 
-  let token = _accessToken;
-  if (!token) throw new Error('請重新登入後再同步。');
-
-  const payload = JSON.stringify({
-    user_id: _currentUser.id,
-    data: {
-      history:   S.history,
-      bookmarks: [...S.bookmarks],
-      wrongQs:   [...S.wrongQs],
-      usedQIds:  [...S.usedQIds],
-      files:     S.files.map(function(f){ var c={}; Object.assign(c,f); delete c._file; return c; }),
-      extraQs:   S.extraQs,
-      dashTag:   S.dashTag,
-      tagFilter: S.tagFilter,
-    },
-    updated_at: new Date().toISOString(),
-  });
-
-  // XHR upsert — 10s native timeout, returns the xhr object
-  function doUpsert(authToken) {
-    return new Promise(function(resolve, reject) {
-      var xhr = new XMLHttpRequest();
-      xhr.open('POST', SUPA_URL + '/rest/v1/user_progress?on_conflict=user_id');
-      xhr.timeout = 10000;
-      xhr.setRequestHeader('Content-Type',  'application/json');
-      xhr.setRequestHeader('apikey',        SUPA_KEY);
-      xhr.setRequestHeader('Authorization', 'Bearer ' + authToken);
-      xhr.setRequestHeader('Prefer',        'resolution=merge-duplicates');
-      xhr.onload    = function() { resolve(xhr); };
-      xhr.onerror   = function() { reject(new Error('網路錯誤，請確認連線。')); };
-      xhr.ontimeout = function() { reject(new Error('連線逾時（10秒），Supabase 無回應。')); };
-      xhr.send(payload);
-    });
-  }
-
-  // First attempt
-  var xhr1 = await doUpsert(token);
-  if (xhr1.status >= 200 && xhr1.status < 300) {
-    console.log('[Supa] Synced ✓ HTTP', xhr1.status);
-    return;
-  }
-
-  // Check if JWT expired (Supabase returns 401 + "JWT expired" message)
-  var errMsg1 = '';
-  try { errMsg1 = (JSON.parse(xhr1.responseText).message || '').toLowerCase(); } catch(_) {}
-  var jwtExpired = xhr1.status === 401 && (errMsg1.includes('jwt expired') || errMsg1.includes('token is expired') || errMsg1.includes('expired'));
-
-  if (jwtExpired) {
-    console.log('[Supa] JWT expired — refreshing token and retrying...');
-    var refreshResult;
-    try {
-      refreshResult = await _supa.auth.refreshSession();
-    } catch(e) {
-      throw new Error('Token 刷新失敗，請重新登入。');
-    }
-    var newToken = refreshResult?.data?.session?.access_token;
-    if (!newToken) throw new Error('登入已過期，請重新登入後再同步。');
-
-    _accessToken = newToken;
-    console.log('[Supa] Token refreshed ✓ retrying sync...');
-
-    var xhr2 = await doUpsert(newToken);
-    if (xhr2.status >= 200 && xhr2.status < 300) {
-      console.log('[Supa] Synced ✓ (after token refresh) HTTP', xhr2.status);
-      return;
-    }
-    var msg2 = 'HTTP ' + xhr2.status;
-    try { var j2 = JSON.parse(xhr2.responseText); msg2 = j2.message || j2.hint || j2.error || msg2; } catch(_) {}
-    throw new Error('同步失敗：' + msg2);
-  }
-
-  // Other HTTP errors
-  var msg = 'HTTP ' + xhr1.status;
-  try { var j = JSON.parse(xhr1.responseText); msg = j.message || j.hint || j.error || msg; } catch(_) {}
-  throw new Error('Supabase 錯誤：' + msg);
-}
-
-async function loadCloudProgress() {
+/* Sync user state (bookmarks / wrongQs / usedQIds / UI prefs) → user_state */
+async function syncUserState() {
   if (!_supa || !_currentUser) return;
   try {
-    const { data, error } = await _supa.from('user_progress').select('data, updated_at').eq('user_id', _currentUser.id).maybeSingle();
-    if (error || !data) return;
-    const d = data.data; if (!d) return;
+    const { error } = await _supa.from('user_state').upsert({
+      user_id:       _currentUser.id,
+      bookmarks:     [...S.bookmarks],
+      wrong_qs:      [...S.wrongQs],
+      used_q_ids:    [...S.usedQIds],
+      dash_tag:      S.dashTag   || null,
+      tag_filter:    S.tagFilter || null,
+      current_mat:   S.currentMat || null,
+      read_progress: S.readProgress || {},
+      updated_at:    new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+    if (error) console.warn('[Supa] syncUserState:', error.message);
+  } catch(e) { console.warn('[Supa] syncUserState:', e); }
+}
+
+/* Sync one file metadata + all its questions → exam_files / exam_questions */
+async function syncExamFileToCloud(fileId) {
+  if (!_supa || !_currentUser) return;
+  const uid = _currentUser.id;
+  const fid = String(fileId);
+  const f   = S.files.find(x => String(x.id) === fid);
+  if (!f) return;
+  try {
+    await _supa.from('exam_files').upsert({
+      id: fid, user_id: uid, name: f.name,
+      tags: f.tags || [], uploaded_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,id' });
+
+    const qs = S.extraQs.filter(q => String(q._fileId) === fid);
+    if (!qs.length) return;
+    const rows = qs.map(q => ({
+      q_id: String(q.id), user_id: uid, file_id: fid,
+      exam: q.category || '匯入題目', question: q.text,
+      option_a: q.options[0]||'', option_b: q.options[1]||'',
+      option_c: q.options[2]||'', option_d: q.options[3]||'',
+      option_e: q.options[4]||'', option_f: q.options[5]||'',
+      answer:      Array.isArray(q.answer) ? q.answer.join(',') : String(q.answer),
+      explanation: q.explanation || '', src_name: q._fileName || '',
+      src_id: q._srcId || '', is_multi: !!q.isMulti,
+    }));
+    const BATCH = 200;
+    for (let i = 0; i < rows.length; i += BATCH)
+      await _supa.from('exam_questions').upsert(rows.slice(i, i+BATCH), { onConflict: 'user_id,q_id' });
+  } catch(e) { console.warn('[Supa] syncExamFileToCloud:', e); }
+}
+
+/* Delete file + its questions from cloud */
+async function deleteCloudExamFile(fileId) {
+  if (!_supa || !_currentUser) return;
+  const uid = _currentUser.id; const fid = String(fileId);
+  try {
+    await _supa.from('exam_questions').delete().eq('user_id', uid).eq('file_id', fid);
+    await _supa.from('exam_files').delete().eq('user_id', uid).eq('id', fid);
+  } catch(e) { console.warn('[Supa] deleteCloudExamFile:', e); }
+}
+
+/* Insert one quiz session right after quiz completion */
+async function syncQuizSession(session) {
+  if (!_supa || !_currentUser) return;
+  const mode = (S.quizConfig && S.quizConfig.mode) || 'new';
+  const cats = S.quizConfig ? [...(S.quizConfig.cats || [])] : [];
+  try {
+    await _supa.from('quiz_sessions').insert({
+      user_id: _currentUser.id, name: session.name || '', mode, cats,
+      score: session.correct, total: session.total,
+      wrong_ids: session.wrongIds || [], bk_ids: session.bkIds || [],
+      cat_stats: session.catStats || {}, created_at: new Date().toISOString(),
+    });
+  } catch(e) { console.warn('[Supa] syncQuizSession:', e); }
+}
+
+/* Full sync — all tables (called by forceSyncToCloud) */
+async function syncAllToCloud() {
+  if (!_supa || !_currentUser) return;
+  const uid = _currentUser.id;
+  // 1. user_state
+  await syncUserState();
+  // 2. exam_files
+  const fileRows = S.files.map(f => ({
+    id: String(f.id), user_id: uid, name: f.name,
+    tags: f.tags || [], uploaded_at: new Date().toISOString(),
+  }));
+  if (fileRows.length)
+    await _supa.from('exam_files').upsert(fileRows, { onConflict: 'user_id,id' });
+  // Garbage-collect deleted files
+  const { data: cloudFiles } = await _supa.from('exam_files').select('id').eq('user_id', uid);
+  if (cloudFiles) {
+    const localFids = new Set(S.files.map(f => String(f.id)));
+    for (const r of cloudFiles) {
+      if (!localFids.has(r.id)) {
+        await _supa.from('exam_questions').delete().eq('user_id', uid).eq('file_id', r.id);
+        await _supa.from('exam_files').delete().eq('user_id', uid).eq('id', r.id);
+      }
+    }
+  }
+  // 3. exam_questions (batched)
+  if (S.extraQs.length) {
+    const qRows = S.extraQs.map(q => ({
+      q_id: String(q.id), user_id: uid, file_id: String(q._fileId || 0),
+      exam: q.category || '匯入題目', question: q.text,
+      option_a: q.options[0]||'', option_b: q.options[1]||'',
+      option_c: q.options[2]||'', option_d: q.options[3]||'',
+      option_e: q.options[4]||'', option_f: q.options[5]||'',
+      answer:      Array.isArray(q.answer) ? q.answer.join(',') : String(q.answer),
+      explanation: q.explanation || '', src_name: q._fileName || '',
+      src_id: q._srcId || '', is_multi: !!q.isMulti,
+    }));
+    const BATCH = 200;
+    for (let i = 0; i < qRows.length; i += BATCH)
+      await _supa.from('exam_questions').upsert(qRows.slice(i, i+BATCH), { onConflict: 'user_id,q_id' });
+  }
+  // 4. study materials + annotations
+  await syncStudyToCloud();
+}
+
+/* Load all data from normalized tables; auto-migrate if tables are empty */
+async function loadCloudData() {
+  if (!_supa || !_currentUser) return;
+  const uid = _currentUser.id;
+  try {
+    const [stateRes, filesRes, qRes, sessRes] = await Promise.all([
+      _supa.from('user_state').select('*').eq('user_id', uid).maybeSingle(),
+      _supa.from('exam_files').select('*').eq('user_id', uid).order('uploaded_at'),
+      _supa.from('exam_questions').select('*').eq('user_id', uid),
+      _supa.from('quiz_sessions').select('*').eq('user_id', uid).order('created_at', { ascending: true }),
+    ]);
+
+    // user_state
+    if (stateRes.data) {
+      const st = stateRes.data;
+      if (Array.isArray(st.bookmarks))  S.bookmarks  = new Set(st.bookmarks);
+      if (Array.isArray(st.wrong_qs))   S.wrongQs    = new Set(st.wrong_qs);
+      if (Array.isArray(st.used_q_ids)) S.usedQIds   = new Set(st.used_q_ids);
+      if (st.dash_tag   !== undefined)  S.dashTag    = st.dash_tag;
+      if (st.tag_filter !== undefined)  S.tagFilter  = st.tag_filter;
+      if (st.current_mat !== undefined) S.currentMat = st.current_mat;
+      if (st.read_progress)             S.readProgress = st.read_progress;
+      _lastSyncTime = new Date(st.updated_at);
+    }
+
+    // exam_files
+    if (filesRes.data && filesRes.data.length) {
+      S.files = filesRes.data.map(f => ({
+        id: parseInt(f.id) || f.id, name: f.name,
+        type: f.name.split('.').pop() || 'csv', size: '', status: 'ready',
+        date: f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('zh-TW') : '',
+        tags: f.tags || [], imported: null,
+      }));
+      S.nextFid = Math.max(...S.files.map(f => (parseInt(f.id)||0)+1), 4);
+    }
+
+    // exam_questions
+    if (qRes.data && qRes.data.length) {
+      S.extraQs = qRes.data.map(q => {
+        const opts = [q.option_a,q.option_b,q.option_c,q.option_d,q.option_e,q.option_f]
+          .filter(o => o && o !== '—');
+        const fId  = parseInt(q.file_id) || q.file_id;
+        const fObj = S.files.find(f => String(f.id) === String(fId));
+        const answer = q.is_multi ? q.answer.split(',').map(Number) : parseInt(q.answer);
+        return {
+          id: parseInt(q.q_id)||q.q_id, text: q.question, options: opts,
+          answer, isMulti: q.is_multi, explanation: q.explanation||'',
+          category: q.exam, difficulty: '中等',
+          _fileId: fId, _fileName: q.src_name||(fObj?fObj.name:''),
+          _srcId: q.src_id||null, _fileTags: fObj?(fObj.tags||[]):[],
+        };
+      });
+    }
+
+    // quiz_sessions
+    if (sessRes.data && sessRes.data.length) {
+      S.history = sessRes.data.map((s, i) => ({
+        id: i+1, name: s.name||`第 ${i+1} 回合`,
+        date: new Date(s.created_at).toLocaleDateString('zh-TW'),
+        total: s.total, correct: s.score,
+        bk: (s.bk_ids||[]).length, wrong: (s.wrong_ids||[]).length,
+        catStats: s.cat_stats||{}, dur: '—',
+        wrongIds: s.wrong_ids||[], bkIds: s.bk_ids||[],
+      }));
+    }
+
+    // study materials + annotations
+    await loadStudyFromCloud();
+
+    // If ALL new tables empty → first login, migrate from legacy user_progress blob
+    const newTablesEmpty = !stateRes.data && !(filesRes.data?.length) &&
+                           !(qRes.data?.length) && !(sessRes.data?.length);
+    if (newTablesEmpty) {
+      console.log('[Supa] New tables empty — checking legacy blob...');
+      await _migrateLegacyBlob();
+    }
+
+    saveToStorage();
+    if (!_blockCloudRender) render();
+    console.log('[Supa] Cloud loaded — files:', S.files.length,
+      'questions:', S.extraQs.length, 'sessions:', S.history.length);
+  } catch(e) {
+    console.warn('[Supa] loadCloudData error:', e);
+    await _loadCloudProgressLegacy(); // fallback: old blob
+  }
+}
+
+/* One-time migration: user_progress JSONB → normalized tables */
+async function _migrateLegacyBlob() {
+  if (!_supa || !_currentUser) return;
+  try {
+    const { data } = await _supa.from('user_progress').select('data').eq('user_id', _currentUser.id).maybeSingle();
+    if (!data?.data) return;
+    const d = data.data;
     if (Array.isArray(d.history))   S.history   = d.history;
     if (Array.isArray(d.bookmarks)) S.bookmarks = new Set(d.bookmarks.map(String));
     if (Array.isArray(d.wrongQs))   S.wrongQs   = new Set(d.wrongQs.map(String));
     if (Array.isArray(d.usedQIds))  S.usedQIds  = new Set(d.usedQIds.map(String));
     if (Array.isArray(d.files))     S.files     = d.files;
     if (Array.isArray(d.extraQs))   S.extraQs   = d.extraQs;
-    if (d.dashTag !== undefined)    S.dashTag   = d.dashTag;
+    if (d.dashTag   !== undefined)  S.dashTag   = d.dashTag;
     if (d.tagFilter !== undefined)  S.tagFilter = d.tagFilter;
-    if (S.files.length > 0) S.nextFid = Math.max(...S.files.map(f => f.id + 1));
-    // Set sync timestamp from server's updated_at (real last-sync time)
-    if (data.updated_at) {
-      _lastSyncTime = new Date(data.updated_at);
+    if (S.files.length) S.nextFid = Math.max(...S.files.map(f => f.id+1));
+    console.log('[Supa] Migrating legacy blob → normalized tables...');
+    await syncAllToCloud();
+    // Also insert legacy quiz sessions
+    const uid = _currentUser.id;
+    if (S.history.length) {
+      const sessRows = S.history.map(s => ({
+        user_id: uid, name: s.name||'', mode: 'new', cats: [],
+        score: s.correct, total: s.total,
+        wrong_ids: s.wrongIds||[], bk_ids: s.bkIds||[],
+        cat_stats: s.catStats||{}, created_at: new Date().toISOString(),
+      }));
+      const BATCH = 50;
+      for (let i = 0; i < sessRows.length; i += BATCH)
+        await _supa.from('quiz_sessions').insert(sessRows.slice(i, i+BATCH));
     }
-    saveToStorage();
-    const filesCount = Array.isArray(d.files) ? d.files.length : 0;
-    const questionsCount = Array.isArray(d.extraQs) ? d.extraQs.length : 0;
-    console.log('[Supa] Cloud loaded — files:', filesCount, 'questions:', questionsCount, 'sync:', data.updated_at);
-    if (!_blockCloudRender) render(); // cloud-first, but not during active quiz
-  } catch(e) { console.warn('[Supa] loadCloudProgress error:', e); }
+    console.log('[Supa] Migration complete ✓');
+  } catch(e) { console.warn('[Supa] migration error:', e); }
 }
 
+/* Fallback: load from old user_progress blob (if new tables don't exist yet) */
+async function _loadCloudProgressLegacy() {
+  if (!_supa || !_currentUser) return;
+  try {
+    const { data } = await _supa.from('user_progress').select('data,updated_at').eq('user_id', _currentUser.id).maybeSingle();
+    if (!data?.data) return;
+    const d = data.data;
+    if (Array.isArray(d.history))   S.history   = d.history;
+    if (Array.isArray(d.bookmarks)) S.bookmarks = new Set(d.bookmarks.map(String));
+    if (Array.isArray(d.wrongQs))   S.wrongQs   = new Set(d.wrongQs.map(String));
+    if (Array.isArray(d.usedQIds))  S.usedQIds  = new Set(d.usedQIds.map(String));
+    if (Array.isArray(d.files))     S.files     = d.files;
+    if (Array.isArray(d.extraQs))   S.extraQs   = d.extraQs;
+    if (d.dashTag   !== undefined)  S.dashTag   = d.dashTag;
+    if (d.tagFilter !== undefined)  S.tagFilter = d.tagFilter;
+    if (S.files.length) S.nextFid = Math.max(...S.files.map(f => f.id+1));
+    if (data.updated_at) _lastSyncTime = new Date(data.updated_at);
+    saveToStorage();
+    if (!_blockCloudRender) render();
+  } catch(e) { console.warn('[Supa] legacy load error:', e); }
+}
+
+/* Debounced background sync — only user_state + study (fast, no questions) */
 function scheduleSyncToCloud() {
   clearTimeout(_cloudSyncTimer);
-  _cloudSyncTimer = setTimeout(() => { syncToCloud().then(() => { _lastSyncTime = new Date(); }).catch(e => console.warn('[Supa] bg sync:', e.message || e)); syncStudyToCloud().catch(e => console.warn('[Supa] study bg:', e)); }, 2000);
+  _cloudSyncTimer = setTimeout(() => {
+    syncUserState().then(() => { _lastSyncTime = new Date(); })
+      .catch(e => console.warn('[Supa] userState sync:', e.message||e));
+    syncStudyToCloud().catch(e => console.warn('[Supa] study sync:', e));
+  }, 2000);
 }
 
 function updateNavUser() {
@@ -546,7 +711,7 @@ function initSupabase() {
       }
       updateNavUser();
       if (event === 'SIGNED_IN' && !prev) {
-        resetState(); loadFromStorage(); await loadCloudProgress(); // render() is called inside loadCloudProgress
+        resetState(); loadFromStorage(); await loadCloudData(); // render() is called inside loadCloudData
       }
       if (event === 'SIGNED_OUT') {
         resetState(); loadFromStorage(); render();
@@ -564,7 +729,7 @@ function initSupabase() {
           _currentUser  = data?.session?.user ?? null;
           _accessToken  = data?.session?.access_token ?? null;  // restore token
           updateNavUser();
-          if (_currentUser) loadCloudProgress(); // render() called inside
+          if (_currentUser) loadCloudData(); // render() called inside
         });
       }
     } else {
@@ -572,7 +737,7 @@ function initSupabase() {
         _currentUser = data?.session?.user ?? null;
         _accessToken = data?.session?.access_token ?? null;
         updateNavUser();
-        if (_currentUser) loadCloudProgress(); // render() called inside
+        if (_currentUser) loadCloudData(); // render() called inside
       });
     }
   } catch(e) { console.warn('[Supa] init failed:', e); }
@@ -676,7 +841,7 @@ function loginPageHTML() {
         <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:1rem;">帳號</p>
         <p style="color:var(--text-1);margin-bottom:.5rem;">\${_currentUser.email}</p>
         <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.25rem;">
-          <button onclick="syncToCloud()" class="btn btn-ghost" style="flex:1;">☁️ 立即同步</button>
+          <button onclick="syncAllToCloud().then(()=>{_lastSyncTime=new Date();}).catch(e=>alert('同步失敗：'+(e.message||e)))" class="btn btn-ghost" style="flex:1;">☁️ 立即同步</button>
           <button onclick="signOut()" class="btn btn-ghost" style="flex:1;">登出</button>
         </div>
       </div></div>`;
@@ -1084,82 +1249,20 @@ function refreshFilterBar() {
 
 
 async function refreshFromCloud() {
-  if (!_supa || !_currentUser) {
-    alert('請先登入帳號才能同步雲端'); return;
-  }
-  var token = _accessToken;
-  if (!token) {
-    alert('Token 未就緒，請重新整理頁面後再試。'); return;
-  }
-
+  if (!_supa || !_currentUser) { alert('請先登入帳號才能同步雲端'); return; }
   var btn = document.getElementById('cloud-refresh-btn');
-  if (btn) {
-    btn.textContent = '同步中...';
-    btn.style.opacity = '.6';
-    btn.style.pointerEvents = 'none';
-  }
-
-  // Use native fetch with AbortController — 10s hard timeout, works on iPhone
-  var controller = new AbortController();
-  var timer = setTimeout(function() { controller.abort(); }, 10000);
-
+  if (btn) { btn.textContent = '同步中...'; btn.style.opacity = '.6'; btn.style.pointerEvents = 'none'; }
   try {
-    var url = SUPA_URL + '/rest/v1/user_progress?select=data,updated_at&user_id=eq.' + encodeURIComponent(_currentUser.id) + '&limit=1';
-    var res = await fetch(url, {
-      method: 'GET',
-      signal: controller.signal,
-      headers: {
-        'apikey':        SUPA_KEY,
-        'Authorization': 'Bearer ' + token,
-        'Accept':        'application/json',
-      }
-    });
-    clearTimeout(timer);
-
-    if (!res.ok) {
-      var errText = '';
-      try { var errJ = await res.json(); errText = errJ.message || errJ.error || ('HTTP ' + res.status); } catch(_) { errText = 'HTTP ' + res.status; }
-      throw new Error(errText);
-    }
-
-    var rows = await res.json();
-    if (!rows || rows.length === 0 || !rows[0].data) {
-      alert('雲端尚無資料。請先在其他裝置完成上傳並同步。');
-      return;
-    }
-
-    var row = rows[0];
-    var d = row.data;
-
-    // Apply to state
-    if (Array.isArray(d.history))   S.history   = d.history;
-    if (Array.isArray(d.bookmarks)) S.bookmarks = new Set(d.bookmarks.map(String));
-    if (Array.isArray(d.wrongQs))   S.wrongQs   = new Set(d.wrongQs.map(String));
-    if (Array.isArray(d.usedQIds))  S.usedQIds  = new Set(d.usedQIds.map(String));
-    if (Array.isArray(d.files))     S.files     = d.files;
-    if (Array.isArray(d.extraQs))   S.extraQs   = d.extraQs;
-    if (d.dashTag   !== undefined)  S.dashTag   = d.dashTag;
-    if (d.tagFilter !== undefined)  S.tagFilter = d.tagFilter;
-    if (S.files.length > 0) S.nextFid = Math.max.apply(null, S.files.map(function(f){return f.id+1;}));
-    if (row.updated_at) _lastSyncTime = new Date(row.updated_at);
-    saveToStorage();
-    render();
-
-    var fc = Array.isArray(d.files)   ? d.files.length   : 0;
-    var qc = Array.isArray(d.extraQs) ? d.extraQs.length : 0;
+    await loadCloudData();
+    var fc = S.files.length; var qc = S.extraQs.length;
     var ts = _lastSyncTime ? _lastSyncTime.toLocaleString('zh-TW') : '';
     alert('✅ 雲端更新成功  資料集：' + fc + ' 個 / 題目：' + qc + ' 題  同步時間：' + ts);
-
   } catch(e) {
-    clearTimeout(timer);
-    var msg = e.name === 'AbortError' ? '連線逾時（10秒），請確認網路後重試。' : (e.message || String(e));
-    console.error('[Cloud] refreshFromCloud error:', msg);
-    alert('❌ 更新失敗：' + msg);
+    alert('❌ 更新失敗：' + (e.message || String(e)));
   } finally {
     if (btn) {
       btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg> 從雲端更新';
-      btn.style.opacity = '1';
-      btn.style.pointerEvents = '';
+      btn.style.opacity = '1'; btn.style.pointerEvents = '';
     }
   }
 }
@@ -1328,6 +1431,7 @@ function removeFile(id) {
   // Remove the file record
   S.files = S.files.filter(f => f.id !== id);
   if (S.editingTagFid === id) S.editingTagFid = null;
+  deleteCloudExamFile(id);
 
   // Fade out and remove card from DOM
   const cardEl = document.getElementById('fcard-'+id);
@@ -1464,7 +1568,11 @@ function _mergeQuestions(parsed, fObj) {
   if (fObj) { fObj.importing=false; fObj.imported=added; fObj.status='ready'; refreshCard(fObj.id); }
   const msg = added > 0 ? `✅ 成功匯入 ${added} 題（來源分類：${fileTags.join('、')||'未標記'}）` : `⚠️ 所有題目已存在，無新增`;
   showImportToast(msg, 5000);
-  if (added > 0) { saveToStorage(); scheduleSyncToCloud(); }
+  if (added > 0) {
+    saveToStorage();
+    if (fObj) syncExamFileToCloud(fObj.id).catch(e => console.warn('[Supa] exam sync:', e));
+    scheduleSyncToCloud();
+  }
 }
 
 function importCSVQuestions(file, fObj) {
@@ -2405,6 +2513,8 @@ function finishQuiz() {
 
   // Persist + sync to cloud
   saveToStorage();
+  const _newSession = S.history[S.history.length - 1];
+  syncQuizSession(_newSession).catch(e => console.warn('[Supa] session sync:', e));
   S.quizMode = 'result';
   render();
 }
@@ -2670,7 +2780,7 @@ async function forceSyncToCloud() {
   setMsg('同步中…', 'var(--text-3)');
 
   try {
-    await syncToCloud();
+    await syncAllToCloud();
     _lastSyncTime = new Date();
     var dateStr = _lastSyncTime.toLocaleDateString('zh-TW');
     var timeStr = _lastSyncTime.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
