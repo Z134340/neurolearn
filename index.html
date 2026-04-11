@@ -261,24 +261,35 @@
   @media(max-width:640px){
     /* Datasets page buttons on mobile */
     #cloud-refresh-btn { font-size:.78rem !important; padding:.5rem .9rem !important; }
-    #navbar{height:calc(46px + env(safe-area-inset-top, 0px));padding:env(safe-area-inset-top, 0px) .75rem 0;gap:.4rem}
+    /* Two-row navbar: row1 = logo + user area, row2 = zone tabs */
+    #navbar{
+      height:calc(84px + env(safe-area-inset-top, 0px));
+      padding:env(safe-area-inset-top, 0px) .75rem 0;
+      flex-wrap:wrap;
+      align-content:flex-start;
+      gap:0;
+    }
+    .nav-logo{order:1;flex:1;height:46px;}
+    #nav-user-area{order:2;height:46px;}
+    .zone-tabs{order:3;width:100%;height:38px;margin:0;background:transparent;border-radius:0;padding:0;justify-content:space-around;}
     .nav-logo-text{font-size:.82rem}
     .nav-logo-icon{width:26px;height:26px;border-radius:6px}
-    .zone-tab{font-size:.74rem;padding:.32rem .7rem}
-    .zt-full{display:none}.zt-short{display:inline}
-    #nav-sub-tabs{top:calc(46px + env(safe-area-inset-top, 0px));height:38px;padding:0 .75rem}
+    .zone-tab{font-size:.72rem;padding:.28rem .55rem}
+    .zt-full{display:inline}.zt-short{display:none}
+    #nav-sub-tabs{top:calc(84px + env(safe-area-inset-top, 0px));height:38px;padding:0 .75rem}
     .sub-tab{font-size:.72rem;padding:.3rem .6rem}
-    #page-content{padding-top:calc(84px + env(safe-area-inset-top, 0px))}
+    #page-content{padding-top:calc(122px + env(safe-area-inset-top, 0px))}
     .page{animation:none}
     .g-card{border-radius:14px}
     .btn{min-height:44px}
+    .study-sidebar.show{top:122px}
     /* iPhone safe-area bottom only */
     #page-content{padding-bottom:env(safe-area-inset-bottom,0px)}
   }
   @media(max-width:400px){
-    .zone-tab{font-size:.64rem;padding:.28rem .4rem}
-    .zone-tabs{gap:1px;padding:2px}
-    #navbar{padding:0 .6rem;gap:.3rem}
+    .zone-tab{font-size:.62rem;padding:.26rem .35rem}
+    .zone-tabs{gap:0;padding:0}
+    #navbar{padding:0 .6rem;gap:0}
   }
   @media(hover:hover){.btn:hover{opacity:.82}}
   @media(hover:none){.btn:active{opacity:.82}}
