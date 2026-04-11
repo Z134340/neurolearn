@@ -366,10 +366,10 @@
   </div>
   <div class="zone-tabs">
     <button class="zone-tab" id="zt-home" onclick="navigate('home')">首頁</button>
-    <button class="zone-tab" id="zt-study" onclick="switchZone('study')"><span class="zt-full">教材</span><span class="zt-short">教材</span></button>
-    <button class="zone-tab" id="zt-exam" onclick="switchZone('exam')"><span class="zt-full">模擬考</span><span class="zt-short">模考</span></button>
-    <button class="zone-tab" id="zt-dash" onclick="switchZone('dash')"><span class="zt-full">儀表板</span><span class="zt-short">儀表板</span></button>
-    <button class="zone-tab" id="zt-backup" onclick="navigate('backup')">備份</button>
+    <button class="zone-tab" id="zt-study" onclick="switchZone('study')"><span class="zt-full">教材＆筆記</span><span class="zt-short">教材</span></button>
+    <button class="zone-tab" id="zt-exam" onclick="switchZone('exam')"><span class="zt-full">智能模擬考</span><span class="zt-short">模考</span></button>
+    <button class="zone-tab" id="zt-dash" onclick="switchZone('dash')"><span class="zt-full">學習儀表板</span><span class="zt-short">儀表板</span></button>
+    <button class="zone-tab" id="zt-backup" onclick="navigate('backup')">進度備份</button>
   </div>
   <div id="nav-user-area" style="display:flex;align-items:center;gap:.3rem;flex-shrink:0;">
     <button onclick="navigate('login')" class="btn btn-primary" style="font-size:.72rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>
@@ -839,7 +839,8 @@ function updateNavUI() {
   if (!sub) return;
   const nc = S.annotations?.length || 0;
   const qc = S.extraQs?.length || 0;
-  if (S.page === 'home' || S.page === 'login' || S.page === 'backup') { sub.style.display = 'none'; }
+  if (S.page === 'home' || S.page === 'login') { sub.style.display = 'none'; }
+  else if (S.page === 'backup') { sub.style.display = 'none'; }
   else {
     sub.style.display = 'flex'; sub.className = 'zone-' + z;
     if (z === 'study') {
@@ -847,7 +848,7 @@ function updateNavUI() {
     } else if (z === 'exam') {
       sub.innerHTML = `<button class="sub-tab${S.page==='datasets'?' active':''}" onclick="navigate('datasets')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>考古題題庫<span class="sub-cnt" style="background:var(--gold-dim);color:var(--gold);">${qc}</span></button><button class="sub-tab${S.page==='quiz'?' active':''}" onclick="navigate('quiz')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>測驗</button>`;
     } else {
-      sub.innerHTML = `<button class="sub-tab${S.page==='dashboard'?' active':''}" onclick="navigate('dashboard')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>模擬考統計</button><button class="sub-tab${S.page==='studystats'?' active':''}" onclick="navigate('studystats')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>教材統計</button>`;
+      sub.innerHTML = `<button class="sub-tab${S.page==='dashboard'?' active':''}" onclick="navigate('dashboard')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>模擬考統計總覽</button><button class="sub-tab${S.page==='studystats'?' active':''}" onclick="navigate('studystats')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>教材統計總覽</button>`;
     }
   }
 }
@@ -881,7 +882,7 @@ function render() {
     case 'backup':    c.innerHTML = backupHTML();     break;
     case 'studystats': c.innerHTML = studyStatsHTML(); break;
   }
-  c.style.paddingTop = (S.page==='home'||S.page==='login'||S.page==='backup') ? '62px' : '96px';
+  c.style.paddingTop = (S.page==='home'||S.page==='login') ? '62px' : '96px';
 }
 
 /* ╔══════════════════════════════════╗
@@ -1221,7 +1222,7 @@ function datasetsHTML() {
       <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem;">
         <div>
           <div class="badge badge-v" style="margin-bottom:.4rem;font-size:.6rem;">訓練資料集</div>
-          <h2 style="font-size:1.55rem;font-weight:700;letter-spacing:-.03em;white-space:nowrap;">上傳考古題</h2>
+          <h2 style="font-size:1.55rem;font-weight:700;letter-spacing:-.03em;white-space:nowrap;">上傳考古題題庫</h2>
         </div>
         ${_lastSyncTime
           ? `<span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">☁️ ${_lastSyncTime.toLocaleDateString('zh-TW')} ${_lastSyncTime.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false})}</span>`
@@ -3020,36 +3021,9 @@ function dashStatsHTML() {
     ${pageBtns}
   </div>
 
-  <!-- ── 進度備份 / 還原 ── -->
-  <div class="g-card" style="padding:1.25rem;margin-top:1.5rem;cursor:default;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
-    <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem;">進度備份 / 還原</p>
-    <p style="font-size:.8rem;color:var(--text-3);margin-bottom:1rem;line-height:1.6;">將書籤、錯誤紀錄、測驗歷史完整備份成 JSON 檔，可在任何裝置匯入還原。</p>
-    <div style="display:flex;flex-direction:column;gap:.5rem;">
-      <button onclick="exportProgress()" class="btn btn-ghost"
-        style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;touch-action:manipulation;padding:.65rem 1rem;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0;">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        <span>匯出進度備份</span>
-      </button>
-      <label style="width:100%;">
-        <input type="file" accept=".json" style="display:none;" onchange="importProgress(this)">
-        <span class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;cursor:pointer;touch-action:manipulation;padding:.65rem 1rem;box-sizing:border-box;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0;">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
-          <span>匯入進度備份</span>
-        </span>
-      </label>
-      <button onclick="forceSyncToCloud()" class="btn btn-ghost"
-        style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;touch-action:manipulation;padding:.65rem 1rem;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0;">
-          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
-        </svg>
-        <span>立即同步到雲端</span>
-      </button>
-    </div>
-    <div id="backup-msg" style="margin-top:.65rem;font-size:.78rem;min-height:1.2em;"></div>
+  <div style="margin-top:1.5rem;padding:.75rem 1rem;border-radius:10px;background:rgba(123,111,224,.06);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+    <span style="font-size:.8rem;color:var(--text-2);">需要備份學習進度或還原資料？</span>
+    <button onclick="navigate('backup')" class="btn btn-ghost" style="font-size:.78rem;padding:.4rem .9rem;min-height:0;white-space:nowrap;">前往進度備份 →</button>
   </div>
   `;
 }
@@ -3372,7 +3346,70 @@ function removeMatTag(mid,tag){const m=S.materials.find(x=>x.id===mid);if(!m)ret
 let _matTagFilter=null;
 function setMatTagFilter(tag){_matTagFilter=tag;render();}
 
-function libraryHTML(){const allMatTags=[...new Set(S.materials.flatMap(m=>m.matTags||[]))];const displayMats=_matTagFilter?S.materials.filter(m=>(m.matTags||[]).includes(_matTagFilter)):S.materials;const matsHTML=displayMats.map(m=>matCardHTML(m)).join('');return`<div class="page" style="max-width:720px;margin:0 auto;padding:clamp(1rem,4vw,3rem) clamp(.75rem,4vw,1.5rem);"><div style="margin-bottom:1.5rem;"><div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem;"><div><div class="badge badge-v" style="margin-bottom:.4rem;font-size:.6rem;">學習教材</div><h2 style="font-size:1.55rem;font-weight:700;letter-spacing:-.03em;">上傳備考教材</h2></div></div></div><div class="drop-zone" id="study-dropzone" onclick="document.getElementById('study-file-input').click()"><input type="file" id="study-file-input" style="display:none" multiple accept=".md" onchange="handleMDFiles(this.files)"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.5" style="margin:0 auto .9rem;"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg><p style="font-size:.95rem;font-weight:500;margin-bottom:.3rem;">拖曳檔案至此，或點擊選取</p><p style="font-size:.76rem;color:var(--text-3)">支援 .md (Markdown) 格式</p></div>${S.materials.length>0?`<div style="margin-top:2rem;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem;"><p style="font-size:.78rem;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;">已上傳教材 <span style="color:var(--accent)">${S.materials.length}</span></p></div>${allMatTags.length>0?`<div style="display:flex;flex-wrap:wrap;gap:.38rem;margin-bottom:1rem;align-items:center;"><span style="font-size:.7rem;color:var(--text-3);font-weight:600;">篩選：</span><span onclick="setMatTagFilter(null)" style="background:${!_matTagFilter?'var(--accent)':'rgba(255,255,255,.06)'};color:${!_matTagFilter?'#fff':'var(--text-2)'};border:1px solid ${!_matTagFilter?'var(--accent)':'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;">全部</span>${allMatTags.map(tag=>{const tc=tagColor(tag);const active=_matTagFilter===tag;return`<span onclick="setMatTagFilter(${active?'null':"'"+tag+"'"})" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;">${tag}</span>`;}).join('')}</div>`:''}${matsHTML}</div>`:`<div style="margin-top:2rem;text-align:center;color:var(--text-3);font-size:.88rem;padding:1.5rem 0;">尚未上傳任何檔案</div>`}</div>`;}
+function libraryHTML() {
+  const allMatTags = [...new Set(S.materials.flatMap(m => m.matTags || []))];
+  const displayMats = _matTagFilter
+    ? S.materials.filter(m => (m.matTags || []).includes(_matTagFilter))
+    : S.materials;
+  const matsHTML = displayMats.map(m => matCardHTML(m)).join('');
+  return `
+  <div class="page" style="max-width:720px;margin:0 auto;padding:clamp(1rem,4vw,3rem) clamp(.75rem,4vw,1.5rem);">
+
+    <!-- Header -->
+    <div style="margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem;">
+        <div>
+          <div class="badge badge-v" style="margin-bottom:.4rem;font-size:.6rem;">學習教材庫</div>
+          <h2 style="font-size:1.55rem;font-weight:700;letter-spacing:-.03em;white-space:nowrap;">上傳備考教材</h2>
+        </div>
+        <span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>
+      </div>
+    </div>
+
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="study-dropzone" onclick="document.getElementById('study-file-input').click()">
+      <input type="file" id="study-file-input" style="display:none" multiple accept=".md" onchange="handleMDFiles(this.files)">
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.5" style="margin:0 auto .9rem;">
+        <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+        <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+      </svg>
+      <p style="font-size:.95rem;font-weight:500;margin-bottom:.3rem;">拖曳檔案至此，或點擊選取</p>
+      <p style="font-size:.76rem;color:var(--text-3)">支援 Markdown（.md）格式</p>
+      <div style="display:flex;justify-content:center;gap:.4rem;margin-top:1rem;flex-wrap:wrap;">
+        <span style="background:rgba(74,222,128,.1);color:#4ADE80;border:1px solid rgba(74,222,128,.28);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:700">Markdown ✓ 自動解析</span>
+      </div>
+    </div>
+
+    <!-- Format guide -->
+    <div style="margin-top:.85rem;padding:.85rem 1rem;border-radius:10px;background:rgba(123,111,224,.07);border:1px solid var(--accent-border);display:flex;gap:.65rem;align-items:flex-start;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div style="font-size:.78rem;color:var(--accent);line-height:1.6;">
+        <strong>教材格式：</strong>
+        以 <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">#</code> /
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">##</code>
+        分段，上傳後可對每段落獨立標記筆記分類（必考重點 / 易混淆 / 已理解 / 待複習 / 重要概念）
+      </div>
+    </div>
+
+    <!-- Material List -->
+    ${S.materials.length > 0 ? `
+    <div style="margin-top:2rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem;">
+        <p style="font-size:.78rem;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;">
+          已上傳教材 <span style="color:var(--accent)">${S.materials.length}</span>
+        </p>
+      </div>
+      ${allMatTags.length > 0 ? `
+      <div id="mat-tag-filter-bar" style="display:flex;flex-wrap:wrap;gap:.38rem;margin-bottom:1rem;align-items:center;">
+        <span style="font-size:.7rem;color:var(--text-3);font-weight:600;letter-spacing:.04em;margin-right:.1rem;">篩選：</span>
+        <span onclick="setMatTagFilter(null)" style="background:${!_matTagFilter?'var(--accent)':'rgba(255,255,255,.06)'};color:${!_matTagFilter?'#fff':'var(--text-2)'};border:1px solid ${!_matTagFilter?'var(--accent)':'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">全部</span>
+        ${allMatTags.map(tag => { const tc=tagColor(tag); const active=_matTagFilter===tag; return `<span onclick="setMatTagFilter(${active?'null':"'"+tag+"'"})" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`; }).join('')}
+      </div>` : ''}
+      ${matsHTML}
+      ${displayMats.length === 0 ? `<div style="text-align:center;color:var(--text-3);font-size:.85rem;padding:1.5rem 0;">沒有符合「${_matTagFilter}」標籤的教材</div>` : ''}
+    </div>` : `<div style="margin-top:2rem;text-align:center;color:var(--text-3);font-size:.88rem;padding:1.5rem 0;">尚未上傳任何教材</div>`}
+  </div>`;
+}
 
 function readerHTML(){const mat=S.materials.find(m=>m.id===S.currentMat);if(!mat)return`<div class="page" style="max-width:680px;margin:0 auto;padding:3rem 1.5rem;text-align:center;"><div style="margin-bottom:.8rem;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div><h3 style="font-family:'Sora',sans-serif;font-size:1rem;margin-bottom:.4rem;">請先選擇教材</h3><p style="color:var(--text-3);font-size:.85rem;">到教材庫上傳或選擇一份教材</p><button class="btn btn-primary" style="margin-top:1rem;" onclick="navigate('library')">前往教材庫</button></div>`;const lastSec=S.readProgress?.[mat.id];const resumeBar=lastSec?`<div class="g-card" id="resume-bar" style="padding:.7rem 1rem;margin-bottom:.8rem;display:flex;align-items:center;gap:.6rem;background:var(--accent-dim);border-color:var(--accent-border);cursor:default;" onmouseenter="this.style.transform='none'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span style="font-size:.78rem;color:var(--accent);flex:1;">上次讀到：<b>${mat.sections.find(s=>s.id===lastSec)?.heading||lastSec}</b></span><button class="btn btn-primary" style="font-size:.68rem;padding:.25rem .6rem;min-height:0;" onclick="document.getElementById('${lastSec}')?.scrollIntoView({behavior:'smooth',block:'start'});document.getElementById('resume-bar')?.remove();">繼續閱讀</button><button class="btn btn-ghost" style="font-size:.68rem;padding:.25rem .5rem;min-height:0;" onclick="document.getElementById('resume-bar')?.remove();">從頭開始</button></div>`:'';const tocH=mat.toc.map(t=>`<a class="toc-item toc-h${t.level}" onclick="document.getElementById('${t.secId}')?.scrollIntoView({behavior:'smooth',block:'start'})">${t.heading}</a>`).join('');const secsH=mat.sections.map(sec=>{const ann=S.annotations.find(a=>a.matId===mat.id&&a.secId===sec.id);const tcls=ann?' tagged tagged-'+STAGS.find(t=>t.id===ann.tag)?.cls.replace('stag-',''):'';const ti=ann?STAGS.find(t=>t.id===ann.tag):null;return`<div class="md-sec${tcls}" id="${sec.id}" data-sec="${sec.id}"><div class="stag-bar">${ann?`<span class="stag ${ti.cls}" style="font-size:.62rem">${ti.label}</span><button class="btn btn-ghost" onclick="removeSTag('${mat.id}','${sec.id}')" style="font-size:.6rem;padding:1px 5px;min-height:0;color:var(--red);">✕</button>`:`<button class="btn btn-ghost" onclick="openSTagModal('${mat.id}','${sec.id}')" style="font-size:.62rem;padding:2px 7px;min-height:0;background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg> 標記</button>`}</div>${sec.html}</div>`;}).join('');setTimeout(()=>{const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){if(!S.readProgress)S.readProgress={};S.readProgress[mat.id]=e.target.dataset.sec;clearTimeout(window._rpSave);window._rpSave=setTimeout(saveToStorage,2000);}});},{rootMargin:'-40% 0px -55% 0px'});document.querySelectorAll('.md-sec[data-sec]').forEach(el=>obs.observe(el));},500);return`<div class="page"><div class="study-reader"><div class="study-sidebar" id="studySidebar"><div style="font-size:.68rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;padding:0 4px;">${mat.title}</div>${tocH}<div style="margin-top:.8rem;padding-top:.6rem;border-top:1px solid var(--border);"><button class="btn btn-ghost" style="width:100%;font-size:.7rem;min-height:0;padding:.4rem;" onclick="navigate('library')">← 返回教材庫</button></div></div><div class="study-content">${resumeBar}${secsH}</div></div></div>`;}
 
@@ -3386,7 +3423,7 @@ function removeSTag(matId,secId){S.annotations=S.annotations.filter(a=>!(a.matId
 let _noteFilter='all',_noteTopicFilter='all';
 function notesHTML(){const totalN=S.annotations.length;const filterTags=STAGS.map(t=>{const c=S.annotations.filter(a=>a.tag===t.id).length;return c?`<div class="stag ${t.cls}${_noteFilter===t.id?' active':''}" onclick="_noteFilter='${t.id}';render()">${t.label} (${c})</div>`:'';}).join('');const allTopics=[...new Set(S.materials.flatMap(m=>m.matTags||[]))];const topicChips=allTopics.length?allTopics.map(t=>{const tc=tagColor(t);const active=_noteTopicFilter===t;const matsIn=S.materials.filter(m=>(m.matTags||[]).includes(t)).map(m=>m.id);const cnt=S.annotations.filter(a=>matsIn.includes(a.matId)).length;return cnt?`<div style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;font-size:.66rem;font-weight:600;cursor:pointer;border:1px solid ${active?tc.color:tc.border};background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};" onclick="_noteTopicFilter=${active?"'all'":"'"+t+"'"};render()">${t} (${cnt})</div>`:'';}).join(''):'';const topicMatIds=_noteTopicFilter!=='all'?new Set(S.materials.filter(m=>(m.matTags||[]).includes(_noteTopicFilter)).map(m=>m.id)):null;let notes=S.annotations.filter(a=>{if(_noteFilter!=='all'&&a.tag!==_noteFilter)return false;if(topicMatIds&&!topicMatIds.has(a.matId))return false;return true;});let groupedHTML='';if(!notes.length){groupedHTML='<div style="text-align:center;padding:2rem;color:var(--text-3);font-size:.85rem;">尚無筆記</div>';}else{const grouped={};notes.forEach(n=>{if(!grouped[n.tag])grouped[n.tag]=[];grouped[n.tag].push(n);});for(const tagId of Object.keys(grouped)){const ti=STAGS.find(t=>t.id===tagId);if(!ti)continue;groupedHTML+=`<div style="display:flex;align-items:center;gap:.5rem;margin:1rem 0 .4rem;"><span class="stag ${ti.cls}">${ti.label}</span><span style="font-size:.72rem;color:var(--text-3);">${grouped[tagId].length} 則</span></div>`;grouped[tagId].forEach(n=>{groupedHTML+=`<div class="note-card"><div style="display:flex;align-items:center;gap:.5rem;padding:.7rem .9rem;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'"><span style="font-size:.84rem;font-weight:600;flex:1;">${n.sectionHeading||'(無標題)'}</span><span style="font-size:.66rem;color:var(--text-3);">${n.matTitle}</span></div><div style="display:none;padding:0 .9rem .7rem;font-size:.82rem;color:var(--text-2);line-height:1.6;">${n.html||''}${n.memo?`<div style="margin-top:.5rem;padding:.4rem .6rem;background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:8px;font-size:.76rem;color:var(--gold);"><b>備註：</b>${n.memo}</div>`:''}<div style="display:flex;gap:.3rem;margin-top:.5rem;"><button class="btn btn-ghost" style="font-size:.68rem;padding:.25rem .5rem;min-height:0;" onclick="S.currentMat='${n.matId}';navigate('reader');setTimeout(()=>document.getElementById('${n.secId}')?.scrollIntoView({behavior:'smooth'}),300)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> 原文</button><button class="btn btn-ghost" style="font-size:.68rem;padding:.25rem .5rem;min-height:0;" onclick="openSTagModal('${n.matId}','${n.secId}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg> 編輯</button><button class="btn btn-ghost" style="font-size:.68rem;padding:.25rem .5rem;min-height:0;color:var(--red);" onclick="removeSTag('${n.matId}','${n.secId}');render()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div></div></div>`;});}}return`<div class="page" style="max-width:680px;margin:0 auto;padding:clamp(1.5rem,5vw,2.5rem) clamp(1rem,4vw,1.5rem);"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><h2 style="font-size:1.15rem;font-weight:800;">筆記中心</h2><span class="badge badge-v">${totalN} 則</span></div>${allTopics.length?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.6rem;align-items:center;padding:.5rem .7rem;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:10px;"><span style="font-size:.66rem;color:var(--text-3);font-weight:700;margin-right:.2rem;">主題分類：</span><div style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;font-size:.66rem;font-weight:600;cursor:pointer;border:1px solid ${_noteTopicFilter==='all'?'var(--accent-border)':'var(--border)'};background:${_noteTopicFilter==='all'?'var(--accent-dim)':'transparent'};color:${_noteTopicFilter==='all'?'var(--accent)':'var(--text-3)'};" onclick="_noteTopicFilter='all';render()">全部</div>${topicChips}</div>`:''}<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.8rem;"><div class="stag stag-purple${_noteFilter==='all'?' active':''}" onclick="_noteFilter='all';render()">全部 (${totalN})</div>${filterTags}</div>${groupedHTML}</div>`;}
 
-function backupHTML(){return`<div class="page" style="max-width:580px;margin:0 auto;padding:clamp(2rem,5vw,3rem) clamp(1rem,4vw,1.5rem);"><h2 style="font-size:1.3rem;font-weight:800;margin-bottom:1.5rem;font-family:'Sora',sans-serif;">進度備份 / 還原</h2><div class="g-card" style="padding:1.5rem;cursor:default;" onmouseenter="this.style.transform='none'"><p style="font-size:.82rem;color:var(--text-2);margin-bottom:1.2rem;line-height:1.6;">將書籤、錯誤紀錄、測驗歷史、教材、筆記完整備份成 JSON 檔。</p><div style="display:flex;flex-direction:column;gap:.6rem;"><button onclick="exportProgress()" class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>匯出進度備份</span></button><label style="width:100%;"><input type="file" accept=".json" style="display:none;" onchange="importProgress(this)"><span class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;cursor:pointer;padding:.75rem 1rem;box-sizing:border-box;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>匯入進度備份</span></span></label><button onclick="forceSyncToCloud()" class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg><span>立即同步到雲端</span></button><button onclick="clearAllData()" class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1rem;color:var(--red);border-color:rgba(248,113,113,.25);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><span>清除所有本機資料</span></button></div><div id="backup-msg" style="margin-top:.75rem;font-size:.8rem;min-height:1.2em;"></div></div></div>`;}
+function backupHTML(){return`<div class="page" style="max-width:580px;margin:0 auto;padding:clamp(2rem,5vw,3rem) clamp(1rem,4vw,1.5rem);"><div class="badge badge-v" style="margin-bottom:.7rem;font-size:.6rem;">資料管理</div><h2 style="font-size:1.55rem;font-weight:700;letter-spacing:-.03em;margin-bottom:.4rem;font-family:'Sora',sans-serif;">進度備份 / 還原</h2><p style="font-size:.84rem;color:var(--text-3);margin-bottom:1.8rem;line-height:1.65;">管理學習資料：匯出備份、還原進度、同步雲端，或清除本機資料。</p><div class="g-card" style="padding:1.5rem;cursor:default;" onmouseenter="this.style.transform='none'"><p style="font-size:.82rem;color:var(--text-2);margin-bottom:1.2rem;line-height:1.6;">將書籤、錯誤紀錄、測驗歷史、教材、筆記完整備份成 JSON 檔。</p><div style="display:flex;flex-direction:column;gap:.6rem;"><button onclick="exportProgress()" class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>匯出進度備份</span></button><label style="width:100%;"><input type="file" accept=".json" style="display:none;" onchange="importProgress(this)"><span class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;cursor:pointer;padding:.75rem 1rem;box-sizing:border-box;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>匯入進度備份</span></span></label><button onclick="forceSyncToCloud()" class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg><span>立即同步到雲端</span></button><button onclick="clearAllData()" class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1rem;color:var(--red);border-color:rgba(248,113,113,.25);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><span>清除所有本機資料</span></button></div><div id="backup-msg" style="margin-top:.75rem;font-size:.8rem;min-height:1.2em;"></div></div></div>`;}
 
 function studyStatsHTML(){const allTopics=[...new Set(S.materials.flatMap(m=>m.matTags||[]))];const totalMats=S.materials.length;const totalAnns=S.annotations.length;const tagStats=STAGS.map(t=>({...t,count:S.annotations.filter(a=>a.tag===t.id).length}));const topicStats=allTopics.map(topic=>{const mats=S.materials.filter(m=>(m.matTags||[]).includes(topic));const matIds=new Set(mats.map(m=>m.id));const anns=S.annotations.filter(a=>matIds.has(a.matId));return{topic,matCount:mats.length,annCount:anns.length,tags:STAGS.map(t=>({...t,count:anns.filter(a=>a.tag===t.id).length}))};});const untaggedMats=S.materials.filter(m=>!(m.matTags||[]).length);return`<div class="page" style="max-width:680px;margin:0 auto;padding:clamp(1.5rem,5vw,2.5rem) clamp(1rem,4vw,1.5rem);"><h2 style="font-size:1.15rem;font-weight:800;margin-bottom:1rem;font-family:'Sora',sans-serif;">教材統計總覽</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.5rem;margin-bottom:1.5rem;"><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">教材總數</div><div style="font-size:1.6rem;font-weight:800;color:var(--accent);margin-top:.2rem;">${totalMats}</div></div><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">筆記總數</div><div style="font-size:1.6rem;font-weight:800;color:var(--gold);margin-top:.2rem;">${totalAnns}</div></div><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">分類數</div><div style="font-size:1.6rem;font-weight:800;color:var(--green);margin-top:.2rem;">${allTopics.length}</div></div></div>${tagStats.some(t=>t.count>0)?`<div class="g-card" style="padding:1rem;margin-bottom:1rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem;">筆記標籤分佈</div><div style="display:flex;flex-wrap:wrap;gap:.4rem;">${tagStats.map(t=>t.count?`<span class="stag ${t.cls}">${t.label} ${t.count}</span>`:'').join('')}</div></div>`:''} ${topicStats.map(ts=>`<div class="g-card" style="padding:1rem;margin-bottom:.6rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><span style="font-size:.88rem;font-weight:700;">${ts.topic}</span><span style="font-size:.7rem;color:var(--text-3);">${ts.matCount} 教材 · ${ts.annCount} 筆記</span></div>${ts.tags.some(t=>t.count>0)?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;">${ts.tags.map(t=>t.count?`<span class="stag ${t.cls}" style="font-size:.6rem">${t.label} ${t.count}</span>`:'').join('')}</div>`:'<span style="font-size:.76rem;color:var(--text-3);">尚無筆記</span>'}</div>`).join('')}${untaggedMats.length?`<div class="g-card" style="padding:1rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><span style="font-size:.88rem;font-weight:700;color:var(--text-3);">未分類</span><span style="font-size:.7rem;color:var(--text-3);">${untaggedMats.length} 教材</span></div></div>`:''}</div>`;}
 
