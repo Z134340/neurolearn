@@ -73,6 +73,8 @@
     justify-content:space-between;
     box-sizing:border-box;
   }
+  /* Desktop: #navbar-top is transparent to flex layout */
+  #navbar-top{display:contents;}
   .nav-logo{display:flex;align-items:center;gap:.65rem;cursor:pointer}
   .nav-logo-icon{
     width:32px;height:32px;border-radius:9px;
@@ -261,17 +263,24 @@
   @media(max-width:640px){
     /* Datasets page buttons on mobile */
     #cloud-refresh-btn { font-size:.78rem !important; padding:.5rem .9rem !important; }
-    /* Two-row navbar: row1 = logo + user area, row2 = zone tabs */
+    /* Two-row navbar: row1 = logo + user area (via #navbar-top), row2 = zone-tabs */
     #navbar{
       height:calc(84px + env(safe-area-inset-top, 0px));
-      padding:env(safe-area-inset-top, 0px) .75rem 0;
-      flex-wrap:wrap;
-      align-content:flex-start;
+      padding:env(safe-area-inset-top, 0px) 0 0;
+      flex-direction:column;
+      align-items:stretch;
+      justify-content:flex-start;
       gap:0;
     }
-    .nav-logo{order:1;flex:1;height:46px;}
-    #nav-user-area{order:2;height:46px;}
-    .zone-tabs{order:3;width:100%;height:38px;margin:0;background:transparent;border-radius:0;padding:0;justify-content:space-around;}
+    #navbar-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      height:46px;
+      padding:0 .75rem;
+      flex-shrink:0;
+    }
+    .zone-tabs{width:100%;height:38px;margin:0;background:transparent;border-radius:0;padding:0 .5rem;justify-content:space-around;flex-shrink:0;}
     .nav-logo-text{font-size:.82rem}
     .nav-logo-icon{width:26px;height:26px;border-radius:6px}
     .zone-tab{font-size:.72rem;padding:.28rem .55rem}
@@ -288,8 +297,8 @@
   }
   @media(max-width:400px){
     .zone-tab{font-size:.62rem;padding:.26rem .35rem}
-    .zone-tabs{gap:0;padding:0}
-    #navbar{padding:0 .6rem;gap:0}
+    .zone-tabs{padding:0 .2rem}
+    #navbar-top{padding:0 .6rem}
   }
   @media(hover:hover){.btn:hover{opacity:.82}}
   @media(hover:none){.btn:active{opacity:.82}}
@@ -371,9 +380,14 @@
 
 <!-- ════ HEADER ════ -->
 <header id="navbar">
-  <div class="nav-logo" onclick="navigate('home')">
-    <div class="nav-logo-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
-    <span class="nav-logo-text">NeuroLearn</span>
+  <div id="navbar-top">
+    <div class="nav-logo" onclick="navigate('home')">
+      <div class="nav-logo-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+      <span class="nav-logo-text">NeuroLearn</span>
+    </div>
+    <div id="nav-user-area" style="display:flex;align-items:center;gap:.3rem;flex-shrink:0;">
+      <button onclick="navigate('login')" class="btn btn-primary" style="font-size:.72rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>
+    </div>
   </div>
   <div class="zone-tabs">
     <button class="zone-tab" id="zt-home" onclick="navigate('home')">首頁</button>
@@ -381,9 +395,6 @@
     <button class="zone-tab" id="zt-exam" onclick="switchZone('exam')"><span class="zt-full">智能模擬考</span><span class="zt-short">模擬考</span></button>
     <button class="zone-tab" id="zt-dash" onclick="switchZone('dash')"><span class="zt-full">學習儀表板</span><span class="zt-short">儀表板</span></button>
     <button class="zone-tab" id="zt-backup" onclick="navigate('backup')"><span class="zt-full">進度備份</span><span class="zt-short">同步</span></button>
-  </div>
-  <div id="nav-user-area" style="display:flex;align-items:center;gap:.3rem;flex-shrink:0;">
-    <button onclick="navigate('login')" class="btn btn-primary" style="font-size:.72rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>
   </div>
 </header>
 <div id="nav-sub-tabs"></div>
