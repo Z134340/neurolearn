@@ -64,12 +64,12 @@
   /* ─── Navbar ─── */
   #navbar{
     position:fixed;top:0;left:0;right:0;
-    height:52px;
+    height:calc(52px + env(safe-area-inset-top, 0px));
+    padding:env(safe-area-inset-top, 0px) 1.25rem 0;
     background:rgba(11,11,18,0.97);
     backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
     border-bottom:1px solid var(--border);
     z-index:200;display:flex;align-items:center;
-    padding:0 1.25rem;
     justify-content:space-between;
     box-sizing:border-box;
   }
@@ -91,7 +91,7 @@
 
 
   /* ─── Page ─── */
-  #page-content{min-height:100svh;padding-top:96px;position:relative;z-index:1}
+  #page-content{min-height:100svh;padding-top:calc(96px + env(safe-area-inset-top, 0px));position:relative;z-index:1}
   .page{animation:fadeUp .38s cubic-bezier(.4,0,.2,1)}
   @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 
@@ -261,14 +261,14 @@
   @media(max-width:640px){
     /* Datasets page buttons on mobile */
     #cloud-refresh-btn { font-size:.78rem !important; padding:.5rem .9rem !important; }
-    #navbar{height:46px;padding:0 .75rem;gap:.4rem}
+    #navbar{height:calc(46px + env(safe-area-inset-top, 0px));padding:env(safe-area-inset-top, 0px) .75rem 0;gap:.4rem}
     .nav-logo-text{font-size:.82rem}
     .nav-logo-icon{width:26px;height:26px;border-radius:6px}
     .zone-tab{font-size:.74rem;padding:.32rem .7rem}
     .zt-full{display:none}.zt-short{display:inline}
-    #nav-sub-tabs{top:46px;height:38px;padding:0 .75rem}
+    #nav-sub-tabs{top:calc(46px + env(safe-area-inset-top, 0px));height:38px;padding:0 .75rem}
     .sub-tab{font-size:.72rem;padding:.3rem .6rem}
-    #page-content{padding-top:84px}
+    #page-content{padding-top:calc(84px + env(safe-area-inset-top, 0px))}
     .page{animation:none}
     .g-card{border-radius:14px}
     .btn{min-height:44px}
@@ -293,7 +293,7 @@
   #zt-exam.active{color:var(--gold)}
   #zt-dash.active{color:var(--green)}
   .zt-short{display:none}
-  #nav-sub-tabs{position:fixed;top:52px;left:0;right:0;height:44px;background:rgba(14,14,22,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:199;display:flex;align-items:center;gap:.15rem;padding:0 1.25rem;overflow-x:auto}
+  #nav-sub-tabs{position:fixed;top:calc(52px + env(safe-area-inset-top, 0px));left:0;right:0;height:44px;background:rgba(14,14,22,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:199;display:flex;align-items:center;gap:.15rem;padding:0 1.25rem;overflow-x:auto}
   #nav-sub-tabs::-webkit-scrollbar{height:0}
   .sub-tab{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .8rem;border-radius:9px;font-size:.78rem;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text-3);transition:all .18s;border:none;background:none;font-family:'DM Sans',sans-serif}
   .sub-tab:hover{color:var(--text-2);background:rgba(255,255,255,.035)}
@@ -305,8 +305,8 @@
   .sub-tab.active svg{opacity:.9}
   .sub-cnt{font-size:.62rem;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:1px}
   /* ─── Study Area ─── */
-  .study-reader{display:grid;grid-template-columns:220px 1fr;gap:0;min-height:calc(100svh - 96px)}
-  .study-sidebar{position:sticky;top:96px;height:calc(100svh - 96px);overflow-y:auto;border-right:1px solid var(--border);padding:1rem;background:var(--bg-surface)}
+  .study-reader{display:grid;grid-template-columns:220px 1fr;gap:0;min-height:calc(100svh - 96px - env(safe-area-inset-top, 0px))}
+  .study-sidebar{position:sticky;top:calc(96px + env(safe-area-inset-top, 0px));height:calc(100svh - 96px - env(safe-area-inset-top, 0px));overflow-y:auto;border-right:1px solid var(--border);padding:1rem;background:var(--bg-surface)}
   .study-sidebar::-webkit-scrollbar{width:3px}
   .study-sidebar::-webkit-scrollbar-thumb{background:var(--border-h);border-radius:3px}
   .study-content{padding:1.5rem 2rem;max-width:760px}
@@ -1005,7 +1005,11 @@ function render() {
     case 'backup':    c.innerHTML = backupHTML();     break;
     case 'studystats': c.innerHTML = studyStatsHTML(); break;
   }
-  c.style.paddingTop = (S.page==='home'||S.page==='login') ? '62px' : '96px';
+  const _isMobile = window.innerWidth <= 640;
+  const _navH  = _isMobile ? 46 : 52;
+  const _subH  = _isMobile ? 38 : 44;
+  const _noSub = S.page === 'home' || S.page === 'login';
+  c.style.paddingTop = `calc(${_noSub ? _navH : _navH + _subH}px + env(safe-area-inset-top, 0px))`;
 }
 
 /* ╔══════════════════════════════════╗
