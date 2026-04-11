@@ -11,6 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer onerror="console.warn('[Supa] SDK load failed')"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <style>
   :root {
     --bg-base: #0B0B12;
@@ -62,7 +64,7 @@
   /* ─── Navbar ─── */
   #navbar{
     position:fixed;top:0;left:0;right:0;
-    height:62px;
+    height:52px;
     background:rgba(11,11,18,0.97);
     backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
     border-bottom:1px solid var(--border);
@@ -86,11 +88,10 @@
     font-family:'DM Sans','Inter','Segoe UI',system-ui,-apple-system,sans-serif;cursor:pointer;
     transition:all .2s ease;
   }
-  .nav-link:hover{color:var(--text-1);background:rgba(255,255,255,.05)}
-  .nav-link.active{color:var(--accent);background:var(--accent-dim)}
+
 
   /* ─── Page ─── */
-  #page-content{min-height:100svh;padding-top:62px;position:relative;z-index:1}
+  #page-content{min-height:100svh;padding-top:96px;position:relative;z-index:1}
   .page{animation:fadeUp .38s cubic-bezier(.4,0,.2,1)}
   @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 
@@ -260,12 +261,14 @@
   @media(max-width:640px){
     /* Datasets page buttons on mobile */
     #cloud-refresh-btn { font-size:.78rem !important; padding:.5rem .9rem !important; }
-    #navbar{height:52px;padding:0 .75rem;gap:.4rem}
-    #page-content{padding-top:52px}
+    #navbar{height:46px;padding:0 .75rem;gap:.4rem}
     .nav-logo-text{font-size:.82rem}
     .nav-logo-icon{width:26px;height:26px;border-radius:6px}
-    .nav-link{padding:.32rem .38rem;font-size:.7rem}
-    .nav-links{gap:0;flex-shrink:1}
+    .zone-tab{font-size:.74rem;padding:.32rem .7rem}
+    .zt-full{display:none}.zt-short{display:inline}
+    #nav-sub-tabs{top:46px;height:38px;padding:0 .75rem}
+    .sub-tab{font-size:.72rem;padding:.3rem .6rem}
+    #page-content{padding-top:84px}
     .page{animation:none}
     .g-card{border-radius:14px}
     .btn{min-height:44px}
@@ -273,41 +276,109 @@
     #page-content{padding-bottom:env(safe-area-inset-bottom,0px)}
   }
   @media(max-width:400px){
-    .nav-link-text{display:none}
-    .nav-link{padding:.32rem .45rem}
+    .zone-tab{font-size:.64rem;padding:.28rem .4rem}
+    .zone-tabs{gap:1px;padding:2px}
     #navbar{padding:0 .6rem;gap:.3rem}
   }
   @media(hover:hover){.btn:hover{opacity:.82}}
   @media(hover:none){.btn:active{opacity:.82}}
   #page-content{padding-bottom:env(safe-area-inset-bottom,0px)}
+
+  /* ─── Zone Tabs ─── */
+  .zone-tabs{display:flex;align-items:center;gap:2px;margin:0 auto;background:rgba(255,255,255,.03);border-radius:10px;padding:3px}
+  .zone-tab{padding:.38rem 1.1rem;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--text-3);border:none;background:none;font-family:'Sora',sans-serif;letter-spacing:-.01em;transition:all .18s}
+  .zone-tab:hover{color:var(--text-2)}
+  .zone-tab.active{color:var(--text-1);background:rgba(255,255,255,.07)}
+  #zt-study.active{color:var(--accent)}
+  #zt-exam.active{color:var(--gold)}
+  #zt-dash.active{color:var(--green)}
+  .zt-short{display:none}
+  #nav-sub-tabs{position:fixed;top:52px;left:0;right:0;height:44px;background:rgba(14,14,22,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:199;display:flex;align-items:center;gap:.15rem;padding:0 1.25rem;overflow-x:auto}
+  #nav-sub-tabs::-webkit-scrollbar{height:0}
+  .sub-tab{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .8rem;border-radius:9px;font-size:.78rem;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text-3);transition:all .18s;border:none;background:none;font-family:'DM Sans',sans-serif}
+  .sub-tab:hover{color:var(--text-2);background:rgba(255,255,255,.035)}
+  .sub-tab.active{background:rgba(255,255,255,.06)}
+  .zone-study .sub-tab.active{color:var(--accent)}
+  .zone-exam .sub-tab.active{color:var(--gold)}
+  .zone-dash .sub-tab.active{color:var(--green)}
+  .sub-tab svg{opacity:.45;transition:opacity .18s;flex-shrink:0}
+  .sub-tab.active svg{opacity:.9}
+  .sub-cnt{font-size:.62rem;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:1px}
+  /* ─── Study Area ─── */
+  .study-reader{display:grid;grid-template-columns:220px 1fr;gap:0;min-height:calc(100svh - 96px)}
+  .study-sidebar{position:sticky;top:96px;height:calc(100svh - 96px);overflow-y:auto;border-right:1px solid var(--border);padding:1rem;background:var(--bg-surface)}
+  .study-sidebar::-webkit-scrollbar{width:3px}
+  .study-sidebar::-webkit-scrollbar-thumb{background:var(--border-h);border-radius:3px}
+  .study-content{padding:1.5rem 2rem;max-width:760px}
+  .toc-item{display:block;padding:5px 8px;font-size:.74rem;border-radius:6px;color:var(--text-3);cursor:pointer;transition:all .15s;line-height:1.4;margin-bottom:1px;text-decoration:none}
+  .toc-item:hover{color:var(--text-2);background:rgba(255,255,255,.03)}
+  .toc-item.active{color:var(--accent);background:var(--accent-dim)}
+  .toc-h2{padding-left:14px}.toc-h3{padding-left:26px;font-size:.68rem}
+  .md-sec{position:relative;padding:.8rem 1rem;margin-bottom:.4rem;border-radius:12px;border:1px solid transparent;transition:all .2s}
+  .md-sec:hover{background:rgba(255,255,255,.02);border-color:var(--border)}
+  .md-sec.tagged{border-left:3px solid var(--accent);border-radius:0 12px 12px 0}
+  .md-sec.tagged-red{border-left-color:var(--red)}.md-sec.tagged-gold{border-left-color:var(--gold)}.md-sec.tagged-green{border-left-color:var(--green)}.md-sec.tagged-blue{border-left-color:#60A5FA}
+  .md-sec .stag-bar{display:none;position:absolute;top:4px;right:4px;gap:3px;flex-wrap:wrap;align-items:center}
+  .md-sec:hover .stag-bar,.md-sec.tagged .stag-bar{display:flex}
+  .md-sec h1{font-size:1.4rem;font-weight:800;margin:.8rem 0 .5rem;letter-spacing:-.02em;color:var(--accent);font-family:'Sora',sans-serif}
+  .md-sec h2{font-size:1.1rem;font-weight:700;margin:.6rem 0 .4rem;padding-bottom:.3rem;border-bottom:1px solid var(--border);font-family:'Sora',sans-serif}
+  .md-sec h3{font-size:.92rem;font-weight:700;margin:.5rem 0 .3rem;color:var(--gold);font-family:'Sora',sans-serif}
+  .md-sec p{font-size:.84rem;line-height:1.7;margin-bottom:.4rem;color:var(--text-2)}
+  .md-sec strong{color:var(--text-1);font-weight:700}
+  .md-sec ul,.md-sec ol{margin:.3rem 0 .5rem 1rem;font-size:.82rem;line-height:1.7;color:var(--text-2)}
+  .md-sec li{margin-bottom:.15rem}
+  .md-sec code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:.76rem;font-family:'JetBrains Mono',monospace;color:#22D3EE}
+  .md-sec pre{background:var(--bg-base);border:1px solid var(--border);border-radius:8px;padding:.7rem;margin:.4rem 0;overflow-x:auto}
+  .md-sec pre code{background:none;padding:0;font-size:.74rem;color:var(--text-2)}
+  .md-sec table{width:100%;border-collapse:collapse;font-size:.76rem;margin:.4rem 0}
+  .md-sec th{text-align:left;padding:5px 7px;border-bottom:2px solid var(--border-h);color:var(--text-3);font-weight:700;font-size:.68rem;text-transform:uppercase;letter-spacing:.04em}
+  .md-sec td{padding:5px 7px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top}
+  .md-sec tr:hover td{background:rgba(255,255,255,.015)}
+  .md-sec blockquote{border-left:3px solid var(--accent-border);padding:.4rem .8rem;margin:.4rem 0;background:var(--accent-dim);border-radius:0 8px 8px 0}
+  .md-sec hr{border:none;border-top:1px solid var(--border-h);margin:.8rem 0}
+  .md-sec a{color:var(--accent);text-decoration:none}
+  .stag{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;font-size:.66rem;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid transparent}
+  .stag:hover{filter:brightness(1.2)}
+  .stag.active{box-shadow:0 0 0 2px currentColor}
+  .stag-red{background:rgba(248,113,113,.1);color:var(--red);border-color:rgba(248,113,113,.3)}
+  .stag-gold{background:var(--gold-dim);color:var(--gold);border-color:var(--gold-border)}
+  .stag-green{background:rgba(74,222,128,.08);color:var(--green);border-color:rgba(74,222,128,.25)}
+  .stag-blue{background:rgba(96,165,250,.08);color:#60A5FA;border-color:rgba(96,165,250,.25)}
+  .stag-purple{background:var(--accent-dim);color:var(--accent);border-color:var(--accent-border)}
+  .note-card{background:rgba(24,24,36,.6);border:1px solid var(--border);border-radius:14px;margin-bottom:.5rem;overflow:hidden;transition:border-color .2s}
+  .note-card:hover{border-color:var(--border-h)}
+  .smodal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;align-items:center;justify-content:center;padding:1rem}
+  .smodal-bg.show{display:flex}
+  .smodal{background:var(--bg-card);border:1px solid var(--border-h);border-radius:18px;padding:1.5rem;max-width:420px;width:100%;animation:fadeUp .2s}
+  .smodal textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.78rem;color:var(--text-1);resize:vertical;min-height:32px;outline:none;font-family:inherit}
+  .smodal textarea:focus{border-color:var(--accent-border)}
+
+  @media(max-width:768px){.study-reader{grid-template-columns:1fr}.study-sidebar{display:none}.study-sidebar.show{display:block;position:fixed;top:84px;left:0;width:240px;z-index:50;box-shadow:4px 0 20px rgba(0,0,0,.5)}}
 </style>
 </head>
 <body>
 
-<!-- ════ NAVBAR ════ -->
-<nav id="navbar">
+<!-- ════ HEADER ════ -->
+<header id="navbar">
   <div class="nav-logo" onclick="navigate('home')">
-    <div class="nav-logo-icon">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2L2 7l10 5 10-5-10-5M2 17l10 5 10-5M2 12l10 5 10-5"/>
-      </svg>
-    </div>
+    <div class="nav-logo-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
     <span class="nav-logo-text">NeuroLearn</span>
   </div>
-  <div style="display:flex;align-items:center;gap:.5rem;">
-    <div class="nav-links">
-    <button class="nav-link" id="nl-home"   onclick="navigate('home')">首頁</button>
-    <button class="nav-link" id="nl-data"   onclick="navigate('datasets')">資料集</button>
-    <button class="nav-link" id="nl-quiz"   onclick="navigate('quiz')">模擬考</button>
-    <button class="nav-link" id="nl-dash"   onclick="navigate('dashboard')">儀表板</button>
+  <div class="zone-tabs">
+    <button class="zone-tab" id="zt-home" onclick="navigate('home')">首頁</button>
+    <button class="zone-tab" id="zt-study" onclick="switchZone('study')"><span class="zt-full">教材</span><span class="zt-short">教材</span></button>
+    <button class="zone-tab" id="zt-exam" onclick="switchZone('exam')"><span class="zt-full">模擬考</span><span class="zt-short">模考</span></button>
+    <button class="zone-tab" id="zt-dash" onclick="switchZone('dash')"><span class="zt-full">儀表板</span><span class="zt-short">儀表板</span></button>
+    <button class="zone-tab" id="zt-backup" onclick="navigate('backup')">備份</button>
   </div>
-    <div id="nav-user-area" style="display:flex;align-items:center;gap:.3rem;margin-left:.3rem;flex-shrink:0;">
-      <button onclick="navigate('login')" class="btn btn-primary" style="font-size:.72rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>
-    </div>
+  <div id="nav-user-area" style="display:flex;align-items:center;gap:.3rem;flex-shrink:0;">
+    <button onclick="navigate('login')" class="btn btn-primary" style="font-size:.72rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>
   </div>
-</nav>
+</header>
+<div id="nav-sub-tabs"></div>
 
 <main id="page-content"></main>
+<div class="smodal-bg" id="stagModal"><div class="smodal"><h3 style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;margin-bottom:.6rem;">標記此段落</h3><p style="font-size:.78rem;color:var(--text-3);margin-bottom:.6rem;">選擇分類標籤：</p><div id="stagModalTags" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.8rem;"></div><textarea id="stagModalMemo" placeholder="加入個人備註（可選）..." rows="2"></textarea><div style="display:flex;gap:.5rem;margin-top:.8rem;justify-content:flex-end;"><button class="btn btn-ghost" style="font-size:.78rem;padding:.4rem .8rem;min-height:0;" onclick="closeStagModal()">取消</button><button class="btn btn-primary" style="font-size:.78rem;padding:.4rem .8rem;min-height:0;" onclick="saveSTag()">儲存</button></div></div></div>
 
 <script>
 
@@ -443,7 +514,7 @@ async function loadCloudProgress() {
 
 function scheduleSyncToCloud() {
   clearTimeout(_cloudSyncTimer);
-  _cloudSyncTimer = setTimeout(() => syncToCloud().then(() => { _lastSyncTime = new Date(); }).catch(e => console.warn('[Supa] background sync error:', e.message || e)), 2000);
+  _cloudSyncTimer = setTimeout(() => { syncToCloud().then(() => { _lastSyncTime = new Date(); }).catch(e => console.warn('[Supa] bg sync:', e.message || e)); syncStudyToCloud().catch(e => console.warn('[Supa] study bg:', e)); }, 2000);
 }
 
 function updateNavUser() {
@@ -658,6 +729,7 @@ function exportProgress() {
     bookmarks:[...S.bookmarks], wrongQs:[...S.wrongQs], usedQIds:[...S.usedQIds],
     history:S.history, files:S.files.map(function(f){var c={};Object.assign(c,f);delete c._file;return c;}),
     extraQs:S.extraQs, dashTag:S.dashTag, tagFilter:S.tagFilter,
+    materials:S.materials, annotations:S.annotations, currentMat:S.currentMat, readProgress:S.readProgress,
   };
   var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
   var a=document.createElement('a');
@@ -725,6 +797,11 @@ const S = {
   editingTagFid:  null,
   tagFilter:      null,
   chart:          null,
+  materials:      [],
+  annotations:    [],
+  currentMat:     null,
+  readProgress:   {},
+  _editingMatTag: null,
 };
 
 /* ╔══════════════════════════════════╗
@@ -736,13 +813,45 @@ function navigate(page) {
   render();
 }
 
-function setActiveNav(page) {
-  ['home','data','quiz','dash'].forEach(id => {
-    document.getElementById('nl-'+id)?.classList.remove('active');
-  });
-  const map = {home:'home',datasets:'data',quiz:'quiz',dashboard:'dash'};
-  document.getElementById('nl-'+(map[page]||'home'))?.classList.add('active');
+let _currentZone = 'study';
+const ZONE_MAP = {
+  study: { pages: ['library','reader','notes'], default: 'library' },
+  exam:  { pages: ['datasets','quiz'], default: 'datasets' },
+  dash:  { pages: ['dashboard','studystats'], default: 'dashboard' },
+};
+const PAGE_TO_ZONE = {};
+Object.entries(ZONE_MAP).forEach(([z,v]) => v.pages.forEach(p => PAGE_TO_ZONE[p] = z));
+
+function switchZone(zone) {
+  _currentZone = zone;
+  if (!ZONE_MAP[zone].pages.includes(S.page)) navigate(ZONE_MAP[zone].default);
+  else updateNavUI();
 }
+
+function updateNavUI() {
+  const z = PAGE_TO_ZONE[S.page] || _currentZone || 'study';
+  _currentZone = z;
+  document.querySelectorAll('.zone-tab').forEach(t => t.classList.remove('active'));
+  if (S.page === 'home') document.getElementById('zt-home')?.classList.add('active');
+  else if (S.page === 'backup') document.getElementById('zt-backup')?.classList.add('active');
+  else if (S.page !== 'login') document.getElementById('zt-'+z)?.classList.add('active');
+  const sub = document.getElementById('nav-sub-tabs');
+  if (!sub) return;
+  const nc = S.annotations?.length || 0;
+  const qc = S.extraQs?.length || 0;
+  if (S.page === 'home' || S.page === 'login' || S.page === 'backup') { sub.style.display = 'none'; }
+  else {
+    sub.style.display = 'flex'; sub.className = 'zone-' + z;
+    if (z === 'study') {
+      sub.innerHTML = `<button class="sub-tab${S.page==='library'?' active':''}" onclick="navigate('library')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>教材庫<span class="sub-cnt" style="background:var(--accent-dim);color:var(--accent);">${S.materials?.length||0}</span></button><button class="sub-tab${S.page==='reader'?' active':''}" onclick="navigate('reader')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>閱讀</button><button class="sub-tab${S.page==='notes'?' active':''}" onclick="navigate('notes')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m19 21-7-4-7 4V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>筆記<span class="sub-cnt" style="background:var(--accent-dim);color:var(--accent);">${nc}</span></button>`;
+    } else if (z === 'exam') {
+      sub.innerHTML = `<button class="sub-tab${S.page==='datasets'?' active':''}" onclick="navigate('datasets')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>考古題題庫<span class="sub-cnt" style="background:var(--gold-dim);color:var(--gold);">${qc}</span></button><button class="sub-tab${S.page==='quiz'?' active':''}" onclick="navigate('quiz')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>測驗</button>`;
+    } else {
+      sub.innerHTML = `<button class="sub-tab${S.page==='dashboard'?' active':''}" onclick="navigate('dashboard')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>模擬考統計</button><button class="sub-tab${S.page==='studystats'?' active':''}" onclick="navigate('studystats')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>教材統計</button>`;
+    }
+  }
+}
+function setActiveNav(page) { updateNavUI(); }
 
 /* ╔══════════════════════════════════╗
    ║           MASTER RENDER          ║
@@ -766,7 +875,13 @@ function render() {
       break;
     case 'login':     c.innerHTML = loginPageHTML();   break;
     case 'dashboard': c.innerHTML = dashHTML();       setTimeout(initChart, 80); break;
+    case 'library':   c.innerHTML = libraryHTML();    setTimeout(bindStudyDrop, 0); break;
+    case 'reader':    c.innerHTML = readerHTML();     break;
+    case 'notes':     c.innerHTML = notesHTML();      break;
+    case 'backup':    c.innerHTML = backupHTML();     break;
+    case 'studystats': c.innerHTML = studyStatsHTML(); break;
   }
+  c.style.paddingTop = (S.page==='home'||S.page==='login'||S.page==='backup') ? '62px' : '96px';
 }
 
 /* ╔══════════════════════════════════╗
@@ -794,6 +909,24 @@ function homeHTML() {
     <!-- Cards -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:1.4rem;max-width:870px;width:100%;">
 
+      <div class="n-card" onclick="switchZone('study')" style="--c:#7B6FE0;--c-border:rgba(123,111,224,.3);--c-glow:rgba(123,111,224,.08)">
+        <div style="display:flex;align-items:center;gap:.9rem;margin-bottom:1.6rem;">
+          <div style="width:50px;height:50px;border-radius:13px;background:rgba(123,111,224,.14);border:1px solid rgba(123,111,224,.25);display:flex;align-items:center;justify-content:center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7B6FE0" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+          </div>
+          <div>
+            <div class="badge badge-v" style="margin-bottom:.2rem">學習區</div>
+            <div style="font-size:.7rem;color:var(--text-3);letter-spacing:.04em">Study</div>
+          </div>
+        </div>
+        <h3 style="font-size:1.25rem;font-weight:700;letter-spacing:-.025em;margin-bottom:.55rem;">教材＆筆記</h3>
+        <p style="color:var(--text-2);font-size:.86rem;line-height:1.68;">上傳 Markdown 備考教材，標記重點段落，跨文件整合筆記高效複習。</p>
+        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--accent);font-size:.83rem;font-weight:600;">
+          <span>前往學習</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+      </div>
+
       <div class="n-card" onclick="navigate('datasets')" style="--c:#7B6FE0;--c-border:rgba(123,111,224,.3);--c-glow:rgba(123,111,224,.08)">
         <div style="display:flex;align-items:center;gap:.9rem;margin-bottom:1.6rem;">
           <div style="width:50px;height:50px;border-radius:13px;background:rgba(123,111,224,.14);border:1px solid rgba(123,111,224,.25);display:flex;align-items:center;justify-content:center;">
@@ -802,7 +935,7 @@ function homeHTML() {
             </svg>
           </div>
           <div>
-            <div class="badge badge-v" style="margin-bottom:.2rem">Step 01</div>
+            <div class="badge badge-v" style="margin-bottom:.2rem">模考區</div>
             <div style="font-size:.7rem;color:var(--text-3);letter-spacing:.04em">Datasets</div>
           </div>
         </div>
@@ -822,7 +955,7 @@ function homeHTML() {
             </svg>
           </div>
           <div>
-            <div class="badge badge-g" style="margin-bottom:.2rem">Step 02</div>
+            <div class="badge badge-g" style="margin-bottom:.2rem">模考區</div>
             <div style="font-size:.7rem;color:var(--text-3);letter-spacing:.04em">Simulations</div>
           </div>
         </div>
@@ -842,7 +975,7 @@ function homeHTML() {
             </svg>
           </div>
           <div>
-            <div class="badge badge-gr" style="margin-bottom:.2rem">Step 03</div>
+            <div class="badge badge-gr" style="margin-bottom:.2rem">總覽</div>
             <div style="font-size:.7rem;color:var(--text-3);letter-spacing:.04em">Dashboard</div>
           </div>
         </div>
@@ -856,7 +989,7 @@ function homeHTML() {
     </div>
 
     <p style="margin-top:3.5rem;color:var(--text-3);font-size:.78rem;letter-spacing:.02em;">
-      目前測驗主題：AIF 
+      學習區 · ${S.materials.length} 份教材 · ${S.annotations.length} 則筆記 ｜ 模考區 · ${S.extraQs.length} 題 
     </p>
   </div>`;
 }
@@ -1088,7 +1221,7 @@ function datasetsHTML() {
       <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem;">
         <div>
           <div class="badge badge-v" style="margin-bottom:.4rem;font-size:.6rem;">訓練資料集</div>
-          <h2 style="font-size:1.55rem;font-weight:700;letter-spacing:-.03em;white-space:nowrap;">上傳教材</h2>
+          <h2 style="font-size:1.55rem;font-weight:700;letter-spacing:-.03em;white-space:nowrap;">上傳考古題</h2>
         </div>
         ${_lastSyncTime
           ? `<span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">☁️ ${_lastSyncTime.toLocaleDateString('zh-TW')} ${_lastSyncTime.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false})}</span>`
@@ -1108,12 +1241,7 @@ function datasetsHTML() {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           題目範本
         </button>
-        <button onclick="clearAllData()" title="清除所有本機儲存資料"
-          style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.22);color:#F87171;border-radius:9px;padding:.5rem .7rem;font-size:.78rem;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap;transition:background .15s;"
-          onmouseover="this.style.background='rgba(248,113,113,.18)'" onmouseout="this.style.background='rgba(248,113,113,.08)'">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-          清除所有資料
-        </button>
+
       </div>
     </div>
 
@@ -1407,7 +1535,7 @@ function importXLSXQuestions(file, fObj) {
   fObj = fObj || S.files.find(f => f.name === file.name);
   if (typeof XLSX === 'undefined') {
     if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
-    showImportToast('❌ 離線模式無法匯入 XLSX，請改用 CSV 格式', 5000);
+    showImportToast('❌ XLSX 函式庫未載入，請確認網路連線後重新整理頁面', 5000);
     return;
   }
   if (fObj) { fObj.importing=true; refreshCard(fObj.id); }
@@ -1457,21 +1585,25 @@ function showImportToast(msg, durationMs) {
   }
 }
 
-/* Template CSV download */
+/* Template XLSX download */
 function downloadTemplate() {
-  const rows = [
-    ['id','exam','question','option_a','option_b','option_c','option_d','option_e','answer','explanation'],
+  if (typeof XLSX === 'undefined') {
+    showImportToast('❌ 無法產生範本，請確認網路連線後重新整理頁面', 4000);
+    return;
+  }
+  const headers = ['id','exam','question','option_a','option_b','option_c','option_d','option_e','answer','explanation'];
+  const data = [
     ['1','AWS AI','在機器學習中，用於評估分類模型效能且平衡精確率與召回率的指標是什麼？','Accuracy（準確率）','F1 Score','RMSE（均方根誤差）','R-squared（R平方）','','B','A - 錯誤。B - 正確，F1 Score 是精確率與召回率的調和平均數。C - 錯誤。D - 錯誤。'],
     ['2','AI治理','下列哪種技術最能幫助 AI 模型的決策過程對非技術利害關係人透明化？','Dropout 正規化','Batch Normalization','SHAP 值','梯度裁剪','','C','C - 正確，SHAP 值量化每個特徵對預測結果的貢獻。'],
     ['3','LLM應用','企業想讓 LLM 在不重新訓練的情況下存取最新內部知識庫，最適合的方法是？','提高 temperature 參數','使用 RAG（檢索增強生成）架構','增加 Max Tokens 限制','切換至更大的基礎模型','','B','B - 正確，RAG 將外部知識庫與生成模型結合，無需重新訓練。'],
   ];
-  const csv = rows.map(r => r.map(v => v.includes(',') || v.includes('"') ? '"'+v.replace(/"/g,'""')+'"' : v).join(',')).join('\n');
-  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = '題目匯入範本.csv';
-  a.click();
-  URL.revokeObjectURL(a.href);
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  ws['!cols'] = [
+    {wch:4}, {wch:12}, {wch:48}, {wch:24}, {wch:24}, {wch:24}, {wch:24}, {wch:10}, {wch:8}, {wch:52}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '題目');
+  XLSX.writeFile(wb, '題目擴充範本.xlsx');
 }
 
 function parseQuestionCSV(text) {
@@ -2350,7 +2482,7 @@ function quizResultHTML() {
   const msg   = pct >= 80 ? '表現優異！🎉' : pct >= 60 ? '繼續加油！' : '建議再次複習';
 
   const items = S.activeQs.map((q,i) => {
-    const ok = S.answers[i].selected === q.answer;
+    const ok = isCorrectAnswer(q, S.answers[i].selected);
     const bk = S.bookmarks.has(String(q.id));
     const src = questionSource(q);
     return `
@@ -2811,14 +2943,14 @@ function dashStatsHTML() {
       }).join('')
     : `<div style="padding:2rem;text-align:center;color:var(--text-3);font-size:.85rem;">${dt?`「${dt}」尚無測驗紀錄。`:'尚無測驗紀錄，完成第一次測驗後將顯示於此。'}</div>`;
 
-  const canPrev = safePage > 0;
-  const canNext = safePage < totalPages - 1;
-  const pageBtns = totalPages > 1 ? `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.75rem;padding-top:.65rem;border-top:1px solid var(--border);">
-      <button onclick="S._dashHistPage=Math.max(0,S._dashHistPage-1);var el=document.getElementById('dash-stats');if(el){el.innerHTML=dashStatsHTML();setTimeout(initChart,30);}" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canPrev?'':'opacity:.3;pointer-events:none;'}" ${canPrev?'':'disabled'}>← 較舊</button>
-      <span style="font-size:.75rem;color:var(--text-3);">第 ${safePage+1} / ${totalPages} 頁 · 共 ${reversed.length} 筆</span>
-      <button onclick="S._dashHistPage=Math.min(${totalPages-1},S._dashHistPage+1);var el=document.getElementById('dash-stats');if(el){el.innerHTML=dashStatsHTML();setTimeout(initChart,30);}" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canNext?'':'opacity:.3;pointer-events:none;'}" ${canNext?'':'disabled'}>較新 →</button>
-    </div>` : '';
+  const canOlder = safePage < totalPages - 1;
+  const canNewer = safePage > 0;
+  const pageBtns = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.1rem .85rem;border-top:1px solid var(--border);margin-top:auto;">
+      <button onclick="S._dashHistPage=Math.min(${totalPages-1},S._dashHistPage+1);var el=document.getElementById('dash-stats');if(el){el.innerHTML=dashStatsHTML();setTimeout(initChart,30);}" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canOlder?'':'opacity:.3;pointer-events:none;'}" ${canOlder?'':'disabled'}>← 較舊</button>
+      <span style="font-size:.75rem;color:var(--text-3);">${totalPages>1?'第 '+(safePage+1)+' / '+totalPages+' 頁 · ':''}共 ${reversed.length} 筆</span>
+      <button onclick="S._dashHistPage=Math.max(0,S._dashHistPage-1);var el=document.getElementById('dash-stats');if(el){el.innerHTML=dashStatsHTML();setTimeout(initChart,30);}" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canNewer?'':'opacity:.3;pointer-events:none;'}" ${canNewer?'':'disabled'}>較新 →</button>
+    </div>`;
 
   const dlWrong = totW>0 ? `<button onclick="downloadQuestionsCSV('wrong','${(dt||'').replace(/'/g,"\\'")}')" title="下載錯誤題目 CSV"
     style="background:transparent;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;border-radius:5px;display:flex;transition:color .15s;"
@@ -2873,7 +3005,7 @@ function dashStatsHTML() {
   </div>
 
   <!-- History Table -->
-  <div style="background:rgba(20,20,32,.7);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:16px;overflow:hidden;min-height:540px;display:flex;flex-direction:column;">
+  <div style="background:rgba(20,20,32,.7);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:16px;overflow:hidden;min-height:540px;display:flex;flex-direction:column;justify-content:space-between;">
     <div style="padding:1.1rem 1.1rem .9rem;border-bottom:1px solid var(--border);">
       <p style="font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">測驗歷史紀錄${dt?` · ${dt}`:''}</p>
     </div>
@@ -2884,7 +3016,7 @@ function dashStatsHTML() {
       <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">答對率</div>
       <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">標記</div>
     </div>`:''}
-    ${histRows}
+    <div style="flex:1;">${histRows}</div>
     ${pageBtns}
   </div>
 
@@ -3173,6 +3305,10 @@ function saveToStorage() {
       history:   S.history,
       dashTag:   S.dashTag,
       tagFilter: S.tagFilter,
+      materials: S.materials,
+      annotations: S.annotations,
+      currentMat: S.currentMat,
+      readProgress: S.readProgress,
     };
     localStorage.setItem(getStorageKey(), JSON.stringify(payload));
     scheduleSyncToCloud();
@@ -3200,6 +3336,10 @@ function loadFromStorage() {
     if (Array.isArray(d.history))   S.history    = d.history;
     if (d.dashTag   !== undefined)  S.dashTag    = d.dashTag;
     if (d.tagFilter !== undefined)  S.tagFilter  = d.tagFilter;
+    if (Array.isArray(d.materials))   S.materials   = d.materials;
+    if (Array.isArray(d.annotations)) S.annotations = d.annotations;
+    if (d.currentMat !== undefined)   S.currentMat  = d.currentMat;
+    if (d.readProgress)              S.readProgress = d.readProgress;
     return true;
   } catch(e) {
     console.warn('[NeuroLearn] load failed:', e);
@@ -3215,6 +3355,43 @@ function clearAllData() {
 
 /* Auto-save: debounced 600ms after every render() */
 let _autoSaveTimer = null;
+
+/* ══ STUDY AREA ══ */
+const STAGS=[{id:'must',label:'必考重點',cls:'stag-red',color:'var(--red)'},{id:'confused',label:'易混淆',cls:'stag-gold',color:'var(--gold)'},{id:'understood',label:'已理解',cls:'stag-green',color:'var(--green)'},{id:'review',label:'待複習',cls:'stag-blue',color:'#60A5FA'},{id:'important',label:'重要概念',cls:'stag-purple',color:'var(--accent)'}];
+
+function parseMD(raw){const lines=raw.split('\n'),sections=[];let buf=[],curH='',curL=0,si=0;const toc=[];function flush(){if(!buf.length)return;const md=buf.join('\n').trim();if(!md){buf=[];return;}sections.push({id:'s'+si,heading:curH,level:curL,md,html:marked.parse(md)});si++;buf=[];}for(const line of lines){const hm=line.match(/^(#{1,3})\s+(.+)/);if(hm){flush();curH=hm[2].replace(/\*\*/g,'');curL=hm[1].length;toc.push({heading:curH,level:curL,secId:'s'+si});buf.push(line);}else{buf.push(line);}}flush();return{sections,toc};}
+function bindStudyDrop(){const dz=document.getElementById('study-dropzone');if(!dz)return;dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dv');});dz.addEventListener('dragleave',()=>dz.classList.remove('dv'));dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dv');handleMDFiles(e.dataTransfer.files);});}
+function handleMDFiles(files){[...files].forEach(f=>{if(!f.name.endsWith('.md'))return;const reader=new FileReader();reader.onload=e=>{const raw=e.target.result;const{sections,toc}=parseMD(raw);const existing=S.materials.find(m=>m.title===f.name.replace('.md',''));if(existing){existing.sections=sections;existing.toc=toc;existing.raw=raw;}else{S.materials.push({id:'m'+Date.now()+Math.random().toString(36).slice(2,5),title:f.name.replace('.md',''),sections,toc,raw,uploadedAt:new Date().toISOString(),matTags:[]});}saveToStorage();render();};reader.readAsText(f);});}
+function deleteStudyMat(id){if(!confirm('確定刪除此教材及其所有筆記？'))return;S.materials=S.materials.filter(m=>m.id!==id);S.annotations=S.annotations.filter(a=>a.matId!==id);if(S.currentMat===id)S.currentMat=null;saveToStorage();render();}
+
+function matCardHTML(m){const nc=S.annotations.filter(a=>a.matId===m.id).length;const badge=`<span class="badge badge-gr" style="font-size:.58rem;">${m.sections.length} 段</span>`;const notesBadge=nc>0?`<span class="badge badge-v" style="font-size:.58rem;">${nc} 筆記</span>`:'';const tagChips=(m.matTags||[]).map(tag=>{const tc=tagColor(tag);return`<span style="display:inline-flex;align-items:center;gap:.22rem;background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .48rem .1rem .52rem;font-size:.68rem;font-weight:600;">${tag}<span data-mid="${m.id}" data-tag="${tag.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();removeMatTag(this.dataset.mid,this.dataset.tag)" style="cursor:pointer;opacity:.6;font-size:.75rem;line-height:1;margin-left:.05rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.6'">×</span></span>`;}).join('');const addBtn=(m.matTags||[]).length<5?`<button onclick="event.stopPropagation();toggleMatTagEdit('${m.id}')" style="background:transparent;border:1px dashed var(--border);color:var(--text-3);border-radius:20px;padding:.1rem .42rem;font-size:.67rem;cursor:pointer;display:inline-flex;align-items:center;gap:.2rem;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>貼標</button>`:'';const allUsed=[...new Set(S.materials.flatMap(x=>x.matTags||[]))];const unused=allUsed.filter(p=>!(m.matTags||[]).includes(p));const editPanel=S._editingMatTag===m.id?`<div style="margin-top:.65rem;padding:.75rem .85rem;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:10px;" onclick="event.stopPropagation()"><div style="display:flex;gap:.45rem;margin-bottom:.55rem;"><input id="matTagInp-${m.id}" type="text" placeholder="輸入標籤名稱…" maxlength="10" style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:.3rem .6rem;font-size:.78rem;color:var(--text-1);outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter'){addMatTagFromInput('${m.id}')}"><button onclick="addMatTagFromInput('${m.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.3rem .75rem;font-size:.78rem;font-weight:600;cursor:pointer;">確認</button><button onclick="toggleMatTagEdit('${m.id}')" style="background:transparent;border:1px solid var(--border);color:var(--text-3);border-radius:8px;padding:.3rem .55rem;font-size:.78rem;cursor:pointer;">取消</button></div>${unused.length?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;"><span style="font-size:.66rem;color:var(--text-3);">已用：</span>${unused.map(p=>{const tc=tagColor(p);return`<span onclick="addMatTag('${m.id}','${p}')" style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;">${p}</span>`;}).join('')}</div>`:''}</div>`:'';return`<div class="g-card" id="mcard-${m.id}" style="padding:1rem 1.2rem;margin-bottom:.65rem;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'"><div style="display:flex;align-items:center;gap:1rem;"><div style="display:flex;align-items:center;gap:1rem;flex:1;min-width:0;cursor:pointer;" onclick="S.currentMat='${m.id}';navigate('reader')"><div style="width:38px;height:38px;border-radius:10px;background:var(--accent-dim);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div style="flex:1;min-width:0;"><div style="font-size:.9rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.title}</div><div style="display:flex;gap:.6rem;margin-top:.2rem;"><span style="font-size:.72rem;color:var(--text-3)">${new Date(m.uploadedAt).toLocaleDateString('zh-TW')}</span></div></div></div><div style="display:flex;align-items:center;gap:.55rem;flex-shrink:0;">${badge} ${notesBadge}<button onclick="event.stopPropagation();event.preventDefault();deleteStudyMat('${m.id}');return false;" style="background:transparent;border:none;color:var(--text-3);cursor:pointer;display:flex;align-items:center;padding:.35rem;border-radius:6px;min-width:28px;min-height:28px;justify-content:center;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-3)'" title="移除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div><div style="display:flex;flex-wrap:wrap;gap:.32rem;margin-top:.6rem;align-items:center;min-height:1.5rem;" onclick="event.stopPropagation()">${tagChips} ${addBtn}</div>${editPanel}</div>`;}
+function toggleMatTagEdit(mid){S._editingMatTag=S._editingMatTag===mid?null:mid;render();if(S._editingMatTag===mid){const inp=document.getElementById('matTagInp-'+mid);if(inp)inp.focus();}}
+function addMatTagFromInput(mid){const inp=document.getElementById('matTagInp-'+mid);if(inp)addMatTag(mid,inp.value);}
+function addMatTag(mid,tag){tag=(tag||'').trim().slice(0,10);if(!tag)return;const m=S.materials.find(x=>x.id===mid);if(!m)return;if(!m.matTags)m.matTags=[];if(m.matTags.includes(tag)||m.matTags.length>=5)return;m.matTags.push(tag);S._editingMatTag=null;saveToStorage();render();}
+function removeMatTag(mid,tag){const m=S.materials.find(x=>x.id===mid);if(!m)return;m.matTags=(m.matTags||[]).filter(t=>t!==tag);saveToStorage();render();}
+let _matTagFilter=null;
+function setMatTagFilter(tag){_matTagFilter=tag;render();}
+
+function libraryHTML(){const allMatTags=[...new Set(S.materials.flatMap(m=>m.matTags||[]))];const displayMats=_matTagFilter?S.materials.filter(m=>(m.matTags||[]).includes(_matTagFilter)):S.materials;const matsHTML=displayMats.map(m=>matCardHTML(m)).join('');return`<div class="page" style="max-width:720px;margin:0 auto;padding:clamp(1rem,4vw,3rem) clamp(.75rem,4vw,1.5rem);"><div style="margin-bottom:1.5rem;"><div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem;"><div><div class="badge badge-v" style="margin-bottom:.4rem;font-size:.6rem;">學習教材</div><h2 style="font-size:1.55rem;font-weight:700;letter-spacing:-.03em;">上傳備考教材</h2></div></div></div><div class="drop-zone" id="study-dropzone" onclick="document.getElementById('study-file-input').click()"><input type="file" id="study-file-input" style="display:none" multiple accept=".md" onchange="handleMDFiles(this.files)"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.5" style="margin:0 auto .9rem;"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg><p style="font-size:.95rem;font-weight:500;margin-bottom:.3rem;">拖曳檔案至此，或點擊選取</p><p style="font-size:.76rem;color:var(--text-3)">支援 .md (Markdown) 格式</p></div>${S.materials.length>0?`<div style="margin-top:2rem;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem;"><p style="font-size:.78rem;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;">已上傳教材 <span style="color:var(--accent)">${S.materials.length}</span></p></div>${allMatTags.length>0?`<div style="display:flex;flex-wrap:wrap;gap:.38rem;margin-bottom:1rem;align-items:center;"><span style="font-size:.7rem;color:var(--text-3);font-weight:600;">篩選：</span><span onclick="setMatTagFilter(null)" style="background:${!_matTagFilter?'var(--accent)':'rgba(255,255,255,.06)'};color:${!_matTagFilter?'#fff':'var(--text-2)'};border:1px solid ${!_matTagFilter?'var(--accent)':'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;">全部</span>${allMatTags.map(tag=>{const tc=tagColor(tag);const active=_matTagFilter===tag;return`<span onclick="setMatTagFilter(${active?'null':"'"+tag+"'"})" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;">${tag}</span>`;}).join('')}</div>`:''}${matsHTML}</div>`:`<div style="margin-top:2rem;text-align:center;color:var(--text-3);font-size:.88rem;padding:1.5rem 0;">尚未上傳任何檔案</div>`}</div>`;}
+
+function readerHTML(){const mat=S.materials.find(m=>m.id===S.currentMat);if(!mat)return`<div class="page" style="max-width:680px;margin:0 auto;padding:3rem 1.5rem;text-align:center;"><div style="margin-bottom:.8rem;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div><h3 style="font-family:'Sora',sans-serif;font-size:1rem;margin-bottom:.4rem;">請先選擇教材</h3><p style="color:var(--text-3);font-size:.85rem;">到教材庫上傳或選擇一份教材</p><button class="btn btn-primary" style="margin-top:1rem;" onclick="navigate('library')">前往教材庫</button></div>`;const lastSec=S.readProgress?.[mat.id];const resumeBar=lastSec?`<div class="g-card" id="resume-bar" style="padding:.7rem 1rem;margin-bottom:.8rem;display:flex;align-items:center;gap:.6rem;background:var(--accent-dim);border-color:var(--accent-border);cursor:default;" onmouseenter="this.style.transform='none'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span style="font-size:.78rem;color:var(--accent);flex:1;">上次讀到：<b>${mat.sections.find(s=>s.id===lastSec)?.heading||lastSec}</b></span><button class="btn btn-primary" style="font-size:.68rem;padding:.25rem .6rem;min-height:0;" onclick="document.getElementById('${lastSec}')?.scrollIntoView({behavior:'smooth',block:'start'});document.getElementById('resume-bar')?.remove();">繼續閱讀</button><button class="btn btn-ghost" style="font-size:.68rem;padding:.25rem .5rem;min-height:0;" onclick="document.getElementById('resume-bar')?.remove();">從頭開始</button></div>`:'';const tocH=mat.toc.map(t=>`<a class="toc-item toc-h${t.level}" onclick="document.getElementById('${t.secId}')?.scrollIntoView({behavior:'smooth',block:'start'})">${t.heading}</a>`).join('');const secsH=mat.sections.map(sec=>{const ann=S.annotations.find(a=>a.matId===mat.id&&a.secId===sec.id);const tcls=ann?' tagged tagged-'+STAGS.find(t=>t.id===ann.tag)?.cls.replace('stag-',''):'';const ti=ann?STAGS.find(t=>t.id===ann.tag):null;return`<div class="md-sec${tcls}" id="${sec.id}" data-sec="${sec.id}"><div class="stag-bar">${ann?`<span class="stag ${ti.cls}" style="font-size:.62rem">${ti.label}</span><button class="btn btn-ghost" onclick="removeSTag('${mat.id}','${sec.id}')" style="font-size:.6rem;padding:1px 5px;min-height:0;color:var(--red);">✕</button>`:`<button class="btn btn-ghost" onclick="openSTagModal('${mat.id}','${sec.id}')" style="font-size:.62rem;padding:2px 7px;min-height:0;background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg> 標記</button>`}</div>${sec.html}</div>`;}).join('');setTimeout(()=>{const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){if(!S.readProgress)S.readProgress={};S.readProgress[mat.id]=e.target.dataset.sec;clearTimeout(window._rpSave);window._rpSave=setTimeout(saveToStorage,2000);}});},{rootMargin:'-40% 0px -55% 0px'});document.querySelectorAll('.md-sec[data-sec]').forEach(el=>obs.observe(el));},500);return`<div class="page"><div class="study-reader"><div class="study-sidebar" id="studySidebar"><div style="font-size:.68rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;padding:0 4px;">${mat.title}</div>${tocH}<div style="margin-top:.8rem;padding-top:.6rem;border-top:1px solid var(--border);"><button class="btn btn-ghost" style="width:100%;font-size:.7rem;min-height:0;padding:.4rem;" onclick="navigate('library')">← 返回教材庫</button></div></div><div class="study-content">${resumeBar}${secsH}</div></div></div>`;}
+
+let _stagMatId='',_stagSecId='',_stagSel='';
+function openSTagModal(matId,secId){_stagMatId=matId;_stagSecId=secId;_stagSel='';const existing=S.annotations.find(a=>a.matId===matId&&a.secId===secId);document.getElementById('stagModalMemo').value=existing?.memo||'';document.getElementById('stagModalTags').innerHTML=STAGS.map(t=>`<div class="stag ${t.cls}${existing?.tag===t.id?' active':''}" onclick="selectSTag(this,'${t.id}')">${t.label}</div>`).join('');if(existing)_stagSel=existing.tag;document.getElementById('stagModal').classList.add('show');}
+function closeStagModal(){document.getElementById('stagModal').classList.remove('show');}
+function selectSTag(el,id){document.querySelectorAll('#stagModalTags .stag').forEach(t=>t.classList.remove('active'));el.classList.add('active');_stagSel=id;}
+function saveSTag(){if(!_stagSel){alert('請選擇一個標籤');return;}const memo=document.getElementById('stagModalMemo').value.trim();const mat=S.materials.find(m=>m.id===_stagMatId);const sec=mat?.sections.find(s=>s.id===_stagSecId);const ann={id:'a'+Date.now(),matId:_stagMatId,secId:_stagSecId,tag:_stagSel,memo,matTitle:mat?.title||'',sectionHeading:sec?.heading||'',html:sec?.html||'',createdAt:new Date().toISOString()};const idx=S.annotations.findIndex(a=>a.matId===_stagMatId&&a.secId===_stagSecId);if(idx>=0)S.annotations[idx]={...S.annotations[idx],...ann,id:S.annotations[idx].id};else S.annotations.push(ann);saveToStorage();closeStagModal();_stagSel='';render();}
+function removeSTag(matId,secId){S.annotations=S.annotations.filter(a=>!(a.matId===matId&&a.secId===secId));saveToStorage();render();}
+
+let _noteFilter='all',_noteTopicFilter='all';
+function notesHTML(){const totalN=S.annotations.length;const filterTags=STAGS.map(t=>{const c=S.annotations.filter(a=>a.tag===t.id).length;return c?`<div class="stag ${t.cls}${_noteFilter===t.id?' active':''}" onclick="_noteFilter='${t.id}';render()">${t.label} (${c})</div>`:'';}).join('');const allTopics=[...new Set(S.materials.flatMap(m=>m.matTags||[]))];const topicChips=allTopics.length?allTopics.map(t=>{const tc=tagColor(t);const active=_noteTopicFilter===t;const matsIn=S.materials.filter(m=>(m.matTags||[]).includes(t)).map(m=>m.id);const cnt=S.annotations.filter(a=>matsIn.includes(a.matId)).length;return cnt?`<div style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;font-size:.66rem;font-weight:600;cursor:pointer;border:1px solid ${active?tc.color:tc.border};background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};" onclick="_noteTopicFilter=${active?"'all'":"'"+t+"'"};render()">${t} (${cnt})</div>`:'';}).join(''):'';const topicMatIds=_noteTopicFilter!=='all'?new Set(S.materials.filter(m=>(m.matTags||[]).includes(_noteTopicFilter)).map(m=>m.id)):null;let notes=S.annotations.filter(a=>{if(_noteFilter!=='all'&&a.tag!==_noteFilter)return false;if(topicMatIds&&!topicMatIds.has(a.matId))return false;return true;});let groupedHTML='';if(!notes.length){groupedHTML='<div style="text-align:center;padding:2rem;color:var(--text-3);font-size:.85rem;">尚無筆記</div>';}else{const grouped={};notes.forEach(n=>{if(!grouped[n.tag])grouped[n.tag]=[];grouped[n.tag].push(n);});for(const tagId of Object.keys(grouped)){const ti=STAGS.find(t=>t.id===tagId);if(!ti)continue;groupedHTML+=`<div style="display:flex;align-items:center;gap:.5rem;margin:1rem 0 .4rem;"><span class="stag ${ti.cls}">${ti.label}</span><span style="font-size:.72rem;color:var(--text-3);">${grouped[tagId].length} 則</span></div>`;grouped[tagId].forEach(n=>{groupedHTML+=`<div class="note-card"><div style="display:flex;align-items:center;gap:.5rem;padding:.7rem .9rem;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'"><span style="font-size:.84rem;font-weight:600;flex:1;">${n.sectionHeading||'(無標題)'}</span><span style="font-size:.66rem;color:var(--text-3);">${n.matTitle}</span></div><div style="display:none;padding:0 .9rem .7rem;font-size:.82rem;color:var(--text-2);line-height:1.6;">${n.html||''}${n.memo?`<div style="margin-top:.5rem;padding:.4rem .6rem;background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:8px;font-size:.76rem;color:var(--gold);"><b>備註：</b>${n.memo}</div>`:''}<div style="display:flex;gap:.3rem;margin-top:.5rem;"><button class="btn btn-ghost" style="font-size:.68rem;padding:.25rem .5rem;min-height:0;" onclick="S.currentMat='${n.matId}';navigate('reader');setTimeout(()=>document.getElementById('${n.secId}')?.scrollIntoView({behavior:'smooth'}),300)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> 原文</button><button class="btn btn-ghost" style="font-size:.68rem;padding:.25rem .5rem;min-height:0;" onclick="openSTagModal('${n.matId}','${n.secId}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg> 編輯</button><button class="btn btn-ghost" style="font-size:.68rem;padding:.25rem .5rem;min-height:0;color:var(--red);" onclick="removeSTag('${n.matId}','${n.secId}');render()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div></div></div>`;});}}return`<div class="page" style="max-width:680px;margin:0 auto;padding:clamp(1.5rem,5vw,2.5rem) clamp(1rem,4vw,1.5rem);"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><h2 style="font-size:1.15rem;font-weight:800;">筆記中心</h2><span class="badge badge-v">${totalN} 則</span></div>${allTopics.length?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.6rem;align-items:center;padding:.5rem .7rem;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:10px;"><span style="font-size:.66rem;color:var(--text-3);font-weight:700;margin-right:.2rem;">主題分類：</span><div style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;font-size:.66rem;font-weight:600;cursor:pointer;border:1px solid ${_noteTopicFilter==='all'?'var(--accent-border)':'var(--border)'};background:${_noteTopicFilter==='all'?'var(--accent-dim)':'transparent'};color:${_noteTopicFilter==='all'?'var(--accent)':'var(--text-3)'};" onclick="_noteTopicFilter='all';render()">全部</div>${topicChips}</div>`:''}<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.8rem;"><div class="stag stag-purple${_noteFilter==='all'?' active':''}" onclick="_noteFilter='all';render()">全部 (${totalN})</div>${filterTags}</div>${groupedHTML}</div>`;}
+
+function backupHTML(){return`<div class="page" style="max-width:580px;margin:0 auto;padding:clamp(2rem,5vw,3rem) clamp(1rem,4vw,1.5rem);"><h2 style="font-size:1.3rem;font-weight:800;margin-bottom:1.5rem;font-family:'Sora',sans-serif;">進度備份 / 還原</h2><div class="g-card" style="padding:1.5rem;cursor:default;" onmouseenter="this.style.transform='none'"><p style="font-size:.82rem;color:var(--text-2);margin-bottom:1.2rem;line-height:1.6;">將書籤、錯誤紀錄、測驗歷史、教材、筆記完整備份成 JSON 檔。</p><div style="display:flex;flex-direction:column;gap:.6rem;"><button onclick="exportProgress()" class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>匯出進度備份</span></button><label style="width:100%;"><input type="file" accept=".json" style="display:none;" onchange="importProgress(this)"><span class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;cursor:pointer;padding:.75rem 1rem;box-sizing:border-box;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>匯入進度備份</span></span></label><button onclick="forceSyncToCloud()" class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg><span>立即同步到雲端</span></button><button onclick="clearAllData()" class="btn btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1rem;color:var(--red);border-color:rgba(248,113,113,.25);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><span>清除所有本機資料</span></button></div><div id="backup-msg" style="margin-top:.75rem;font-size:.8rem;min-height:1.2em;"></div></div></div>`;}
+
+function studyStatsHTML(){const allTopics=[...new Set(S.materials.flatMap(m=>m.matTags||[]))];const totalMats=S.materials.length;const totalAnns=S.annotations.length;const tagStats=STAGS.map(t=>({...t,count:S.annotations.filter(a=>a.tag===t.id).length}));const topicStats=allTopics.map(topic=>{const mats=S.materials.filter(m=>(m.matTags||[]).includes(topic));const matIds=new Set(mats.map(m=>m.id));const anns=S.annotations.filter(a=>matIds.has(a.matId));return{topic,matCount:mats.length,annCount:anns.length,tags:STAGS.map(t=>({...t,count:anns.filter(a=>a.tag===t.id).length}))};});const untaggedMats=S.materials.filter(m=>!(m.matTags||[]).length);return`<div class="page" style="max-width:680px;margin:0 auto;padding:clamp(1.5rem,5vw,2.5rem) clamp(1rem,4vw,1.5rem);"><h2 style="font-size:1.15rem;font-weight:800;margin-bottom:1rem;font-family:'Sora',sans-serif;">教材統計總覽</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.5rem;margin-bottom:1.5rem;"><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">教材總數</div><div style="font-size:1.6rem;font-weight:800;color:var(--accent);margin-top:.2rem;">${totalMats}</div></div><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">筆記總數</div><div style="font-size:1.6rem;font-weight:800;color:var(--gold);margin-top:.2rem;">${totalAnns}</div></div><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">分類數</div><div style="font-size:1.6rem;font-weight:800;color:var(--green);margin-top:.2rem;">${allTopics.length}</div></div></div>${tagStats.some(t=>t.count>0)?`<div class="g-card" style="padding:1rem;margin-bottom:1rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem;">筆記標籤分佈</div><div style="display:flex;flex-wrap:wrap;gap:.4rem;">${tagStats.map(t=>t.count?`<span class="stag ${t.cls}">${t.label} ${t.count}</span>`:'').join('')}</div></div>`:''} ${topicStats.map(ts=>`<div class="g-card" style="padding:1rem;margin-bottom:.6rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><span style="font-size:.88rem;font-weight:700;">${ts.topic}</span><span style="font-size:.7rem;color:var(--text-3);">${ts.matCount} 教材 · ${ts.annCount} 筆記</span></div>${ts.tags.some(t=>t.count>0)?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;">${ts.tags.map(t=>t.count?`<span class="stag ${t.cls}" style="font-size:.6rem">${t.label} ${t.count}</span>`:'').join('')}</div>`:'<span style="font-size:.76rem;color:var(--text-3);">尚無筆記</span>'}</div>`).join('')}${untaggedMats.length?`<div class="g-card" style="padding:1rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><span style="font-size:.88rem;font-weight:700;color:var(--text-3);">未分類</span><span style="font-size:.7rem;color:var(--text-3);">${untaggedMats.length} 教材</span></div></div>`:''}</div>`;}
+
+async function syncStudyToCloud(){if(!_supa||!_currentUser)return;const uid=_currentUser.id;try{for(const m of S.materials){await _supa.from('study_materials').upsert({id:m.id,user_id:uid,title:m.title,raw:m.raw,sections:m.sections,toc:m.toc,mat_tags:m.matTags||[],uploaded_at:m.uploadedAt},{onConflict:'user_id,id'});}const{data:cm}=await _supa.from('study_materials').select('id').eq('user_id',uid);if(cm){const ids=new Set(S.materials.map(m=>m.id));for(const r of cm){if(!ids.has(r.id))await _supa.from('study_materials').delete().eq('user_id',uid).eq('id',r.id);}}for(const a of S.annotations){await _supa.from('study_annotations').upsert({id:a.id,user_id:uid,mat_id:a.matId,sec_id:a.secId,tag:a.tag,memo:a.memo||'',mat_title:a.matTitle||'',section_heading:a.sectionHeading||'',html:a.html||'',created_at:a.createdAt},{onConflict:'user_id,mat_id,sec_id'});}const{data:ca}=await _supa.from('study_annotations').select('id,mat_id,sec_id').eq('user_id',uid);if(ca){const keys=new Set(S.annotations.map(a=>a.matId+'|'+a.secId));for(const r of ca){if(!keys.has(r.mat_id+'|'+r.sec_id))await _supa.from('study_annotations').delete().eq('user_id',uid).eq('id',r.id);}}await _supa.from('user_preferences').upsert({user_id:uid,current_mat:S.currentMat,read_progress:S.readProgress||{}},{onConflict:'user_id'});}catch(e){console.warn('[Supa] study sync:',e);}}
+async function loadStudyFromCloud(){if(!_supa||!_currentUser)return;const uid=_currentUser.id;try{const{data:mats}=await _supa.from('study_materials').select('*').eq('user_id',uid).order('uploaded_at');if(mats&&mats.length){S.materials=mats.map(m=>({id:m.id,title:m.title,raw:m.raw,sections:m.sections,toc:m.toc,matTags:m.mat_tags||[],uploadedAt:m.uploaded_at}));}const{data:anns}=await _supa.from('study_annotations').select('*').eq('user_id',uid).order('created_at');if(anns&&anns.length){S.annotations=anns.map(a=>({id:a.id,matId:a.mat_id,secId:a.sec_id,tag:a.tag,memo:a.memo,matTitle:a.mat_title,sectionHeading:a.section_heading,html:a.html,createdAt:a.created_at}));}const{data:pref}=await _supa.from('user_preferences').select('current_mat,read_progress').eq('user_id',uid).maybeSingle();if(pref){S.currentMat=pref.current_mat;if(pref.read_progress)S.readProgress=pref.read_progress;}saveToStorage();}catch(e){console.warn('[Supa] study load:',e);}}
 
 /* ╔══════════════════════════════════╗
    ║             BOOT                 ║
