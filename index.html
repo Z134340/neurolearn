@@ -3304,19 +3304,25 @@ function libraryHTML() {
     ? S.materials.filter(m => (m.matTags || []).includes(_matTagFilter))
     : S.materials;
   const matsHTML = displayMats.map(m => matCardHTML(m)).join('');
-  const _libSyncBanner = (() => {
-    if (!_currentUser) return '';
+  const _libSyncInfo = (() => {
+    if (!_currentUser) return `<span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>`;
     if (!_lastSyncTime) return `
-      <div style="display:flex;align-items:center;gap:.4rem;padding:.4rem .75rem;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid var(--border);font-size:.72rem;color:var(--text-3);">
-        <span style="color:#FBBF24;">⏳</span><span>尚未同步至雲端</span>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;">
+        <span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>
+        <span style="display:flex;align-items:center;gap:.3rem;font-size:.65rem;color:#FBBF24;white-space:nowrap;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>尚未同步雲端
+        </span>
       </div>`;
     const d = _lastSyncTime;
     const ts = d.toLocaleDateString('zh-TW') + ' ' + d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false});
     return `
-      <div style="display:flex;align-items:center;gap:.4rem;padding:.4rem .75rem;border-radius:8px;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.2);font-size:.72rem;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
-        <span style="color:#4ADE80;">已同步雲端</span>
-        <span style="color:var(--text-3);margin-left:.2rem;">${ts}</span>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;">
+        <span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>
+        <span style="display:flex;align-items:center;gap:.3rem;font-size:.65rem;white-space:nowrap;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+          <span style="color:#4ADE80;">已同步</span>
+          <span style="color:var(--text-3);">${ts}</span>
+        </span>
       </div>`;
   })();
   return `
@@ -3324,14 +3330,13 @@ function libraryHTML() {
 
     <!-- Header -->
     <div style="margin-bottom:1.5rem;">
-      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-bottom:.6rem;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem;">
         <div>
           <div class="badge badge-v" style="margin-bottom:.4rem;font-size:.6rem;">學習教材庫</div>
           <h2 style="font-size:1.55rem;font-weight:700;letter-spacing:-.03em;white-space:nowrap;">上傳備考教材</h2>
         </div>
-        <span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>
+        ${_libSyncInfo}
       </div>
-      ${_libSyncBanner}
     </div>
 
     <!-- Drop Zone -->
