@@ -718,7 +718,7 @@ function correctSet(q) {
   return q.isMulti ? new Set(q.answer) : new Set([q.answer]);
 }
 function correctAnswerLabel(q) {
-  const ANS = ['A','B','C','D','E'];
+  const ANS = ['A','B','C','D','E','F'];
   if (q.isMulti) return [...q.answer].sort((a,b)=>a-b).map(i => ANS[i]+'. '+q.options[i]).join('、');
   return q.options[q.answer] || '';
 }
@@ -1222,7 +1222,7 @@ function datasetsHTML() {
         <strong>CSV / XLSX 欄位：</strong>
         <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">exam</code>（分類）·
         <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">question</code>·
-        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">option_a ~ option_e</code>·
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">option_a ~ option_f</code>·
         <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">answer</code>（A~E）·
         <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">explanation</code>
       </div>
@@ -1557,7 +1557,7 @@ function parseQuestionCSV(text) {
 
 /* Shared row parser: works for both CSV (object rows) and XLSX (sheet_to_json rows) */
 function parseQuestionRows(rows) {
-  const ANS={'A':0,'B':1,'C':2,'D':3,'E':4,'a':0,'b':1,'c':2,'d':3,'e':4,'0':0,'1':1,'2':2,'3':3,'4':4};
+  const ANS={'A':0,'B':1,'C':2,'D':3,'E':4,'F':5,'a':0,'b':1,'c':2,'d':3,'e':4,'f':5,'0':0,'1':1,'2':2,'3':3,'4':4,'5':5};
   const DIFF={'基礎':'基礎','中等':'中等','進階':'進階','easy':'基礎','medium':'中等','hard':'進階'};
   const results=[];
   for(const r of rows){
@@ -1567,6 +1567,7 @@ function parseQuestionRows(rows) {
     const oC=(r.option_c||r.選項c||r['選項_c']||'').trim();
     const oD=(r.option_d||r.選項d||r['選項_d']||'').trim();
     const oE=(r.option_e||r.選項e||r['選項_e']||'').trim();
+    const oF=(r.option_f||r.選項f||r['選項_f']||'').trim();
     const ansRaw=(r.answer||r.答案||'').trim().toUpperCase();
     // category: prefer 'exam' field (matches the xlsx template), then 'category'
     const cat=(r.exam||r.category||r.分類||'').trim()||'匯入題目';
@@ -1576,12 +1577,13 @@ function parseQuestionRows(rows) {
     const isMulti = ansLetters.length > 1;
     const ansValue = isMulti ? ansLetters.map(l => ANS[l]).sort((a,b)=>a-b) : (ANS[ansRaw]??parseInt(ansRaw));
     if(!q||!oA) continue;
-    if(!isMulti && (ansValue===undefined||isNaN(ansValue)||ansValue>4)) continue;
+    if(!isMulti && (ansValue===undefined||isNaN(ansValue)||ansValue>5)) continue;
     const opts=[oA,oB,oC,oD].filter(Boolean);
     if(oE) opts.push(oE);
+    if(oF) opts.push(oF);
     while(opts.length<4) opts.push('—');
     const srcId = (r.id||r['題號']||'').toString().trim();
-    results.push({ id:0, text:q, options:opts.slice(0,5), answer:ansValue, isMulti:isMulti, explanation:expl, category:cat, difficulty:diff, _srcId:srcId||null });
+    results.push({ id:0, text:q, options:opts.slice(0,6), answer:ansValue, isMulti:isMulti, explanation:expl, category:cat, difficulty:diff, _srcId:srcId||null });
   }
   return results;
 }
@@ -2572,7 +2574,7 @@ function quizBrowseHTML() {
       <button class="btn btn-primary" onclick="goBackFromBrowse()">返回選單</button>
     </div>`;
   }
-  const ANS = ['A','B','C','D','E'];
+  const ANS = ['A','B','C','D','E','F'];
 
   const cards = qs.map((q, qi) => {
     const bk = S.bookmarks.has(String(q.id));
