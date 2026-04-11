@@ -275,7 +275,7 @@
     .nav-logo-text{font-size:.82rem}
     .nav-logo-icon{width:26px;height:26px;border-radius:6px}
     .zone-tab{font-size:.72rem;padding:.28rem .55rem}
-    .zt-full{display:inline}.zt-short{display:none}
+    .zt-full{display:none}.zt-short{display:inline}
     #nav-sub-tabs{top:calc(84px + env(safe-area-inset-top, 0px));height:38px;padding:0 .75rem}
     .sub-tab{font-size:.72rem;padding:.3rem .6rem}
     #page-content{padding-top:calc(122px + env(safe-area-inset-top, 0px))}
@@ -378,9 +378,9 @@
   <div class="zone-tabs">
     <button class="zone-tab" id="zt-home" onclick="navigate('home')">首頁</button>
     <button class="zone-tab" id="zt-study" onclick="switchZone('study')"><span class="zt-full">教材＆筆記</span><span class="zt-short">教材</span></button>
-    <button class="zone-tab" id="zt-exam" onclick="switchZone('exam')"><span class="zt-full">智能模擬考</span><span class="zt-short">模考</span></button>
+    <button class="zone-tab" id="zt-exam" onclick="switchZone('exam')"><span class="zt-full">智能模擬考</span><span class="zt-short">模擬考</span></button>
     <button class="zone-tab" id="zt-dash" onclick="switchZone('dash')"><span class="zt-full">學習儀表板</span><span class="zt-short">儀表板</span></button>
-    <button class="zone-tab" id="zt-backup" onclick="navigate('backup')">進度備份</button>
+    <button class="zone-tab" id="zt-backup" onclick="navigate('backup')"><span class="zt-full">進度備份</span><span class="zt-short">同步</span></button>
   </div>
   <div id="nav-user-area" style="display:flex;align-items:center;gap:.3rem;flex-shrink:0;">
     <button onclick="navigate('login')" class="btn btn-primary" style="font-size:.72rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>
