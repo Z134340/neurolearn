@@ -533,8 +533,10 @@ async function syncAllToCloud() {
     id: String(f.id), user_id: uid, name: f.name,
     tags: f.tags || [], uploaded_at: new Date().toISOString(),
   }));
-  if (fileRows.length)
-    await _supa.from('exam_files').upsert(fileRows, { onConflict: 'user_id,id' });
+  if (fileRows.length) {
+    const { error: efErr } = await _supa.from('exam_files').upsert(fileRows, { onConflict: 'user_id,id' });
+    if (efErr) throw new Error('exam_files 同步失敗：' + efErr.message);
+  }
   // Garbage-collect deleted files
   const { data: cloudFiles } = await _supa.from('exam_files').select('id').eq('user_id', uid);
   if (cloudFiles) {
@@ -551,19 +553,21 @@ async function syncAllToCloud() {
     const qRows = S.extraQs.map(q => ({
       q_id: String(q.id), user_id: uid, file_id: String(q._fileId || 0),
       exam: q.category || '匯入題目', question: q.text,
-      option_a: q.options[0]||'', option_b: q.options[1]||'',
-      option_c: q.options[2]||'', option_d: q.options[3]||'',
-      option_e: q.options[4]||'', option_f: q.options[5]||'',
+      option_a: (q.options||[])[0]||'', option_b: (q.options||[])[1]||'',
+      option_c: (q.options||[])[2]||'', option_d: (q.options||[])[3]||'',
+      option_e: (q.options||[])[4]||'', option_f: (q.options||[])[5]||'',
       answer:      Array.isArray(q.answer) ? q.answer.join(',') : String(q.answer),
       explanation: q.explanation || '', src_name: q._fileName || '',
       src_id: q._srcId || '', is_multi: !!q.isMulti,
     }));
     const BATCH = 200;
-    for (let i = 0; i < qRows.length; i += BATCH)
-      await _supa.from('exam_questions').upsert(qRows.slice(i, i+BATCH), { onConflict: 'user_id,q_id' });
+    for (let i = 0; i < qRows.length; i += BATCH) {
+      const { error: eqErr } = await _supa.from('exam_questions').upsert(qRows.slice(i, i+BATCH), { onConflict: 'user_id,q_id' });
+      if (eqErr) throw new Error('exam_questions 同步失敗：' + eqErr.message);
+    }
   }
-  // 4. study materials + annotations
-  await syncStudyToCloud();
+  // 4. study materials + annotations (non-blocking — tables may not exist yet)
+  try { await syncStudyToCloud(); } catch(e) { console.warn('[Supa] study sync skipped:', e.message); }
 }
 
 /* Load all data from normalized tables; auto-migrate if tables are empty */
@@ -1331,14 +1335,34 @@ async function datasetsSyncNow() {
   const msg = document.getElementById('dataset-sync-msg');
   if (btn) { btn.disabled = true; btn.style.opacity = '.5'; const sp = btn.querySelector('span'); if (sp) sp.textContent = '同步中…'; }
   if (msg) { msg.textContent = ''; }
+  let _syncOk = false, _syncErr = '';
   try {
-    await syncAllToCloud();
+    const _timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('同步逾時（30 秒），請確認網路後重試')), 30000));
+    await Promise.race([syncAllToCloud(), _timeout]);
     _lastSyncTime = new Date();
-    render();
+    _syncOk = true;
   } catch(e) {
     console.error('[Supa] datasetsSyncNow error:', e);
-    if (btn) { btn.disabled = false; btn.style.opacity = '1'; const sp = btn.querySelector('span'); if (sp) sp.textContent = '同步雲端'; }
-    if (msg) { msg.textContent = '❌ 同步失敗：' + (e.message || e); msg.style.color = '#F87171'; }
+    _syncErr = e.message || String(e);
+  } finally {
+    if (_syncOk) {
+      render();
+      // Show success in the freshly-rendered msg element
+      const newMsg = document.getElementById('dataset-sync-msg');
+      if (newMsg) {
+        const fc = S.files.length, qc = S.extraQs.length;
+        const ts = _lastSyncTime ? _lastSyncTime.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
+        newMsg.textContent = `✅ 同步完成（${fc} 個資料集 / ${qc} 題${ts ? '，' + ts : ''}）`;
+        newMsg.style.color = '#4ADE80';
+      }
+    } else {
+      // Re-query in case a partial render already happened
+      const curBtn = document.getElementById('dataset-sync-btn') || btn;
+      const curMsg = document.getElementById('dataset-sync-msg') || msg;
+      if (curBtn) { curBtn.disabled = false; curBtn.style.opacity = '1'; const sp = curBtn.querySelector('span'); if (sp) sp.textContent = '同步雲端'; }
+      if (curMsg) { curMsg.textContent = '❌ 同步失敗：' + _syncErr; curMsg.style.color = '#F87171'; }
+    }
   }
 }
 
