@@ -785,18 +785,11 @@ function initFirebase() {
       _currentUser = user;
       updateNavUser();
 
-      if (user && !prev) {
-        // New sign-in via page reload (doSignIn handles fresh login separately)
+      if ((user && !prev) || (user && prev && user.uid !== prev.uid)) {
+        // 頁面重載自動登入 / 切換使用者（doSignIn 處理的新登入不走這裡）
         resetState(); loadFromStorage();
-        navigate('home');
+        S.page = 'home'; // 不先 render，等 loadCloudData 做唯一一次 render
         try { await loadCloudData(); } catch(e) { console.warn('[FB] loadCloudData error:', e); renderSilent(); }
-        subscribeRealtime();
-      }
-      if (user && prev && user.uid !== prev.uid) {
-        // Different user signed in (edge case)
-        resetState(); loadFromStorage();
-        navigate('home');
-        try { await loadCloudData(); } catch(e) { renderSilent(); }
         subscribeRealtime();
       }
       if (!user && prev) {
@@ -836,8 +829,7 @@ async function doSignIn() {
     await authSignIn(email, pw);
     updateNavUser();
     resetState(); loadFromStorage();
-    S.page = 'home';
-    renderSilent(); // 登入切頁不播動畫
+    S.page = 'home'; // 設好頁面，等 loadCloudData 做唯一一次 render
     loadCloudData().then(() => subscribeRealtime()).catch(e => { console.warn('[FB] login load:', e); renderSilent(); });
   } catch(e) {
     if (msg) {
