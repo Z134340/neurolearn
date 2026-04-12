@@ -836,7 +836,8 @@ async function doSignIn() {
     await authSignIn(email, pw);
     updateNavUser();
     resetState(); loadFromStorage();
-    navigate('home');
+    S.page = 'home';
+    renderSilent(); // 登入切頁不播動畫
     loadCloudData().then(() => subscribeRealtime()).catch(e => { console.warn('[FB] login load:', e); renderSilent(); });
   } catch(e) {
     if (msg) {
