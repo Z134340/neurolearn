@@ -1072,6 +1072,7 @@ function render() {
 
   const c = document.getElementById('page-content');
   if (!c) return;
+  updateNavUser();
   setActiveNav(S.page);
   switch(S.page) {
     case 'home':      c.innerHTML = homeHTML();       break;
