@@ -424,6 +424,7 @@ const SUPA_KEY = 'sb_publishable_A3vHSsoyjb_KMZDUbCNHdQ_hs0O87su';
 let _supa = null;
 let _currentUser = null;
 let _cloudSyncTimer = null;
+let _fullSyncTimer  = null;
 let _accessToken = null;  // cached JWT — no network needed 
 let _blockCloudRender = false; // prevent cloud re-render from overwriting fresh quiz result
 let _lastSyncTime = null;  // timestamp of last successful cloud syncfor sync
@@ -709,14 +710,24 @@ async function _loadCloudProgressLegacy() {
   } catch(e) { console.warn('[Supa] legacy load error:', e); }
 }
 
-/* Debounced background sync — only user_state + study (fast, no questions) */
+/* Debounced background sync — two-tier:
+   fast (2s): user_state + study materials
+   full (5s): all tables incl. exam files & questions */
 function scheduleSyncToCloud() {
+  if (!_supa || !_currentUser) return;
+  // Tier 1 — fast: user_state + study (2s)
   clearTimeout(_cloudSyncTimer);
   _cloudSyncTimer = setTimeout(() => {
     syncUserState().then(() => { _lastSyncTime = new Date(); })
       .catch(e => console.warn('[Supa] userState sync:', e.message||e));
     syncStudyToCloud().catch(e => console.warn('[Supa] study sync:', e));
   }, 2000);
+  // Tier 2 — full: covers exam files/questions and anything else (5s)
+  clearTimeout(_fullSyncTimer);
+  _fullSyncTimer = setTimeout(() => {
+    syncAllToCloud().then(() => { _lastSyncTime = new Date(); })
+      .catch(e => console.warn('[Supa] fullSync:', e.message||e));
+  }, 5000);
 }
 
 function updateNavUser() {
@@ -1564,6 +1575,7 @@ function addTag(fid, tag) {
   S.editingTagFid = null;
   _syncQuestionTags(fid, f.tags);
   saveToStorage();
+  syncExamFileToCloud(fid).catch(e => console.warn('[Supa] tag sync:', e));
   refreshCard(fid);
   refreshFilterBar();
 }
@@ -1573,6 +1585,7 @@ function removeTag(fid, tag) {
   f.tags = f.tags.filter(t => t !== tag);
   refreshCard(fid);
   saveToStorage();
+  syncExamFileToCloud(fid).catch(e => console.warn('[Supa] tag sync:', e));
   refreshFilterBar();
 }
 function toggleTagEdit(fid) {
