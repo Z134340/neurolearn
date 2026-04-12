@@ -10,7 +10,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" defer onerror="console.warn('[Supa] SDK load failed')"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <style>
@@ -412,22 +414,28 @@
 
 <script>
 
-const SUPA_URL = 'https://rmqlwzjlvpowqwgwiegg.supabase.co';
-const SUPA_KEY = 'sb_publishable_A3vHSsoyjb_KMZDUbCNHdQ_hs0O87su';
-let _supa = null;
+const FIREBASE_CONFIG = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT_ID.firebasestorage.app",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+let _db   = null;   // Firestore instance
+let _auth = null;   // Firebase Auth instance
 let _currentUser = null;
 let _cloudSyncTimer = null;
 let _fullSyncTimer  = null;
-let _accessToken = null;  // cached JWT — no network needed 
 let _blockCloudRender = false; // prevent cloud re-render from overwriting fresh quiz result
 let _lastSyncTime = null;  // timestamp of last successful cloud sync
 let _lastCloudFetch = 0;   // epoch ms of last loadCloudData() call — used for auto-pull debounce
-let _realtimeChannel = null;   // Supabase Realtime channel
+let _realtimeUnsubscribers = []; // Firestore onSnapshot unsubscribe functions
 let _realtimeReloadTimer = null; // debounce timer for realtime-triggered reload
 
 const STORAGE_KEY_BASE = 'neurolearn_v2';
 function getStorageKey() {
-  return _currentUser ? STORAGE_KEY_BASE + '_' + _currentUser.id : STORAGE_KEY_BASE;
+  return _currentUser ? STORAGE_KEY_BASE + '_' + _currentUser.uid : STORAGE_KEY_BASE;
 }
 
 function resetState() {
@@ -446,12 +454,11 @@ function resetState() {
 // Tables: exam_files, exam_questions, quiz_sessions, user_state
 // Legacy fallback: user_progress (JSONB blob) — auto-migrated on first login
 
-/* Sync user state (bookmarks / wrongQs / usedQIds / UI prefs) → user_state */
+/* Sync user state (bookmarks / wrongQs / usedQIds / UI prefs) → Firestore users/{uid} */
 async function syncUserState() {
-  if (!_supa || !_currentUser) return;
+  if (!_db || !_currentUser) return;
   try {
-    const { error } = await _supa.from('user_state').upsert({
-      user_id:       _currentUser.id,
+    await _db.collection('users').doc(_currentUser.uid).set({
       bookmarks:     [...S.bookmarks],
       wrong_qs:      [...S.wrongQs],
       used_q_ids:    [...S.usedQIds],
@@ -460,105 +467,27 @@ async function syncUserState() {
       current_mat:   S.currentMat || null,
       read_progress: S.readProgress || {},
       updated_at:    new Date().toISOString(),
-    }, { onConflict: 'user_id' });
-    if (error) console.warn('[Supa] syncUserState:', error.message);
-  } catch(e) { console.warn('[Supa] syncUserState:', e); }
+    }, { merge: true });
+  } catch(e) { console.warn('[FB] syncUserState:', e); }
 }
 
-/* Sync one file metadata + all its questions → exam_files / exam_questions */
+/* Sync one file metadata + all its questions → Firestore exam_files / exam_questions */
 async function syncExamFileToCloud(fileId) {
-  if (!_supa || !_currentUser) return;
-  const uid = _currentUser.id;
+  if (!_db || !_currentUser) return;
+  const uid = _currentUser.uid;
   const fid = String(fileId);
   const f   = S.files.find(x => String(x.id) === fid);
   if (!f) return;
   try {
-    await _supa.from('exam_files').upsert({
-      id: fid, user_id: uid, name: f.name,
-      tags: f.tags || [], uploaded_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,id' });
+    await _db.collection('users').doc(uid).collection('exam_files').doc(fid).set({
+      id: fid, name: f.name, tags: f.tags || [],
+      uploaded_at: new Date().toISOString(),
+    }, { merge: true });
 
     const qs = S.extraQs.filter(q => String(q._fileId) === fid);
     if (!qs.length) return;
     const rows = qs.map(q => ({
-      q_id: String(q.id), user_id: uid, file_id: fid,
-      exam: q.category || '匯入題目', question: q.text,
-      option_a: q.options[0]||'', option_b: q.options[1]||'',
-      option_c: q.options[2]||'', option_d: q.options[3]||'',
-      option_e: q.options[4]||'', option_f: q.options[5]||'',
-      answer:      Array.isArray(q.answer) ? q.answer.join(',') : String(q.answer),
-      explanation: q.explanation || '', src_name: q._fileName || '',
-      src_id: q._srcId || '', is_multi: !!q.isMulti,
-    }));
-    const BATCH = 200;
-    for (let i = 0; i < rows.length; i += BATCH)
-      await _supa.from('exam_questions').upsert(rows.slice(i, i+BATCH), { onConflict: 'user_id,q_id' });
-  } catch(e) { console.warn('[Supa] syncExamFileToCloud:', e); }
-}
-
-/* Delete file + its questions from cloud */
-async function deleteCloudExamFile(fileId) {
-  if (!_supa || !_currentUser) return;
-  const uid = _currentUser.id; const fid = String(fileId);
-  try {
-    await _supa.from('exam_questions').delete().eq('user_id', uid).eq('file_id', fid);
-    await _supa.from('exam_files').delete().eq('user_id', uid).eq('id', fid);
-  } catch(e) { console.warn('[Supa] deleteCloudExamFile:', e); }
-}
-
-/* Insert one quiz session right after quiz completion */
-async function syncQuizSession(session) {
-  if (!_supa || !_currentUser) return;
-  const mode = (S.quizConfig && S.quizConfig.mode) || 'new';
-  const cats = S.quizConfig ? [...(S.quizConfig.cats || [])] : [];
-  try {
-    await _supa.from('quiz_sessions').insert({
-      user_id: _currentUser.id, name: session.name || '', mode, cats,
-      score: session.correct, total: session.total,
-      wrong_ids: session.wrongIds || [], bk_ids: session.bkIds || [],
-      cat_stats: session.catStats || {}, created_at: new Date().toISOString(),
-    });
-  } catch(e) { console.warn('[Supa] syncQuizSession:', e); }
-}
-
-/* Full sync — all tables */
-async function syncAllToCloud() {
-  if (!_supa || !_currentUser) return;
-  const uid = _currentUser.id;
-  const now = new Date().toISOString();
-
-  // 1+2. user_state & exam_files — launch in parallel
-  const fileRows = S.files.map(f => ({
-    id: String(f.id), user_id: uid, name: f.name,
-    tags: f.tags || [], uploaded_at: now,
-  }));
-  const parallelTasks = [syncUserState()];
-  if (fileRows.length) {
-    parallelTasks.push(
-      _supa.from('exam_files').upsert(fileRows, { onConflict: 'user_id,id' })
-        .then(({ error }) => { if (error) throw new Error('exam_files 同步失敗：' + error.message); })
-    );
-  }
-  await Promise.all(parallelTasks);
-
-  // Garbage-collect deleted files
-  const { data: cloudFiles, error: cfErr } = await _supa.from('exam_files').select('id').eq('user_id', uid);
-  if (cfErr) throw new Error('exam_files 查詢失敗：' + cfErr.message);
-  if (cloudFiles) {
-    const localFids = new Set(S.files.map(f => String(f.id)));
-    const toDelFids = cloudFiles.filter(r => !localFids.has(r.id)).map(r => r.id);
-    if (toDelFids.length) {
-      await Promise.all([
-        _supa.from('exam_questions').delete().eq('user_id', uid).in('file_id', toDelFids),
-        _supa.from('exam_files').delete().eq('user_id', uid).in('id', toDelFids),
-      ]);
-    }
-  }
-
-  // 3. exam_questions (batched, parallel batches)
-  if (S.extraQs.length) {
-    const qRows = S.extraQs.map(q => ({
-      q_id: String(q.id), user_id: uid, file_id: String(q._fileId || 0),
+      q_id: String(q.id), file_id: fid,
       exam: q.category || '匯入題目', question: q.text,
       option_a: (q.options||[])[0]||'', option_b: (q.options||[])[1]||'',
       option_c: (q.options||[])[2]||'', option_d: (q.options||[])[3]||'',
@@ -567,37 +496,126 @@ async function syncAllToCloud() {
       explanation: q.explanation || '', src_name: q._fileName || '',
       src_id: q._srcId || '', is_multi: !!q.isMulti,
     }));
-    const BATCH = 200;
-    const batchPromises = [];
-    for (let i = 0; i < qRows.length; i += BATCH) {
-      batchPromises.push(
-        _supa.from('exam_questions').upsert(qRows.slice(i, i+BATCH), { onConflict: 'user_id,q_id' })
-          .then(({ error }) => { if (error) throw new Error('exam_questions 同步失敗：' + error.message); })
-      );
+    const BATCH = 500;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const batch = _db.batch();
+      rows.slice(i, i+BATCH).forEach(r => {
+        batch.set(_db.collection('users').doc(uid).collection('exam_questions').doc(r.q_id), r, { merge: true });
+      });
+      await batch.commit();
     }
-    await Promise.all(batchPromises);
-  }
-
-  // 4. study materials + annotations (non-blocking — tables may not exist yet)
-  try { await syncStudyToCloud(); } catch(e) { console.warn('[Supa] study sync skipped:', e.message); }
+  } catch(e) { console.warn('[FB] syncExamFileToCloud:', e); }
 }
 
-/* Load all data from normalized tables; auto-migrate if tables are empty */
-async function loadCloudData() {
-  if (!_supa || !_currentUser) return;
-  _lastCloudFetch = Date.now(); // mark start time — prevents duplicate fetches from navigate()
-  const uid = _currentUser.id;
+/* Delete file + its questions from Firestore */
+async function deleteCloudExamFile(fileId) {
+  if (!_db || !_currentUser) return;
+  const uid = _currentUser.uid; const fid = String(fileId);
   try {
-    const [stateRes, filesRes, qRes, sessRes] = await Promise.all([
-      _supa.from('user_state').select('*').eq('user_id', uid).maybeSingle(),
-      _supa.from('exam_files').select('*').eq('user_id', uid).order('uploaded_at'),
-      _supa.from('exam_questions').select('*').eq('user_id', uid),
-      _supa.from('quiz_sessions').select('*').eq('user_id', uid).order('created_at', { ascending: true }),
+    // Delete all questions belonging to this file
+    const qSnap = await _db.collection('users').doc(uid).collection('exam_questions')
+      .where('file_id', '==', fid).get();
+    if (!qSnap.empty) {
+      const BATCH = 500;
+      for (let i = 0; i < qSnap.docs.length; i += BATCH) {
+        const batch = _db.batch();
+        qSnap.docs.slice(i, i+BATCH).forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+    }
+    await _db.collection('users').doc(uid).collection('exam_files').doc(fid).delete();
+  } catch(e) { console.warn('[FB] deleteCloudExamFile:', e); }
+}
+
+/* Insert one quiz session right after quiz completion */
+async function syncQuizSession(session) {
+  if (!_db || !_currentUser) return;
+  const mode = (S.quizConfig && S.quizConfig.mode) || 'new';
+  const cats = S.quizConfig ? [...(S.quizConfig.cats || [])] : [];
+  try {
+    await _db.collection('users').doc(_currentUser.uid).collection('quiz_sessions').add({
+      name: session.name || '', mode, cats,
+      score: session.correct, total: session.total,
+      wrong_ids: session.wrongIds || [], bk_ids: session.bkIds || [],
+      cat_stats: session.catStats || {}, created_at: new Date().toISOString(),
+    });
+  } catch(e) { console.warn('[FB] syncQuizSession:', e); }
+}
+
+/* Full sync — all Firestore subcollections */
+async function syncAllToCloud() {
+  if (!_db || !_currentUser) return;
+  const uid = _currentUser.uid;
+  const now = new Date().toISOString();
+
+  // 1. user_state + exam_files — parallel
+  const upsertFileTasks = S.files.map(f =>
+    _db.collection('users').doc(uid).collection('exam_files').doc(String(f.id)).set(
+      { id: String(f.id), name: f.name, tags: f.tags || [], uploaded_at: now },
+      { merge: true }
+    )
+  );
+  await Promise.all([syncUserState(), ...upsertFileTasks]);
+
+  // 2. Garbage-collect deleted files (and their questions)
+  const cloudFilesSnap = await _db.collection('users').doc(uid).collection('exam_files').get();
+  const localFids = new Set(S.files.map(f => String(f.id)));
+  const toDelFids = cloudFilesSnap.docs.map(d => d.id).filter(id => !localFids.has(id));
+  if (toDelFids.length) {
+    for (const fid of toDelFids) {
+      const qSnap = await _db.collection('users').doc(uid).collection('exam_questions')
+        .where('file_id', '==', fid).get();
+      if (!qSnap.empty) {
+        const batch = _db.batch();
+        qSnap.docs.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+      await _db.collection('users').doc(uid).collection('exam_files').doc(fid).delete();
+    }
+  }
+
+  // 3. exam_questions (batched)
+  if (S.extraQs.length) {
+    const qRows = S.extraQs.map(q => ({
+      q_id: String(q.id), file_id: String(q._fileId || 0),
+      exam: q.category || '匯入題目', question: q.text,
+      option_a: (q.options||[])[0]||'', option_b: (q.options||[])[1]||'',
+      option_c: (q.options||[])[2]||'', option_d: (q.options||[])[3]||'',
+      option_e: (q.options||[])[4]||'', option_f: (q.options||[])[5]||'',
+      answer:      Array.isArray(q.answer) ? q.answer.join(',') : String(q.answer),
+      explanation: q.explanation || '', src_name: q._fileName || '',
+      src_id: q._srcId || '', is_multi: !!q.isMulti,
+    }));
+    const BATCH = 500;
+    for (let i = 0; i < qRows.length; i += BATCH) {
+      const batch = _db.batch();
+      qRows.slice(i, i+BATCH).forEach(r => {
+        batch.set(_db.collection('users').doc(uid).collection('exam_questions').doc(r.q_id), r, { merge: true });
+      });
+      await batch.commit();
+    }
+  }
+
+  // 4. study materials + annotations
+  try { await syncStudyToCloud(); } catch(e) { console.warn('[FB] study sync skipped:', e.message); }
+}
+
+/* Load all data from Firestore */
+async function loadCloudData() {
+  if (!_db || !_currentUser) return;
+  _lastCloudFetch = Date.now();
+  const uid = _currentUser.uid;
+  try {
+    const [stateSnap, filesSnap, qSnap, sessSnap] = await Promise.all([
+      _db.collection('users').doc(uid).get(),
+      _db.collection('users').doc(uid).collection('exam_files').orderBy('uploaded_at').get(),
+      _db.collection('users').doc(uid).collection('exam_questions').get(),
+      _db.collection('users').doc(uid).collection('quiz_sessions').orderBy('created_at').get(),
     ]);
 
     // user_state
-    if (stateRes.data) {
-      const st = stateRes.data;
+    if (stateSnap.exists) {
+      const st = stateSnap.data();
       if (Array.isArray(st.bookmarks))  S.bookmarks  = new Set(st.bookmarks);
       if (Array.isArray(st.wrong_qs))   S.wrongQs    = new Set(st.wrong_qs);
       if (Array.isArray(st.used_q_ids)) S.usedQIds   = new Set(st.used_q_ids);
@@ -605,23 +623,27 @@ async function loadCloudData() {
       if (st.tag_filter !== undefined)  S.tagFilter  = st.tag_filter;
       if (st.current_mat !== undefined) S.currentMat = st.current_mat;
       if (st.read_progress)             S.readProgress = st.read_progress;
-      _lastSyncTime = new Date(st.updated_at);
+      if (st.updated_at) _lastSyncTime = new Date(st.updated_at);
     }
 
     // exam_files
-    if (filesRes.data && filesRes.data.length) {
-      S.files = filesRes.data.map(f => ({
-        id: parseInt(f.id) || f.id, name: f.name,
-        type: f.name.split('.').pop() || 'csv', size: '', status: 'ready',
-        date: f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('zh-TW') : '',
-        tags: f.tags || [], imported: null,
-      }));
+    if (!filesSnap.empty) {
+      S.files = filesSnap.docs.map(d => {
+        const f = d.data();
+        return {
+          id: parseInt(f.id) || f.id, name: f.name,
+          type: f.name.split('.').pop() || 'csv', size: '', status: 'ready',
+          date: f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('zh-TW') : '',
+          tags: f.tags || [], imported: null,
+        };
+      });
       S.nextFid = Math.max(...S.files.map(f => (parseInt(f.id)||0)+1), 4);
     }
 
     // exam_questions
-    if (qRes.data && qRes.data.length) {
-      S.extraQs = qRes.data.map(q => {
+    if (!qSnap.empty) {
+      S.extraQs = qSnap.docs.map(d => {
+        const q = d.data();
         const opts = [q.option_a,q.option_b,q.option_c,q.option_d,q.option_e,q.option_f]
           .filter(o => o && o !== '—');
         const fId  = parseInt(q.file_id) || q.file_id;
@@ -638,158 +660,90 @@ async function loadCloudData() {
     }
 
     // quiz_sessions
-    if (sessRes.data && sessRes.data.length) {
-      S.history = sessRes.data.map((s, i) => ({
-        id: i+1, name: s.name||`第 ${i+1} 回合`,
-        date: new Date(s.created_at).toLocaleDateString('zh-TW'),
-        total: s.total, correct: s.score,
-        bk: (s.bk_ids||[]).length, wrong: (s.wrong_ids||[]).length,
-        catStats: s.cat_stats||{}, dur: '—',
-        wrongIds: s.wrong_ids||[], bkIds: s.bk_ids||[],
-      }));
+    if (!sessSnap.empty) {
+      S.history = sessSnap.docs.map((d, i) => {
+        const s = d.data();
+        return {
+          id: i+1, name: s.name||`第 ${i+1} 回合`,
+          date: new Date(s.created_at).toLocaleDateString('zh-TW'),
+          total: s.total, correct: s.score,
+          bk: (s.bk_ids||[]).length, wrong: (s.wrong_ids||[]).length,
+          catStats: s.cat_stats||{}, dur: '—',
+          wrongIds: s.wrong_ids||[], bkIds: s.bk_ids||[],
+        };
+      });
     }
 
     // study materials + annotations
     await loadStudyFromCloud();
 
-    // If ALL new tables empty → first login, migrate from legacy user_progress blob
-    const newTablesEmpty = !stateRes.data && !(filesRes.data?.length) &&
-                           !(qRes.data?.length) && !(sessRes.data?.length);
-    if (newTablesEmpty) {
-      console.log('[Supa] New tables empty — checking legacy blob...');
-      await _migrateLegacyBlob();
-    }
-
-    if (!_lastSyncTime) _lastSyncTime = new Date(); // fallback: mark successful cloud fetch time
+    if (!_lastSyncTime) _lastSyncTime = new Date();
     saveToStorage();
     if (!_blockCloudRender) render();
-    console.log('[Supa] Cloud loaded — files:', S.files.length,
+    console.log('[FB] Cloud loaded — files:', S.files.length,
       'questions:', S.extraQs.length, 'sessions:', S.history.length);
   } catch(e) {
-    console.warn('[Supa] loadCloudData error:', e);
-    await _loadCloudProgressLegacy(); // fallback: old blob
+    console.warn('[FB] loadCloudData error:', e);
   }
 }
 
-/* One-time migration: user_progress JSONB → normalized tables */
-async function _migrateLegacyBlob() {
-  if (!_supa || !_currentUser) return;
-  try {
-    const { data } = await _supa.from('user_progress').select('data').eq('user_id', _currentUser.id).maybeSingle();
-    if (!data?.data) return;
-    const d = data.data;
-    if (Array.isArray(d.history))   S.history   = d.history;
-    if (Array.isArray(d.bookmarks)) S.bookmarks = new Set(d.bookmarks.map(String));
-    if (Array.isArray(d.wrongQs))   S.wrongQs   = new Set(d.wrongQs.map(String));
-    if (Array.isArray(d.usedQIds))  S.usedQIds  = new Set(d.usedQIds.map(String));
-    if (Array.isArray(d.files))     S.files     = d.files;
-    if (Array.isArray(d.extraQs))   S.extraQs   = d.extraQs;
-    if (d.dashTag   !== undefined)  S.dashTag   = d.dashTag;
-    if (d.tagFilter !== undefined)  S.tagFilter = d.tagFilter;
-    if (S.files.length) S.nextFid = Math.max(...S.files.map(f => f.id+1));
-    console.log('[Supa] Migrating legacy blob → normalized tables...');
-    await syncAllToCloud();
-    // Also insert legacy quiz sessions
-    const uid = _currentUser.id;
-    if (S.history.length) {
-      const sessRows = S.history.map(s => ({
-        user_id: uid, name: s.name||'', mode: 'new', cats: [],
-        score: s.correct, total: s.total,
-        wrong_ids: s.wrongIds||[], bk_ids: s.bkIds||[],
-        cat_stats: s.catStats||{}, created_at: new Date().toISOString(),
-      }));
-      const BATCH = 50;
-      for (let i = 0; i < sessRows.length; i += BATCH)
-        await _supa.from('quiz_sessions').insert(sessRows.slice(i, i+BATCH));
-    }
-    console.log('[Supa] Migration complete ✓');
-  } catch(e) { console.warn('[Supa] migration error:', e); }
-}
-
-/* Fallback: load from old user_progress blob (if new tables don't exist yet) */
-async function _loadCloudProgressLegacy() {
-  if (!_supa || !_currentUser) return;
-  try {
-    const { data } = await _supa.from('user_progress').select('data,updated_at').eq('user_id', _currentUser.id).maybeSingle();
-    if (!data?.data) return;
-    const d = data.data;
-    if (Array.isArray(d.history))   S.history   = d.history;
-    if (Array.isArray(d.bookmarks)) S.bookmarks = new Set(d.bookmarks.map(String));
-    if (Array.isArray(d.wrongQs))   S.wrongQs   = new Set(d.wrongQs.map(String));
-    if (Array.isArray(d.usedQIds))  S.usedQIds  = new Set(d.usedQIds.map(String));
-    if (Array.isArray(d.files))     S.files     = d.files;
-    if (Array.isArray(d.extraQs))   S.extraQs   = d.extraQs;
-    if (d.dashTag   !== undefined)  S.dashTag   = d.dashTag;
-    if (d.tagFilter !== undefined)  S.tagFilter = d.tagFilter;
-    if (S.files.length) S.nextFid = Math.max(...S.files.map(f => f.id+1));
-    if (data.updated_at) _lastSyncTime = new Date(data.updated_at);
-    saveToStorage();
-    if (!_blockCloudRender) render();
-  } catch(e) { console.warn('[Supa] legacy load error:', e); }
-}
-
-/* Debounced background sync — two-tier:
-/* ── Supabase Realtime subscription ─────────────────────────────────────────
-   Subscribe to all user data tables; any remote change triggers a debounced
-   loadCloudData() so data stays fresh across devices / tabs in real-time.  */
+/* ── Firestore Realtime subscription ─────────────────────────────────────────
+   onSnapshot listens to all user subcollections; any remote change triggers
+   a debounced loadCloudData() so data stays fresh across devices / tabs.    */
 function subscribeRealtime() {
-  if (!_supa || !_currentUser) return;
-  // Remove existing channel before re-subscribing
-  if (_realtimeChannel) { try { _supa.removeChannel(_realtimeChannel); } catch(_){} _realtimeChannel = null; }
-  const uid = _currentUser.id;
-  const tables = ['user_state','exam_files','exam_questions','quiz_sessions','study_materials','study_annotations'];
-  let ch = _supa.channel('nl-user-' + uid);
-  tables.forEach(t => {
-    ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: t, filter: 'user_id=eq.' + uid }, () => {
-      clearTimeout(_realtimeReloadTimer);
-      _realtimeReloadTimer = setTimeout(() => {
-        if (_blockCloudRender) return; // don't overwrite fresh quiz result
-        _lastCloudFetch = 0; // reset debounce so reload always runs
-        loadCloudData().catch(e => console.warn('[Supa] realtime reload:', e));
-      }, 1500);
-    });
+  if (!_db || !_currentUser) return;
+  unsubscribeRealtime(); // clean up any existing listeners
+  const uid = _currentUser.uid;
+
+  const handleChange = () => {
+    clearTimeout(_realtimeReloadTimer);
+    _realtimeReloadTimer = setTimeout(() => {
+      if (_blockCloudRender) return;
+      _lastCloudFetch = 0;
+      loadCloudData().catch(e => console.warn('[FB] realtime reload:', e));
+    }, 1500);
+  };
+
+  // Listen to user state document
+  _realtimeUnsubscribers.push(
+    _db.collection('users').doc(uid)
+      .onSnapshot(handleChange, e => console.warn('[FB] onSnapshot user:', e))
+  );
+
+  // Listen to all subcollections
+  const cols = ['exam_files','exam_questions','quiz_sessions','study_materials','study_annotations'];
+  cols.forEach(col => {
+    _realtimeUnsubscribers.push(
+      _db.collection('users').doc(uid).collection(col)
+        .onSnapshot(handleChange, e => console.warn('[FB] onSnapshot', col, e))
+    );
   });
-  _realtimeChannel = ch.subscribe(status => {
-    console.log('[Supa] Realtime', status);
-    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-      // WebSocket failed — fall back to polling every 30s
-      console.warn('[Supa] Realtime unavailable, switching to 30s polling');
-      unsubscribeRealtime();
-      clearInterval(window._realtimePollInterval);
-      window._realtimePollInterval = setInterval(() => {
-        if (!_supa || !_currentUser || _blockCloudRender) return;
-        _lastCloudFetch = 0;
-        loadCloudData().catch(e => console.warn('[Supa] poll reload:', e));
-      }, 30000);
-    } else if (status === 'SUBSCRIBED') {
-      clearInterval(window._realtimePollInterval);
-    }
-  });
+
+  console.log('[FB] Realtime subscribed');
 }
 
 function unsubscribeRealtime() {
   clearTimeout(_realtimeReloadTimer);
   clearInterval(window._realtimePollInterval);
-  if (_realtimeChannel && _supa) { try { _supa.removeChannel(_realtimeChannel); } catch(_){} _realtimeChannel = null; }
+  _realtimeUnsubscribers.forEach(unsub => { try { unsub(); } catch(_){} });
+  _realtimeUnsubscribers = [];
 }
 
-/* ── Tiered background auto-save to cloud ───────────────────────────────────
-   fast (2s): user_state + study materials
-   full (5s): all tables incl. exam files & questions */
+/* ── Tiered background auto-save to Firestore ───────────────────────────────
+   fast (0.8s): user_state + study materials
+   full (3s):   all subcollections incl. exam files & questions */
 function scheduleSyncToCloud() {
-  if (!_supa || !_currentUser) return;
-  // Tier 1 — fast: user_state + study (0.8s) — covers bookmarks, notes, tags, read progress
+  if (!_db || !_currentUser) return;
   clearTimeout(_cloudSyncTimer);
   _cloudSyncTimer = setTimeout(() => {
     syncUserState().then(() => { _lastSyncTime = new Date(); })
-      .catch(e => console.warn('[Supa] userState sync:', e.message||e));
-    syncStudyToCloud().catch(e => console.warn('[Supa] study sync:', e));
+      .catch(e => console.warn('[FB] userState sync:', e.message||e));
+    syncStudyToCloud().catch(e => console.warn('[FB] study sync:', e));
   }, 800);
-  // Tier 2 — full: covers exam files/questions and everything else (3s)
   clearTimeout(_fullSyncTimer);
   _fullSyncTimer = setTimeout(() => {
     syncAllToCloud().then(() => { _lastSyncTime = new Date(); })
-      .catch(e => console.warn('[Supa] fullSync:', e.message||e));
+      .catch(e => console.warn('[FB] fullSync:', e.message||e));
   }, 3000);
 }
 
@@ -806,74 +760,57 @@ function updateNavUser() {
   }
 }
 
-function initSupabase() {
-  if (typeof supabase === 'undefined') { updateNavUser(); return; }
-  if (!SUPA_URL || SUPA_URL === 'YOUR_SUPABASE_URL') { updateNavUser(); return; }
+function initFirebase() {
+  if (typeof firebase === 'undefined') { updateNavUser(); return; }
+  if (!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY') {
+    console.warn('[FB] Firebase config 尚未填寫，請設定 FIREBASE_CONFIG');
+    updateNavUser(); return;
+  }
   try {
-    _supa = supabase.createClient(SUPA_URL, SUPA_KEY);
-    _supa.auth.onAuthStateChange(async (event, session) => {
+    const app = firebase.initializeApp(FIREBASE_CONFIG);
+    _auth = firebase.auth(app);
+    _db   = firebase.firestore(app);
+
+    _auth.onAuthStateChanged(async (user) => {
       const prev = _currentUser;
-      _currentUser  = session?.user ?? null;
-      _accessToken  = session?.access_token ?? null;  // always update cache
-      if (event === 'TOKEN_REFRESHED') {
-        // Token silently refreshed by SDK — just update the cached token, no UI change
-        console.log('[Supa] Token refreshed ✓');
-        return;
-      }
+      _currentUser = user;
       updateNavUser();
-      if (event === 'SIGNED_IN' && !prev) {
+
+      if (user && !prev) {
+        // New sign-in
         resetState(); loadFromStorage();
-        navigate('home'); // immediately show home page before cloud data loads
-        try { await loadCloudData(); } catch(e) { console.warn('[Supa] loadCloudData error:', e); render(); }
-        subscribeRealtime(); // start real-time sync after data loaded
+        navigate('home');
+        try { await loadCloudData(); } catch(e) { console.warn('[FB] loadCloudData error:', e); render(); }
+        subscribeRealtime();
       }
-      if (event === 'SIGNED_OUT') {
+      if (!user && prev) {
+        // Signed out
         unsubscribeRealtime();
         resetState(); loadFromStorage(); render();
       }
     });
-    const _hash = window.location.hash;
-    if (_hash && (_hash.includes('access_token') || _hash.includes('error'))) {
-      if (_hash.includes('otp_expired') || _hash.includes('access_denied')) {
-        window.location.hash = '';
-        S.page = 'login'; render();
-        setTimeout(() => { const m=document.getElementById('auth-msg'); if(m){ m.style.color='#F87171'; m.textContent='驗證連結已過期，請重寄驗證信。'; } }, 100);
-      } else if (_hash.includes('access_token')) {
-        window.location.hash = '';
-        _supa.auth.getSession().then(({ data }) => {
-          _currentUser  = data?.session?.user ?? null;
-          _accessToken  = data?.session?.access_token ?? null;
-          updateNavUser();
-          if (_currentUser) { loadFromStorage(); render(); loadCloudData().then(() => subscribeRealtime()).catch(e => console.warn('[Supa] getSession load:', e)); }
-        }).catch(e => console.warn('[Supa] getSession error:', e));
-      }
-    } else {
-      _supa.auth.getSession().then(({ data }) => {
-        _currentUser = data?.session?.user ?? null;
-        _accessToken = data?.session?.access_token ?? null;
-        updateNavUser();
-        if (_currentUser) { loadFromStorage(); render(); loadCloudData().then(() => subscribeRealtime()).catch(e => console.warn('[Supa] getSession load:', e)); }
-      }).catch(e => console.warn('[Supa] getSession error:', e));
-    }
-  } catch(e) { console.warn('[Supa] init failed:', e); }
+  } catch(e) { console.warn('[FB] init failed:', e); }
 }
 
 async function authSignIn(email, pw) {
-  if (!_supa) throw new Error('Supabase 未連線');
-  const { error } = await _supa.auth.signInWithPassword({ email, password: pw });
-  if (error) throw error;
+  if (!_auth) throw new Error('Firebase 未連線');
+  const { user } = await _auth.signInWithEmailAndPassword(email, pw);
+  if (!user.emailVerified) {
+    await _auth.signOut();
+    throw new Error('Email 尚未驗證，請查看信箱並點擊驗證連結。');
+  }
 }
 
 async function authSignUp(email, pw) {
-  if (!_supa) throw new Error('Supabase 未連線');
-  const { error } = await _supa.auth.signUp({ email, password: pw, options: { emailRedirectTo: 'https://z134340.github.io/neurolearn/' } });
-  if (error) throw error;
+  if (!_auth) throw new Error('Firebase 未連線');
+  const { user } = await _auth.createUserWithEmailAndPassword(email, pw);
+  await user.sendEmailVerification({ url: 'https://z134340.github.io/neurolearn/' });
+  await _auth.signOut(); // sign out until user verifies email
 }
 
 async function sendPasswordReset(email) {
-  if (!_supa) throw new Error('Supabase 未初始化。');
-  const { error } = await _supa.auth.resetPasswordForEmail(email, { redirectTo: 'https://z134340.github.io/neurolearn/' });
-  if (error) throw error;
+  if (!_auth) throw new Error('Firebase 未初始化。');
+  await _auth.sendPasswordResetEmail(email, { url: 'https://z134340.github.io/neurolearn/' });
 }
 
 async function doSignIn() {
@@ -887,8 +824,10 @@ async function doSignIn() {
   } catch(e) {
     if (msg) {
       const errMsg = (e.message||'').toLowerCase();
-      if (errMsg.includes('invalid login credentials')||errMsg.includes('invalid credentials')) {
-        msg.innerHTML = '登入失敗：帳號密碼錯誤，或 <b>Email 尚未驗證</b>。<br><span style="font-size:.78rem;color:var(--text-3);">請點下方「重寄驗證信」。</span>';
+      if (errMsg.includes('invalid-credential')||errMsg.includes('wrong-password')||errMsg.includes('user-not-found')) {
+        msg.innerHTML = '登入失敗：帳號或密碼錯誤。';
+      } else if (errMsg.includes('尚未驗證')) {
+        msg.innerHTML = e.message + '<br><span style="font-size:.78rem;color:var(--text-3);">請點下方「重寄驗證信」。</span>';
       } else { msg.textContent = e.message||'登入失敗'; }
       msg.style.color = '#F87171';
     }
@@ -918,8 +857,8 @@ function showResetForm() {
 }
 
 function showResendForm() {
-  const pwg=document.getElementById('pw-group'); if(pwg) pwg.style.display='none';
-  const msg=document.getElementById('auth-msg'); if(msg){ msg.style.color='var(--text-2)'; msg.textContent='輸入 Email，重寄驗證信。'; }
+  // Keep password field visible — Firebase resend requires password to sign in temporarily
+  const msg=document.getElementById('auth-msg'); if(msg){ msg.style.color='var(--text-2)'; msg.textContent='輸入 Email 與密碼以重寄驗證信。'; }
   const si=document.getElementById('btn-signin'); if(si){ si.textContent='重寄驗證信'; si.onclick=doResend; }
   const su=document.getElementById('btn-signup'); if(su){ su.textContent='取消'; su.onclick=()=>navigate('login'); }
 }
@@ -933,18 +872,26 @@ async function doReset() {
 }
 
 async function doResend() {
-  const email=(document.getElementById('auth-email')?.value||'').trim();
-  const msg=document.getElementById('auth-msg');
-  if (!email||!_supa){ if(msg){ msg.style.color='#F87171'; msg.textContent='請填寫 Email。'; } return; }
+  const email = (document.getElementById('auth-email')?.value||'').trim();
+  const pw    = document.getElementById('auth-pw')?.value||'';
+  const msg   = document.getElementById('auth-msg');
+  if (!email || !_auth) { if(msg){ msg.style.color='#F87171'; msg.textContent='請填寫 Email。'; } return; }
+  if (!pw) { if(msg){ msg.style.color='#F87171'; msg.textContent='請同時填寫密碼以重寄驗證信。'; } return; }
   try {
-    const { error }=await _supa.auth.resend({ type:'signup', email, options:{ emailRedirectTo:'https://z134340.github.io/neurolearn/' } });
-    if (error) throw error;
-    if(msg){ msg.style.color='#4ADE80'; msg.textContent='✅ 驗證信已重寄，請查收。'; }
-  } catch(e){ if(msg){ msg.style.color='#F87171'; msg.textContent=e.message; } }
+    const { user } = await _auth.signInWithEmailAndPassword(email, pw);
+    if (!user.emailVerified) {
+      await user.sendEmailVerification({ url: 'https://z134340.github.io/neurolearn/' });
+      await _auth.signOut();
+      if(msg){ msg.style.color='#4ADE80'; msg.textContent='✅ 驗證信已重寄，請查收信箱。'; }
+    } else {
+      await _auth.signOut();
+      if(msg){ msg.style.color='var(--text-2)'; msg.textContent='此帳號已完成驗證，可直接登入。'; }
+    }
+  } catch(e){ if(msg){ msg.style.color='#F87171'; msg.textContent=e.message||'操作失敗'; } }
 }
 
 async function signOut() {
-  if (_supa) await _supa.auth.signOut();
+  if (_auth) await _auth.signOut();
   resetState(); _currentUser=null; updateNavUser();
   render();
 }
@@ -1052,12 +999,12 @@ function navigate(page) {
   if (page === 'quiz') { S.quizMode = 'menu'; S.quizConfig = null; S.quizSetup = null; }
   render();
   // Pull latest cloud data on EVERY feature page entry; skip only if a fetch is already in-flight
-  if (page !== 'home' && page !== 'login' && _supa && _currentUser && !_isFetchingCloud) {
+  if (page !== 'home' && page !== 'login' && _db && _currentUser && !_isFetchingCloud) {
     _isFetchingCloud = true;
     _lastCloudFetch = Date.now();
-    const _navFetchTimeout = setTimeout(() => { _isFetchingCloud = false; }, 20000); // safety reset if hung
+    const _navFetchTimeout = setTimeout(() => { _isFetchingCloud = false; }, 20000);
     loadCloudData()
-      .catch(e => console.warn('[Supa] auto-pull on navigate:', e))
+      .catch(e => console.warn('[FB] auto-pull on navigate:', e))
       .finally(() => { clearTimeout(_navFetchTimeout); _isFetchingCloud = false; });
   }
 }
@@ -1078,7 +1025,7 @@ function switchZone(zone) {
   } else {
     // Already on a page in this zone — still pull fresh data
     updateNavUI();
-    if (_supa && _currentUser && !_isFetchingCloud) {
+    if (_db && _currentUser && !_isFetchingCloud) {
       _isFetchingCloud = true;
       _lastCloudFetch = Date.now();
       const _zoneFetchTimeout = setTimeout(() => { _isFetchingCloud = false; }, 20000);
@@ -1395,7 +1342,7 @@ function refreshFilterBar() {
 
 
 async function refreshFromCloud() {
-  if (!_supa || !_currentUser) { alert('請先登入帳號才能同步雲端'); return; }
+  if (!_db || !_currentUser) { alert('請先登入帳號才能同步雲端'); return; }
   var btn = document.getElementById('cloud-refresh-btn');
   if (btn) { btn.textContent = '同步中...'; btn.style.opacity = '.6'; btn.style.pointerEvents = 'none'; }
   try {
@@ -1415,7 +1362,7 @@ async function refreshFromCloud() {
 
 
 async function datasetsSyncNow() {
-  if (!_supa || !_currentUser || !_accessToken) {
+  if (!_db || !_currentUser) {
     const msg = document.getElementById('dataset-sync-msg');
     if (msg) { msg.textContent = '⚠️ 請先登入帳號'; msg.style.color = '#F87171'; }
     return;
@@ -2990,7 +2937,7 @@ function removeBrowseItem(idx, mode) {
 async function dashSyncNow() {
   const msg = document.getElementById('dash-sync-msg');
   const btn = document.getElementById('dash-sync-btn');
-  if (!_supa || !_currentUser || !_accessToken) {
+  if (!_db || !_currentUser) {
     if (msg) { msg.textContent = '⚠️ 請先登入帳號'; msg.style.color = '#FBBF24'; }
     return;
   }
@@ -3552,7 +3499,7 @@ function handleMDFiles(files) {
   });
 }
 async function librarySyncNow() {
-  if (!_supa || !_currentUser || !_accessToken) {
+  if (!_db || !_currentUser) {
     const msg = document.getElementById('lib-sync-msg');
     if (msg) { msg.textContent = '⚠️ 請先登入帳號'; msg.style.color = '#F87171'; }
     return;
@@ -3714,68 +3661,75 @@ function notesHTML(){const totalN=S.annotations.length;const filterTags=STAGS.ma
 function studyStatsHTML(){const allTopics=[...new Set(S.materials.flatMap(m=>m.matTags||[]))];const totalMats=S.materials.length;const totalAnns=S.annotations.length;const tagStats=STAGS.map(t=>({...t,count:S.annotations.filter(a=>a.tag===t.id).length}));const topicStats=allTopics.map(topic=>{const mats=S.materials.filter(m=>(m.matTags||[]).includes(topic));const matIds=new Set(mats.map(m=>m.id));const anns=S.annotations.filter(a=>matIds.has(a.matId));return{topic,matCount:mats.length,annCount:anns.length,tags:STAGS.map(t=>({...t,count:anns.filter(a=>a.tag===t.id).length}))};});const untaggedMats=S.materials.filter(m=>!(m.matTags||[]).length);return`<div class="page" style="max-width:680px;margin:0 auto;padding:clamp(1.5rem,5vw,2.5rem) clamp(1rem,4vw,1.5rem);"><h2 style="font-size:1.15rem;font-weight:800;margin-bottom:1rem;font-family:'Sora',sans-serif;">教材統計總覽</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.5rem;margin-bottom:1.5rem;"><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">教材總數</div><div style="font-size:1.6rem;font-weight:800;color:var(--accent);margin-top:.2rem;">${totalMats}</div></div><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">筆記總數</div><div style="font-size:1.6rem;font-weight:800;color:var(--gold);margin-top:.2rem;">${totalAnns}</div></div><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">分類數</div><div style="font-size:1.6rem;font-weight:800;color:var(--green);margin-top:.2rem;">${allTopics.length}</div></div></div>${tagStats.some(t=>t.count>0)?`<div class="g-card" style="padding:1rem;margin-bottom:1rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem;">筆記標籤分佈</div><div style="display:flex;flex-wrap:wrap;gap:.4rem;">${tagStats.map(t=>t.count?`<span class="stag ${t.cls}">${t.label} ${t.count}</span>`:'').join('')}</div></div>`:''} ${topicStats.map(ts=>`<div class="g-card" style="padding:1rem;margin-bottom:.6rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><span style="font-size:.88rem;font-weight:700;">${ts.topic}</span><span style="font-size:.7rem;color:var(--text-3);">${ts.matCount} 教材 · ${ts.annCount} 筆記</span></div>${ts.tags.some(t=>t.count>0)?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;">${ts.tags.map(t=>t.count?`<span class="stag ${t.cls}" style="font-size:.6rem">${t.label} ${t.count}</span>`:'').join('')}</div>`:'<span style="font-size:.76rem;color:var(--text-3);">尚無筆記</span>'}</div>`).join('')}${untaggedMats.length?`<div class="g-card" style="padding:1rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><span style="font-size:.88rem;font-weight:700;color:var(--text-3);">未分類</span><span style="font-size:.7rem;color:var(--text-3);">${untaggedMats.length} 教材</span></div></div>`:''}</div>`;}
 
 async function syncStudyToCloud(){
-  if(!_supa||!_currentUser||!_accessToken)return;
-  const uid=_currentUser.id;
+  if(!_db||!_currentUser)return;
+  const uid=_currentUser.uid;
 
-  // 1. Upsert each material individually in parallel (avoids giant single payload)
+  // 1. Upsert each material individually in parallel
   if(S.materials.length){
-    const matErrors=[];
     await Promise.all(S.materials.map(m=>
-      _supa.from('study_materials').upsert(
-        {id:m.id,user_id:uid,title:m.title,raw:m.raw,sections:m.sections,toc:m.toc,mat_tags:m.matTags||[],uploaded_at:m.uploadedAt},
-        {onConflict:'user_id,id'})
-      .then(({error})=>{ if(error) matErrors.push(m.title+': '+error.message); })
+      _db.collection('users').doc(uid).collection('study_materials').doc(m.id).set(
+        {id:m.id,title:m.title,raw:m.raw,sections:m.sections,toc:m.toc,mat_tags:m.matTags||[],uploaded_at:m.uploadedAt},
+        {merge:true}
+      )
     ));
-    if(matErrors.length) throw new Error('study_materials: '+matErrors.join('; '));
   }
 
-  // 2. Fetch cloud IDs for GC of materials and annotations in parallel
-  const [cmRes, caRes] = await Promise.all([
-    _supa.from('study_materials').select('id').eq('user_id',uid),
-    _supa.from('study_annotations').select('id,mat_id,sec_id').eq('user_id',uid),
+  // 2. Fetch cloud IDs for GC in parallel
+  const [matsSnap, annsSnap] = await Promise.all([
+    _db.collection('users').doc(uid).collection('study_materials').get(),
+    _db.collection('users').doc(uid).collection('study_annotations').get(),
   ]);
-  if(cmRes.error) throw new Error('study_materials select: '+cmRes.error.message);
-  if(caRes.error) throw new Error('study_annotations select: '+caRes.error.message);
-
-  // 3. Compute deletions and annotation upsert in parallel
-  const gcAndUpsertTasks = [];
 
   // GC materials
-  if(cmRes.data){
-    const ids=new Set(S.materials.map(m=>m.id));
-    const toDelete=cmRes.data.filter(r=>!ids.has(r.id)).map(r=>r.id);
-    if(toDelete.length)
-      gcAndUpsertTasks.push(
-        _supa.from('study_materials').delete().eq('user_id',uid).in('id',toDelete)
-          .then(({error})=>{ if(error) throw new Error('study_materials delete: '+error.message); })
-      );
+  const localMatIds=new Set(S.materials.map(m=>m.id));
+  const toDelMats=matsSnap.docs.filter(d=>!localMatIds.has(d.id)).map(d=>d.ref);
+  if(toDelMats.length){
+    const batch=_db.batch();
+    toDelMats.forEach(ref=>batch.delete(ref));
+    await batch.commit();
   }
 
-  // Annotations upsert in batches of 100 (each is small)
+  // Upsert annotations
   if(S.annotations.length){
-    const ABATCH=100;
-    const annRows=S.annotations.map(a=>({id:a.id,user_id:uid,mat_id:a.matId,sec_id:a.secId,tag:a.tag,memo:a.memo||'',mat_title:a.matTitle||'',section_heading:a.sectionHeading||'',html:a.html||'',created_at:a.createdAt}));
-    for(let i=0;i<annRows.length;i+=ABATCH)
-      gcAndUpsertTasks.push(
-        _supa.from('study_annotations').upsert(annRows.slice(i,i+ABATCH),{onConflict:'user_id,mat_id,sec_id'})
-          .then(({error})=>{ if(error) throw new Error('study_annotations: '+error.message); })
-      );
+    const ABATCH=500;
+    for(let i=0;i<S.annotations.length;i+=ABATCH){
+      const batch=_db.batch();
+      S.annotations.slice(i,i+ABATCH).forEach(a=>{
+        const ref=_db.collection('users').doc(uid).collection('study_annotations').doc(a.id);
+        batch.set(ref,{id:a.id,mat_id:a.matId,sec_id:a.secId,tag:a.tag,memo:a.memo||'',mat_title:a.matTitle||'',section_heading:a.sectionHeading||'',html:a.html||'',created_at:a.createdAt},{merge:true});
+      });
+      await batch.commit();
+    }
   }
 
   // GC annotations
-  if(caRes.data){
-    const keys=new Set(S.annotations.map(a=>a.matId+'|'+a.secId));
-    const toDelete=caRes.data.filter(r=>!keys.has(r.mat_id+'|'+r.sec_id)).map(r=>r.id);
-    if(toDelete.length)
-      gcAndUpsertTasks.push(
-        _supa.from('study_annotations').delete().eq('user_id',uid).in('id',toDelete)
-          .then(({error})=>{ if(error) throw new Error('study_annotations delete: '+error.message); })
-      );
+  const localAnnKeys=new Set(S.annotations.map(a=>a.matId+'|'+a.secId));
+  const toDelAnns=annsSnap.docs.filter(d=>{const a=d.data();return!localAnnKeys.has((a.mat_id||'')+'|'+(a.sec_id||''));}).map(d=>d.ref);
+  if(toDelAnns.length){
+    const ABATCH=500;
+    for(let i=0;i<toDelAnns.length;i+=ABATCH){
+      const batch=_db.batch();
+      toDelAnns.slice(i,i+ABATCH).forEach(ref=>batch.delete(ref));
+      await batch.commit();
+    }
   }
-
-  if(gcAndUpsertTasks.length) await Promise.all(gcAndUpsertTasks);
 }
-async function loadStudyFromCloud(){if(!_supa||!_currentUser)return;const uid=_currentUser.id;try{const{data:mats}=await _supa.from('study_materials').select('*').eq('user_id',uid).order('uploaded_at');if(mats&&mats.length){S.materials=mats.map(m=>({id:m.id,title:m.title,raw:m.raw,sections:m.sections,toc:m.toc,matTags:m.mat_tags||[],uploadedAt:m.uploaded_at}));}const{data:anns}=await _supa.from('study_annotations').select('*').eq('user_id',uid).order('created_at');if(anns&&anns.length){S.annotations=anns.map(a=>({id:a.id,matId:a.mat_id,secId:a.sec_id,tag:a.tag,memo:a.memo,matTitle:a.mat_title,sectionHeading:a.section_heading,html:a.html,createdAt:a.created_at}));}}catch(e){console.warn('[Supa] study load:',e);}}
+async function loadStudyFromCloud(){
+  if(!_db||!_currentUser)return;
+  const uid=_currentUser.uid;
+  try{
+    const[matsSnap,annsSnap]=await Promise.all([
+      _db.collection('users').doc(uid).collection('study_materials').orderBy('uploaded_at').get(),
+      _db.collection('users').doc(uid).collection('study_annotations').orderBy('created_at').get(),
+    ]);
+    if(!matsSnap.empty){
+      S.materials=matsSnap.docs.map(d=>{const m=d.data();return{id:m.id,title:m.title,raw:m.raw,sections:m.sections,toc:m.toc,matTags:m.mat_tags||[],uploadedAt:m.uploaded_at};});
+    }
+    if(!annsSnap.empty){
+      S.annotations=annsSnap.docs.map(d=>{const a=d.data();return{id:a.id,matId:a.mat_id,secId:a.sec_id,tag:a.tag,memo:a.memo,matTitle:a.mat_title,sectionHeading:a.section_heading,html:a.html,createdAt:a.created_at};});
+    }
+  }catch(e){console.warn('[FB] study load:',e);}
+}
 
 /* ╔══════════════════════════════════╗
    ║             BOOT                 ║
@@ -3785,10 +3739,10 @@ loadFromStorage();
 // Cloud-first: render immediately with local data as visual fallback,
 // then cloud data overwrites automatically via loadCloudProgress → render()
 render();
-if (typeof supabase !== 'undefined') {
-  initSupabase(); // will call loadCloudProgress() → render() when ready
+if (typeof firebase !== 'undefined') {
+  initFirebase(); // will call loadCloudData() → render() when auth state resolves
 } else {
-  window.addEventListener('load', function() { initSupabase(); });
+  window.addEventListener('load', function() { initFirebase(); });
 }
 </script>
 </body>
