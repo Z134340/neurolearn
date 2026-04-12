@@ -265,6 +265,8 @@
   .score-ring{position:relative;display:inline-flex;align-items:center;justify-content:center}
 
   .zt-short{display:none}
+  /* 資料更新時抑制 fadeUp 動畫，避免畫面閃爍 */
+  body.no-anim .page{animation:none!important}
   @media(max-width:640px){
     /* Datasets page buttons on mobile */
     #cloud-refresh-btn { font-size:.78rem !important; padding:.5rem .9rem !important; }
@@ -679,7 +681,7 @@ async function loadCloudData() {
 
     if (!_lastSyncTime) _lastSyncTime = new Date();
     saveToStorage();
-    if (!_blockCloudRender) render();
+    if (!_blockCloudRender) renderSilent();
     console.log('[FB] Cloud loaded — files:', S.files.length,
       'questions:', S.extraQs.length, 'sessions:', S.history.length);
   } catch(e) {
@@ -787,14 +789,14 @@ function initFirebase() {
         // New sign-in via page reload (doSignIn handles fresh login separately)
         resetState(); loadFromStorage();
         navigate('home');
-        try { await loadCloudData(); } catch(e) { console.warn('[FB] loadCloudData error:', e); render(); }
+        try { await loadCloudData(); } catch(e) { console.warn('[FB] loadCloudData error:', e); renderSilent(); }
         subscribeRealtime();
       }
       if (user && prev && user.uid !== prev.uid) {
         // Different user signed in (edge case)
         resetState(); loadFromStorage();
         navigate('home');
-        try { await loadCloudData(); } catch(e) { render(); }
+        try { await loadCloudData(); } catch(e) { renderSilent(); }
         subscribeRealtime();
       }
       if (!user && prev) {
@@ -835,7 +837,7 @@ async function doSignIn() {
     updateNavUser();
     resetState(); loadFromStorage();
     navigate('home');
-    loadCloudData().then(() => subscribeRealtime()).catch(e => { console.warn('[FB] login load:', e); render(); });
+    loadCloudData().then(() => subscribeRealtime()).catch(e => { console.warn('[FB] login load:', e); renderSilent(); });
   } catch(e) {
     if (msg) {
       const errMsg = (e.message||'').toLowerCase();
@@ -1076,6 +1078,13 @@ function updateNavUI() {
   }
 }
 function setActiveNav(page) { updateNavUI(); }
+
+/* 資料更新後的靜音 render（無 fadeUp 動畫，避免畫面閃爍） */
+function renderSilent() {
+  document.body.classList.add('no-anim');
+  render();
+  requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove('no-anim')));
+}
 
 /* ╔══════════════════════════════════╗
    ║           MASTER RENDER          ║
