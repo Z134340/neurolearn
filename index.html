@@ -695,7 +695,14 @@ function subscribeRealtime() {
   unsubscribeRealtime(); // clean up any existing listeners
   const uid = _currentUser.uid;
 
+  // Ignore the initial snapshot fires (Firestore always fires once immediately on subscribe)
+  // Only react to changes that happen AFTER the initial load settles
+  let _ready = false;
+  const _readyTimer = setTimeout(() => { _ready = true; }, 5000);
+  _realtimeUnsubscribers.push(() => clearTimeout(_readyTimer));
+
   const handleChange = () => {
+    if (!_ready) return; // skip initial snapshot
     clearTimeout(_realtimeReloadTimer);
     _realtimeReloadTimer = setTimeout(() => {
       if (_blockCloudRender) return;
@@ -777,10 +784,17 @@ function initFirebase() {
       updateNavUser();
 
       if (user && !prev) {
-        // New sign-in
+        // New sign-in via page reload (doSignIn handles fresh login separately)
         resetState(); loadFromStorage();
         navigate('home');
         try { await loadCloudData(); } catch(e) { console.warn('[FB] loadCloudData error:', e); render(); }
+        subscribeRealtime();
+      }
+      if (user && prev && user.uid !== prev.uid) {
+        // Different user signed in (edge case)
+        resetState(); loadFromStorage();
+        navigate('home');
+        try { await loadCloudData(); } catch(e) { render(); }
         subscribeRealtime();
       }
       if (!user && prev) {
@@ -817,7 +831,11 @@ async function doSignIn() {
   if (!email||!pw) { if(msg){ msg.style.color='#F87171'; msg.textContent='請填寫 Email 和密碼。'; } return; }
   if (msg) { msg.style.color='var(--text-3)'; msg.textContent='登入中…'; }
   try {
-    await authSignIn(email, pw); updateNavUser(); navigate('home');
+    await authSignIn(email, pw);
+    updateNavUser();
+    resetState(); loadFromStorage();
+    navigate('home');
+    loadCloudData().then(() => subscribeRealtime()).catch(e => { console.warn('[FB] login load:', e); render(); });
   } catch(e) {
     if (msg) {
       const errMsg = (e.message||'').toLowerCase();
