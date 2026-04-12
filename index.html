@@ -1015,15 +1015,7 @@ function navigate(page) {
   S.page = page;
   if (page === 'quiz') { S.quizMode = 'menu'; S.quizConfig = null; S.quizSetup = null; }
   render();
-  // Pull latest cloud data on EVERY feature page entry; skip only if a fetch is already in-flight
-  if (page !== 'home' && page !== 'login' && _db && _currentUser && !_isFetchingCloud) {
-    _isFetchingCloud = true;
-    _lastCloudFetch = Date.now();
-    const _navFetchTimeout = setTimeout(() => { _isFetchingCloud = false; }, 20000);
-    loadCloudData()
-      .catch(e => console.warn('[FB] auto-pull on navigate:', e))
-      .finally(() => { clearTimeout(_navFetchTimeout); _isFetchingCloud = false; });
-  }
+  // onSnapshot 已即時維護資料，切頁不需再額外拉雲端
 }
 
 let _currentZone = 'study';
@@ -1040,16 +1032,7 @@ function switchZone(zone) {
   if (!ZONE_MAP[zone].pages.includes(S.page)) {
     navigate(ZONE_MAP[zone].default);
   } else {
-    // Already on a page in this zone — still pull fresh data
     updateNavUI();
-    if (_db && _currentUser && !_isFetchingCloud) {
-      _isFetchingCloud = true;
-      _lastCloudFetch = Date.now();
-      const _zoneFetchTimeout = setTimeout(() => { _isFetchingCloud = false; }, 20000);
-      loadCloudData()
-        .catch(e => console.warn('[Supa] auto-pull on switchZone:', e))
-        .finally(() => { clearTimeout(_zoneFetchTimeout); _isFetchingCloud = false; });
-    }
   }
 }
 
