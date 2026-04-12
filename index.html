@@ -288,7 +288,7 @@
     .nav-logo-icon{width:26px;height:26px;border-radius:6px}
     .zone-tab{font-size:.72rem;padding:.28rem .55rem}
     .zt-full{display:none}.zt-short{display:inline}
-    #nav-sub-tabs{top:calc(84px + env(safe-area-inset-top, 0px));height:38px;padding:0 .75rem;overflow-y:visible}
+    #nav-sub-tabs{top:calc(84px + env(safe-area-inset-top, 0px));height:38px;padding:0 .75rem;overflow-y:visible;z-index:201}
     .sub-tab{font-size:.72rem;padding:.3rem .6rem}
     #page-content{padding-top:calc(122px + env(safe-area-inset-top, 0px))}
     .page{animation:none}
@@ -851,7 +851,7 @@ function initSupabase() {
           _currentUser  = data?.session?.user ?? null;
           _accessToken  = data?.session?.access_token ?? null;
           updateNavUser();
-          if (_currentUser) loadCloudData().then(() => subscribeRealtime()).catch(e => console.warn('[Supa] getSession load:', e));
+          if (_currentUser) { loadFromStorage(); render(); loadCloudData().then(() => subscribeRealtime()).catch(e => console.warn('[Supa] getSession load:', e)); }
         }).catch(e => console.warn('[Supa] getSession error:', e));
       }
     } else {
@@ -859,7 +859,7 @@ function initSupabase() {
         _currentUser = data?.session?.user ?? null;
         _accessToken = data?.session?.access_token ?? null;
         updateNavUser();
-        if (_currentUser) loadCloudData().then(() => subscribeRealtime()).catch(e => console.warn('[Supa] getSession load:', e));
+        if (_currentUser) { loadFromStorage(); render(); loadCloudData().then(() => subscribeRealtime()).catch(e => console.warn('[Supa] getSession load:', e)); }
       }).catch(e => console.warn('[Supa] getSession error:', e));
     }
   } catch(e) { console.warn('[Supa] init failed:', e); }
