@@ -444,6 +444,9 @@ function resetState() {
   S.bookmarks = new Set(); S.wrongQs = new Set(); S.usedQIds = new Set();
   S.history = []; S.files = []; S.extraQs = []; S.nextFid = 4;
   S.dashTag = null; S.tagFilter = null; S._dashHistPage = 0; S.page = 'home';
+  // Reset module-level filter variables
+  _noteFilter = 'all'; _matTagFilter = null;
+  _stagMatId = ''; _stagSecId = ''; _stagSel = '';
 }
 
 // ── Normalized Cloud Sync (v3 schema) ─────────────────────────────────────
@@ -812,6 +815,7 @@ function initSupabase() {
       updateNavUser();
       if (event === 'SIGNED_IN' && !prev) {
         resetState(); loadFromStorage();
+        navigate('home'); // immediately show home page before cloud data loads
         try { await loadCloudData(); } catch(e) { console.warn('[Supa] loadCloudData error:', e); render(); }
         subscribeRealtime(); // start real-time sync after data loaded
       }
@@ -932,8 +936,8 @@ async function doResend() {
 }
 
 async function signOut() {
-  resetState(); _currentUser=null; updateNavUser();
   if (_supa) await _supa.auth.signOut();
+  resetState(); _currentUser=null; updateNavUser();
   render();
 }
 
@@ -2409,6 +2413,12 @@ function questionSource(q) {
 }
 
 
+function quizIdleHTML() {
+  // Fallback: quiz state became idle unexpectedly — return to quiz menu
+  S.quizMode = 'menu';
+  return quizMenuHTML();
+}
+
 function quizActiveHTML() {
   if (!S.activeQs.length || S.currentQ < 0 || S.currentQ >= S.activeQs.length || !S.answers[S.currentQ]) {
     S.quizState = 'idle'; return quizIdleHTML();
@@ -2817,7 +2827,7 @@ function quizReviewHTML() {
       background:${correctSet(q).has(oi)?'rgba(74,222,128,.07)':'rgba(255,255,255,.02)'};
       border:1px solid ${correctSet(q).has(oi)?'rgba(74,222,128,.3)':'var(--border)'};
       color:${correctSet(q).has(oi)?'#4ADE80':'var(--text-2)'};">
-      ${oi===q.answer
+      ${correctSet(q).has(oi)
         ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
         : '<span style="width:13px;display:inline-block"></span>'}
       ${opt}
@@ -3443,6 +3453,7 @@ function saveToStorage() {
       annotations: S.annotations,
       currentMat: S.currentMat,
       readProgress: S.readProgress,
+      lastSyncTime: _lastSyncTime ? _lastSyncTime.toISOString() : null,
     };
     localStorage.setItem(getStorageKey(), JSON.stringify(payload));
     scheduleSyncToCloud();
@@ -3474,6 +3485,7 @@ function loadFromStorage() {
     if (Array.isArray(d.annotations)) S.annotations = d.annotations;
     if (d.currentMat !== undefined)   S.currentMat  = d.currentMat;
     if (d.readProgress)              S.readProgress = d.readProgress;
+    if (d.lastSyncTime)              _lastSyncTime  = new Date(d.lastSyncTime);
     return true;
   } catch(e) {
     console.warn('[NeuroLearn] load failed:', e);
