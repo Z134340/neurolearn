@@ -1071,7 +1071,7 @@ function render() {
     case 'studystats': c.innerHTML = studyStatsHTML(); break;
   }
   const _isMobile = window.innerWidth <= 640;
-  const _navH  = _isMobile ? 46 : 52;
+  const _navH  = _isMobile ? 84 : 52;  // mobile: 2-row navbar (46px top + 38px zone-tabs)
   const _subH  = _isMobile ? 38 : 44;
   const _noSub = S.page === 'home' || S.page === 'login';
   c.style.paddingTop = `calc(${_noSub ? _navH : _navH + _subH}px + env(safe-area-inset-top, 0px))`;
