@@ -315,7 +315,7 @@
   #zt-study.active{color:var(--accent)}
   #zt-exam.active{color:var(--gold)}
   #zt-dash.active{color:var(--green)}
-  #nav-sub-tabs{position:fixed;top:calc(52px + env(safe-area-inset-top, 0px));left:0;right:0;height:44px;background:rgba(14,14,22,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:201;display:flex;align-items:center;gap:.15rem;padding:0 1.25rem;overflow-x:auto;overflow-y:visible}
+  #nav-sub-tabs{position:fixed;top:calc(52px + env(safe-area-inset-top, 0px));left:0;right:0;height:44px;background:rgba(14,14,22,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:199;display:flex;align-items:center;gap:.15rem;padding:0 1.25rem;overflow-x:auto;overflow-y:visible}
   #nav-sub-tabs::-webkit-scrollbar{height:0}
   .sub-tab{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .8rem;border-radius:9px;font-size:.78rem;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text-2);transition:all .18s;border:none;background:none;font-family:'DM Sans',sans-serif}
   .sub-tab:hover{color:var(--text-1);background:rgba(255,255,255,.05)}
@@ -427,8 +427,10 @@ let _cloudSyncTimer = null;
 let _fullSyncTimer  = null;
 let _accessToken = null;  // cached JWT — no network needed 
 let _blockCloudRender = false; // prevent cloud re-render from overwriting fresh quiz result
-let _lastSyncTime = null;  // timestamp of last successful cloud syncfor sync
+let _lastSyncTime = null;  // timestamp of last successful cloud sync
 let _lastCloudFetch = 0;   // epoch ms of last loadCloudData() call — used for auto-pull debounce
+let _realtimeChannel = null;   // Supabase Realtime channel
+let _realtimeReloadTimer = null; // debounce timer for realtime-triggered reload
 
 const STORAGE_KEY_BASE = 'neurolearn_v2';
 function getStorageKey() {
@@ -527,17 +529,22 @@ async function syncQuizSession(session) {
 async function syncAllToCloud() {
   if (!_supa || !_currentUser) return;
   const uid = _currentUser.id;
-  // 1. user_state
-  await syncUserState();
-  // 2. exam_files
+  const now = new Date().toISOString();
+
+  // 1+2. user_state & exam_files — launch in parallel
   const fileRows = S.files.map(f => ({
     id: String(f.id), user_id: uid, name: f.name,
-    tags: f.tags || [], uploaded_at: new Date().toISOString(),
+    tags: f.tags || [], uploaded_at: now,
   }));
+  const parallelTasks = [syncUserState()];
   if (fileRows.length) {
-    const { error: efErr } = await _supa.from('exam_files').upsert(fileRows, { onConflict: 'user_id,id' });
-    if (efErr) throw new Error('exam_files 同步失敗：' + efErr.message);
+    parallelTasks.push(
+      _supa.from('exam_files').upsert(fileRows, { onConflict: 'user_id,id' })
+        .then(({ error }) => { if (error) throw new Error('exam_files 同步失敗：' + error.message); })
+    );
   }
+  await Promise.all(parallelTasks);
+
   // Garbage-collect deleted files
   const { data: cloudFiles, error: cfErr } = await _supa.from('exam_files').select('id').eq('user_id', uid);
   if (cfErr) throw new Error('exam_files 查詢失敗：' + cfErr.message);
@@ -545,11 +552,14 @@ async function syncAllToCloud() {
     const localFids = new Set(S.files.map(f => String(f.id)));
     const toDelFids = cloudFiles.filter(r => !localFids.has(r.id)).map(r => r.id);
     if (toDelFids.length) {
-      await _supa.from('exam_questions').delete().eq('user_id', uid).in('file_id', toDelFids);
-      await _supa.from('exam_files').delete().eq('user_id', uid).in('id', toDelFids);
+      await Promise.all([
+        _supa.from('exam_questions').delete().eq('user_id', uid).in('file_id', toDelFids),
+        _supa.from('exam_files').delete().eq('user_id', uid).in('id', toDelFids),
+      ]);
     }
   }
-  // 3. exam_questions (batched)
+
+  // 3. exam_questions (batched, parallel batches)
   if (S.extraQs.length) {
     const qRows = S.extraQs.map(q => ({
       q_id: String(q.id), user_id: uid, file_id: String(q._fileId || 0),
@@ -562,11 +572,16 @@ async function syncAllToCloud() {
       src_id: q._srcId || '', is_multi: !!q.isMulti,
     }));
     const BATCH = 200;
+    const batchPromises = [];
     for (let i = 0; i < qRows.length; i += BATCH) {
-      const { error: eqErr } = await _supa.from('exam_questions').upsert(qRows.slice(i, i+BATCH), { onConflict: 'user_id,q_id' });
-      if (eqErr) throw new Error('exam_questions 同步失敗：' + eqErr.message);
+      batchPromises.push(
+        _supa.from('exam_questions').upsert(qRows.slice(i, i+BATCH), { onConflict: 'user_id,q_id' })
+          .then(({ error }) => { if (error) throw new Error('exam_questions 同步失敗：' + error.message); })
+      );
     }
+    await Promise.all(batchPromises);
   }
+
   // 4. study materials + annotations (non-blocking — tables may not exist yet)
   try { await syncStudyToCloud(); } catch(e) { console.warn('[Supa] study sync skipped:', e.message); }
 }
@@ -717,23 +732,54 @@ async function _loadCloudProgressLegacy() {
 }
 
 /* Debounced background sync — two-tier:
+/* ── Supabase Realtime subscription ─────────────────────────────────────────
+   Subscribe to all user data tables; any remote change triggers a debounced
+   loadCloudData() so data stays fresh across devices / tabs in real-time.  */
+function subscribeRealtime() {
+  if (!_supa || !_currentUser) return;
+  // Remove existing channel before re-subscribing
+  if (_realtimeChannel) { try { _supa.removeChannel(_realtimeChannel); } catch(_){} _realtimeChannel = null; }
+  const uid = _currentUser.id;
+  const tables = ['user_state','exam_files','exam_questions','quiz_sessions','study_materials','study_annotations'];
+  let ch = _supa.channel('nl-user-' + uid);
+  tables.forEach(t => {
+    ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: t, filter: 'user_id=eq.' + uid }, () => {
+      clearTimeout(_realtimeReloadTimer);
+      _realtimeReloadTimer = setTimeout(() => {
+        if (_blockCloudRender) return; // don't overwrite fresh quiz result
+        _lastCloudFetch = 0; // reset debounce so reload always runs
+        loadCloudData().catch(e => console.warn('[Supa] realtime reload:', e));
+      }, 1500);
+    });
+  });
+  _realtimeChannel = ch.subscribe(status => {
+    console.log('[Supa] Realtime', status);
+  });
+}
+
+function unsubscribeRealtime() {
+  clearTimeout(_realtimeReloadTimer);
+  if (_realtimeChannel && _supa) { try { _supa.removeChannel(_realtimeChannel); } catch(_){} _realtimeChannel = null; }
+}
+
+/* ── Tiered background auto-save to cloud ───────────────────────────────────
    fast (2s): user_state + study materials
    full (5s): all tables incl. exam files & questions */
 function scheduleSyncToCloud() {
   if (!_supa || !_currentUser) return;
-  // Tier 1 — fast: user_state + study (2s)
+  // Tier 1 — fast: user_state + study (0.8s) — covers bookmarks, notes, tags, read progress
   clearTimeout(_cloudSyncTimer);
   _cloudSyncTimer = setTimeout(() => {
     syncUserState().then(() => { _lastSyncTime = new Date(); })
       .catch(e => console.warn('[Supa] userState sync:', e.message||e));
     syncStudyToCloud().catch(e => console.warn('[Supa] study sync:', e));
-  }, 2000);
-  // Tier 2 — full: covers exam files/questions and anything else (5s)
+  }, 800);
+  // Tier 2 — full: covers exam files/questions and everything else (3s)
   clearTimeout(_fullSyncTimer);
   _fullSyncTimer = setTimeout(() => {
     syncAllToCloud().then(() => { _lastSyncTime = new Date(); })
       .catch(e => console.warn('[Supa] fullSync:', e.message||e));
-  }, 5000);
+  }, 3000);
 }
 
 function updateNavUser() {
@@ -767,8 +813,10 @@ function initSupabase() {
       if (event === 'SIGNED_IN' && !prev) {
         resetState(); loadFromStorage();
         try { await loadCloudData(); } catch(e) { console.warn('[Supa] loadCloudData error:', e); render(); }
+        subscribeRealtime(); // start real-time sync after data loaded
       }
       if (event === 'SIGNED_OUT') {
+        unsubscribeRealtime();
         resetState(); loadFromStorage(); render();
       }
     });
@@ -784,7 +832,7 @@ function initSupabase() {
           _currentUser  = data?.session?.user ?? null;
           _accessToken  = data?.session?.access_token ?? null;
           updateNavUser();
-          if (_currentUser) loadCloudData();
+          if (_currentUser) loadCloudData().then(() => subscribeRealtime()).catch(e => console.warn('[Supa] getSession load:', e));
         }).catch(e => console.warn('[Supa] getSession error:', e));
       }
     } else {
@@ -792,7 +840,7 @@ function initSupabase() {
         _currentUser = data?.session?.user ?? null;
         _accessToken = data?.session?.access_token ?? null;
         updateNavUser();
-        if (_currentUser) loadCloudData();
+        if (_currentUser) loadCloudData().then(() => subscribeRealtime()).catch(e => console.warn('[Supa] getSession load:', e));
       }).catch(e => console.warn('[Supa] getSession error:', e));
     }
   } catch(e) { console.warn('[Supa] init failed:', e); }
@@ -986,17 +1034,18 @@ const S = {
 /* ╔══════════════════════════════════╗
    ║          NAVIGATION              ║
    ╚══════════════════════════════════╝ */
+let _isFetchingCloud = false; // concurrent-fetch guard for navigate()
 function navigate(page) {
   S.page = page;
   if (page === 'quiz') { S.quizMode = 'menu'; S.quizConfig = null; S.quizSetup = null; }
   render();
-  // Auto-pull latest cloud data on every feature page entry (debounced to 60s)
-  if (page !== 'home' && page !== 'login' && _supa && _currentUser) {
-    const now = Date.now();
-    if (now - _lastCloudFetch > 60000) {
-      _lastCloudFetch = now; // set eagerly to block concurrent fetches
-      loadCloudData().catch(e => console.warn('[Supa] auto-pull on navigate:', e));
-    }
+  // Pull latest cloud data on EVERY feature page entry; skip only if a fetch is already in-flight
+  if (page !== 'home' && page !== 'login' && _supa && _currentUser && !_isFetchingCloud) {
+    _isFetchingCloud = true;
+    _lastCloudFetch = Date.now();
+    loadCloudData()
+      .catch(e => console.warn('[Supa] auto-pull on navigate:', e))
+      .finally(() => { _isFetchingCloud = false; });
   }
 }
 
@@ -1011,8 +1060,19 @@ Object.entries(ZONE_MAP).forEach(([z,v]) => v.pages.forEach(p => PAGE_TO_ZONE[p]
 
 function switchZone(zone) {
   _currentZone = zone;
-  if (!ZONE_MAP[zone].pages.includes(S.page)) navigate(ZONE_MAP[zone].default);
-  else updateNavUI();
+  if (!ZONE_MAP[zone].pages.includes(S.page)) {
+    navigate(ZONE_MAP[zone].default);
+  } else {
+    // Already on a page in this zone — still pull fresh data
+    updateNavUI();
+    if (_supa && _currentUser && !_isFetchingCloud) {
+      _isFetchingCloud = true;
+      _lastCloudFetch = Date.now();
+      loadCloudData()
+        .catch(e => console.warn('[Supa] auto-pull on switchZone:', e))
+        .finally(() => { _isFetchingCloud = false; });
+    }
+  }
 }
 
 function updateNavUI() {
@@ -1353,7 +1413,7 @@ async function datasetsSyncNow() {
   let _syncOk = false, _syncErr = '';
   try {
     const _timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('同步逾時（30 秒），請確認網路後重試')), 30000));
+      setTimeout(() => reject(new Error('同步逾時（90 秒），請確認網路後重試')), 90000));
     await Promise.race([syncAllToCloud(), _timeout]);
     _lastSyncTime = new Date();
     _syncOk = true;
@@ -1551,10 +1611,12 @@ function removeFile(id) {
   S.extraQs = S.extraQs.filter(q => q._fileId !== id);
 
   // Clean up bookmarks and wrongQs that referenced removed questions
+  // Sets store String IDs — must convert before delete or entries are never found
   removedQIds.forEach(qid => {
-    S.bookmarks.delete(qid);
-    S.wrongQs.delete(qid);
-    S.usedQIds.delete(qid);
+    const sid = String(qid);
+    S.bookmarks.delete(sid);
+    S.wrongQs.delete(sid);
+    S.usedQIds.delete(sid);
   });
 
   // Remove the file record
@@ -1682,10 +1744,15 @@ function _mergeQuestions(parsed, fObj) {
   const incomingFileId = fObj ? String(fObj.id) : '';
   const fileTags = fObj ? (fObj.tags && fObj.tags.length ? fObj.tags : []) : [];
   let added = 0;
+  // Snapshot the current max ID once before the loop to avoid ID collisions
+  // when multiple files are imported simultaneously
+  let _nextId = 10000 + S.extraQs.length;
+  const existingIds = new Set(S.extraQs.map(q => q.id));
+  while (existingIds.has(_nextId)) _nextId++; // skip any pre-existing IDs
   parsed.forEach(q => {
     const dedupeKey = incomingFileId + '||' + q.text.trim();
     if (!existing.has(dedupeKey)) {
-      q.id = 10000 + S.extraQs.length;
+      q.id = _nextId++;
       // Category comes from file's first tag, fallback to exam/category field
       q.category = fileTags[0] || q.category || '匯入題目';
       q._fileTags = [...fileTags];
@@ -2912,7 +2979,7 @@ async function dashSyncNow() {
   let _syncOk = false, _syncErr = '';
   try {
     const _timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('同步逾時（30 秒），請確認網路後重試')), 30000));
+      setTimeout(() => reject(new Error('同步逾時（90 秒），請確認網路後重試')), 90000));
     await Promise.race([syncAllToCloud(), _timeout]);
     _lastSyncTime = new Date();
     _syncOk = true;
@@ -3470,12 +3537,14 @@ async function librarySyncNow() {
   }
   const btn = document.getElementById('lib-sync-btn');
   const msg = document.getElementById('lib-sync-msg');
+  const mc = S.materials.length;
   if (btn) { btn.disabled = true; btn.style.opacity = '.5'; const sp = btn.querySelector('span'); if (sp) sp.textContent = '同步中…'; }
-  if (msg) { msg.textContent = ''; }
+  if (msg) { msg.textContent = `⏳ 同步中（共 ${mc} 份教材）…`; msg.style.color = 'var(--text-3)'; }
   let _syncOk = false, _syncErr = '';
   try {
+    // No hard timeout — let the parallel sync finish naturally; 90s safety net only
     const _timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('同步逾時（30 秒），請確認網路後重試')), 30000));
+      setTimeout(() => reject(new Error('同步逾時（90 秒），請確認網路後重試')), 90000));
     await Promise.race([syncStudyToCloud(), _timeout]);
     _lastSyncTime = new Date();
     _syncOk = true;
@@ -3487,7 +3556,6 @@ async function librarySyncNow() {
       render();
       const newMsg = document.getElementById('lib-sync-msg');
       if (newMsg) {
-        const mc = S.materials.length;
         const ts = _lastSyncTime ? _lastSyncTime.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
         newMsg.textContent = `✅ 同步完成（${mc} 份教材${ts ? '，' + ts : ''}）`;
         newMsg.style.color = '#4ADE80';
@@ -3626,42 +3694,64 @@ function studyStatsHTML(){const allTopics=[...new Set(S.materials.flatMap(m=>m.m
 async function syncStudyToCloud(){
   if(!_supa||!_currentUser||!_accessToken)return;
   const uid=_currentUser.id;
-  // materials — batch upsert in one request
+
+  // 1. Upsert each material individually in parallel (avoids giant single payload)
   if(S.materials.length){
-    const{error}=await _supa.from('study_materials').upsert(
-      S.materials.map(m=>({id:m.id,user_id:uid,title:m.title,raw:m.raw,sections:m.sections,toc:m.toc,mat_tags:m.matTags||[],uploaded_at:m.uploadedAt})),
-      {onConflict:'user_id,id'});
-    if(error)throw new Error('study_materials: '+error.message);
+    const matErrors=[];
+    await Promise.all(S.materials.map(m=>
+      _supa.from('study_materials').upsert(
+        {id:m.id,user_id:uid,title:m.title,raw:m.raw,sections:m.sections,toc:m.toc,mat_tags:m.matTags||[],uploaded_at:m.uploadedAt},
+        {onConflict:'user_id,id'})
+      .then(({error})=>{ if(error) matErrors.push(m.title+': '+error.message); })
+    ));
+    if(matErrors.length) throw new Error('study_materials: '+matErrors.join('; '));
   }
-  // garbage-collect deleted materials
-  const{data:cm,error:cme}=await _supa.from('study_materials').select('id').eq('user_id',uid);
-  if(cme)throw new Error('study_materials select: '+cme.message);
-  if(cm){
+
+  // 2. Fetch cloud IDs for GC of materials and annotations in parallel
+  const [cmRes, caRes] = await Promise.all([
+    _supa.from('study_materials').select('id').eq('user_id',uid),
+    _supa.from('study_annotations').select('id,mat_id,sec_id').eq('user_id',uid),
+  ]);
+  if(cmRes.error) throw new Error('study_materials select: '+cmRes.error.message);
+  if(caRes.error) throw new Error('study_annotations select: '+caRes.error.message);
+
+  // 3. Compute deletions and annotation upsert in parallel
+  const gcAndUpsertTasks = [];
+
+  // GC materials
+  if(cmRes.data){
     const ids=new Set(S.materials.map(m=>m.id));
-    const toDelete=cm.filter(r=>!ids.has(r.id)).map(r=>r.id);
-    if(toDelete.length){
-      const{error}=await _supa.from('study_materials').delete().eq('user_id',uid).in('id',toDelete);
-      if(error)throw new Error('study_materials delete: '+error.message);
-    }
+    const toDelete=cmRes.data.filter(r=>!ids.has(r.id)).map(r=>r.id);
+    if(toDelete.length)
+      gcAndUpsertTasks.push(
+        _supa.from('study_materials').delete().eq('user_id',uid).in('id',toDelete)
+          .then(({error})=>{ if(error) throw new Error('study_materials delete: '+error.message); })
+      );
   }
-  // annotations — batch upsert in one request
+
+  // Annotations upsert in batches of 100 (each is small)
   if(S.annotations.length){
-    const{error}=await _supa.from('study_annotations').upsert(
-      S.annotations.map(a=>({id:a.id,user_id:uid,mat_id:a.matId,sec_id:a.secId,tag:a.tag,memo:a.memo||'',mat_title:a.matTitle||'',section_heading:a.sectionHeading||'',html:a.html||'',created_at:a.createdAt})),
-      {onConflict:'user_id,mat_id,sec_id'});
-    if(error)throw new Error('study_annotations: '+error.message);
+    const ABATCH=100;
+    const annRows=S.annotations.map(a=>({id:a.id,user_id:uid,mat_id:a.matId,sec_id:a.secId,tag:a.tag,memo:a.memo||'',mat_title:a.matTitle||'',section_heading:a.sectionHeading||'',html:a.html||'',created_at:a.createdAt}));
+    for(let i=0;i<annRows.length;i+=ABATCH)
+      gcAndUpsertTasks.push(
+        _supa.from('study_annotations').upsert(annRows.slice(i,i+ABATCH),{onConflict:'user_id,mat_id,sec_id'})
+          .then(({error})=>{ if(error) throw new Error('study_annotations: '+error.message); })
+      );
   }
-  // garbage-collect deleted annotations
-  const{data:ca,error:cae}=await _supa.from('study_annotations').select('id,mat_id,sec_id').eq('user_id',uid);
-  if(cae)throw new Error('study_annotations select: '+cae.message);
-  if(ca){
+
+  // GC annotations
+  if(caRes.data){
     const keys=new Set(S.annotations.map(a=>a.matId+'|'+a.secId));
-    const toDelete=ca.filter(r=>!keys.has(r.mat_id+'|'+r.sec_id)).map(r=>r.id);
-    if(toDelete.length){
-      const{error}=await _supa.from('study_annotations').delete().eq('user_id',uid).in('id',toDelete);
-      if(error)throw new Error('study_annotations delete: '+error.message);
-    }
+    const toDelete=caRes.data.filter(r=>!keys.has(r.mat_id+'|'+r.sec_id)).map(r=>r.id);
+    if(toDelete.length)
+      gcAndUpsertTasks.push(
+        _supa.from('study_annotations').delete().eq('user_id',uid).in('id',toDelete)
+          .then(({error})=>{ if(error) throw new Error('study_annotations delete: '+error.message); })
+      );
   }
+
+  if(gcAndUpsertTasks.length) await Promise.all(gcAndUpsertTasks);
 }
 async function loadStudyFromCloud(){if(!_supa||!_currentUser)return;const uid=_currentUser.id;try{const{data:mats}=await _supa.from('study_materials').select('*').eq('user_id',uid).order('uploaded_at');if(mats&&mats.length){S.materials=mats.map(m=>({id:m.id,title:m.title,raw:m.raw,sections:m.sections,toc:m.toc,matTags:m.mat_tags||[],uploadedAt:m.uploaded_at}));}const{data:anns}=await _supa.from('study_annotations').select('*').eq('user_id',uid).order('created_at');if(anns&&anns.length){S.annotations=anns.map(a=>({id:a.id,matId:a.mat_id,secId:a.sec_id,tag:a.tag,memo:a.memo,matTitle:a.mat_title,sectionHeading:a.section_heading,html:a.html,createdAt:a.created_at}));}}catch(e){console.warn('[Supa] study load:',e);}}
 
