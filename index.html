@@ -288,7 +288,7 @@
     .nav-logo-icon{width:26px;height:26px;border-radius:6px}
     .zone-tab{font-size:.72rem;padding:.28rem .55rem}
     .zt-full{display:none}.zt-short{display:inline}
-    #nav-sub-tabs{top:calc(84px + env(safe-area-inset-top, 0px));height:38px;padding:0 .75rem}
+    #nav-sub-tabs{top:calc(84px + env(safe-area-inset-top, 0px));height:38px;padding:0 .75rem;overflow-y:visible}
     .sub-tab{font-size:.72rem;padding:.3rem .6rem}
     #page-content{padding-top:calc(122px + env(safe-area-inset-top, 0px))}
     .page{animation:none}
@@ -315,16 +315,16 @@
   #zt-study.active{color:var(--accent)}
   #zt-exam.active{color:var(--gold)}
   #zt-dash.active{color:var(--green)}
-  #nav-sub-tabs{position:fixed;top:calc(52px + env(safe-area-inset-top, 0px));left:0;right:0;height:44px;background:rgba(14,14,22,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:199;display:flex;align-items:center;gap:.15rem;padding:0 1.25rem;overflow-x:auto}
+  #nav-sub-tabs{position:fixed;top:calc(52px + env(safe-area-inset-top, 0px));left:0;right:0;height:44px;background:rgba(14,14,22,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:201;display:flex;align-items:center;gap:.15rem;padding:0 1.25rem;overflow-x:auto;overflow-y:visible}
   #nav-sub-tabs::-webkit-scrollbar{height:0}
-  .sub-tab{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .8rem;border-radius:9px;font-size:.78rem;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text-3);transition:all .18s;border:none;background:none;font-family:'DM Sans',sans-serif}
-  .sub-tab:hover{color:var(--text-2);background:rgba(255,255,255,.035)}
-  .sub-tab.active{background:rgba(255,255,255,.06)}
+  .sub-tab{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .8rem;border-radius:9px;font-size:.78rem;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text-2);transition:all .18s;border:none;background:none;font-family:'DM Sans',sans-serif}
+  .sub-tab:hover{color:var(--text-1);background:rgba(255,255,255,.05)}
+  .sub-tab.active{background:rgba(255,255,255,.07)}
   .zone-study .sub-tab.active{color:var(--accent)}
   .zone-exam .sub-tab.active{color:var(--gold)}
   .zone-dash .sub-tab.active{color:var(--green)}
-  .sub-tab svg{opacity:.45;transition:opacity .18s;flex-shrink:0}
-  .sub-tab.active svg{opacity:.9}
+  .sub-tab svg{opacity:.65;transition:opacity .18s;flex-shrink:0}
+  .sub-tab.active svg{opacity:1}
   .sub-cnt{font-size:.62rem;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:1px}
   /* ─── Study Area ─── */
   .study-reader{display:grid;grid-template-columns:220px 1fr;gap:0;min-height:calc(100svh - 96px - env(safe-area-inset-top, 0px))}
