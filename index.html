@@ -539,14 +539,14 @@ async function syncAllToCloud() {
     if (efErr) throw new Error('exam_files 同步失敗：' + efErr.message);
   }
   // Garbage-collect deleted files
-  const { data: cloudFiles } = await _supa.from('exam_files').select('id').eq('user_id', uid);
+  const { data: cloudFiles, error: cfErr } = await _supa.from('exam_files').select('id').eq('user_id', uid);
+  if (cfErr) throw new Error('exam_files 查詢失敗：' + cfErr.message);
   if (cloudFiles) {
     const localFids = new Set(S.files.map(f => String(f.id)));
-    for (const r of cloudFiles) {
-      if (!localFids.has(r.id)) {
-        await _supa.from('exam_questions').delete().eq('user_id', uid).eq('file_id', r.id);
-        await _supa.from('exam_files').delete().eq('user_id', uid).eq('id', r.id);
-      }
+    const toDelFids = cloudFiles.filter(r => !localFids.has(r.id)).map(r => r.id);
+    if (toDelFids.length) {
+      await _supa.from('exam_questions').delete().eq('user_id', uid).in('file_id', toDelFids);
+      await _supa.from('exam_files').delete().eq('user_id', uid).in('id', toDelFids);
     }
   }
   // 3. exam_questions (batched)
@@ -765,7 +765,8 @@ function initSupabase() {
       }
       updateNavUser();
       if (event === 'SIGNED_IN' && !prev) {
-        resetState(); loadFromStorage(); await loadCloudData(); // render() is called inside loadCloudData
+        resetState(); loadFromStorage();
+        try { await loadCloudData(); } catch(e) { console.warn('[Supa] loadCloudData error:', e); render(); }
       }
       if (event === 'SIGNED_OUT') {
         resetState(); loadFromStorage(); render();
@@ -781,18 +782,18 @@ function initSupabase() {
         window.location.hash = '';
         _supa.auth.getSession().then(({ data }) => {
           _currentUser  = data?.session?.user ?? null;
-          _accessToken  = data?.session?.access_token ?? null;  // restore token
+          _accessToken  = data?.session?.access_token ?? null;
           updateNavUser();
-          if (_currentUser) loadCloudData(); // render() called inside
-        });
+          if (_currentUser) loadCloudData();
+        }).catch(e => console.warn('[Supa] getSession error:', e));
       }
     } else {
       _supa.auth.getSession().then(({ data }) => {
         _currentUser = data?.session?.user ?? null;
         _accessToken = data?.session?.access_token ?? null;
         updateNavUser();
-        if (_currentUser) loadCloudData(); // render() called inside
-      });
+        if (_currentUser) loadCloudData();
+      }).catch(e => console.warn('[Supa] getSession error:', e));
     }
   } catch(e) { console.warn('[Supa] init failed:', e); }
 }
@@ -1049,6 +1050,7 @@ function render() {
   _autoSaveTimer = setTimeout(saveToStorage, 600);
 
   const c = document.getElementById('page-content');
+  if (!c) return;
   setActiveNav(S.page);
   switch(S.page) {
     case 'home':      c.innerHTML = homeHTML();       break;
@@ -1729,7 +1731,9 @@ function importXLSXQuestions(file, fObj) {
     try {
       if (typeof XLSX === 'undefined') throw new Error('XLSX 函式庫未載入，請重新整理頁面');
       const wb = XLSX.read(e.target.result, {type:'array'});
+      if (!wb.SheetNames || !wb.SheetNames.length) throw new Error('Excel 檔案內無工作表');
       const ws = wb.Sheets[wb.SheetNames[0]];
+      if (!ws) throw new Error('無法讀取工作表內容');
       const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
       if (!rows.length) throw new Error('試算表內容為空');
       // Normalize column names (lowercase)
@@ -2336,6 +2340,9 @@ function questionSource(q) {
 
 
 function quizActiveHTML() {
+  if (!S.activeQs.length || S.currentQ < 0 || S.currentQ >= S.activeQs.length || !S.answers[S.currentQ]) {
+    S.quizState = 'idle'; return quizIdleHTML();
+  }
   const q      = S.activeQs[S.currentQ];
   const ans    = S.answers[S.currentQ];
   const bk     = S.bookmarks.has(String(q.id));
@@ -2897,16 +2904,34 @@ async function dashSyncNow() {
     if (msg) { msg.textContent = '⚠️ 請先登入帳號'; msg.style.color = '#FBBF24'; }
     return;
   }
-  if (btn) { btn.disabled = true; btn.style.opacity = '.6'; btn.style.pointerEvents = 'none'; }
-  if (msg) { msg.textContent = '同步中…'; msg.style.color = 'var(--text-3)'; }
+  if (btn) { btn.disabled = true; btn.style.opacity = '.6'; btn.style.pointerEvents = 'none'; const sp = btn.querySelector('span'); if (sp) sp.textContent = '同步中…'; }
+  if (msg) { msg.textContent = ''; }
+  let _syncOk = false, _syncErr = '';
   try {
-    await syncAllToCloud();
+    const _timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('同步逾時（30 秒），請確認網路後重試')), 30000));
+    await Promise.race([syncAllToCloud(), _timeout]);
     _lastSyncTime = new Date();
-    render();
+    _syncOk = true;
   } catch(e) {
     console.error('[Supa] dashSyncNow error:', e);
-    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = ''; const sp = btn.querySelector('span'); if (sp) sp.textContent = '同步雲端'; }
-    if (msg) { msg.textContent = '❌ 同步失敗：' + (e.message || e); msg.style.color = '#F87171'; }
+    _syncErr = e.message || String(e);
+  } finally {
+    if (_syncOk) {
+      render();
+      const newMsg = document.getElementById('dash-sync-msg');
+      if (newMsg) {
+        const tot = S.history.length;
+        const ts = _lastSyncTime ? _lastSyncTime.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
+        newMsg.textContent = `✅ 同步完成（${tot} 次測驗${ts ? '，' + ts : ''}）`;
+        newMsg.style.color = '#4ADE80';
+      }
+    } else {
+      const curBtn = document.getElementById('dash-sync-btn') || btn;
+      const curMsg = document.getElementById('dash-sync-msg') || msg;
+      if (curBtn) { curBtn.disabled = false; curBtn.style.opacity = '1'; curBtn.style.pointerEvents = ''; const sp = curBtn.querySelector('span'); if (sp) sp.textContent = '同步雲端'; }
+      if (curMsg) { curMsg.textContent = '❌ 同步失敗：' + _syncErr; curMsg.style.color = '#F87171'; }
+    }
   }
 }
 
@@ -3595,26 +3620,44 @@ function notesHTML(){const totalN=S.annotations.length;const filterTags=STAGS.ma
 function studyStatsHTML(){const allTopics=[...new Set(S.materials.flatMap(m=>m.matTags||[]))];const totalMats=S.materials.length;const totalAnns=S.annotations.length;const tagStats=STAGS.map(t=>({...t,count:S.annotations.filter(a=>a.tag===t.id).length}));const topicStats=allTopics.map(topic=>{const mats=S.materials.filter(m=>(m.matTags||[]).includes(topic));const matIds=new Set(mats.map(m=>m.id));const anns=S.annotations.filter(a=>matIds.has(a.matId));return{topic,matCount:mats.length,annCount:anns.length,tags:STAGS.map(t=>({...t,count:anns.filter(a=>a.tag===t.id).length}))};});const untaggedMats=S.materials.filter(m=>!(m.matTags||[]).length);return`<div class="page" style="max-width:680px;margin:0 auto;padding:clamp(1.5rem,5vw,2.5rem) clamp(1rem,4vw,1.5rem);"><h2 style="font-size:1.15rem;font-weight:800;margin-bottom:1rem;font-family:'Sora',sans-serif;">教材統計總覽</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.5rem;margin-bottom:1.5rem;"><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">教材總數</div><div style="font-size:1.6rem;font-weight:800;color:var(--accent);margin-top:.2rem;">${totalMats}</div></div><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">筆記總數</div><div style="font-size:1.6rem;font-weight:800;color:var(--gold);margin-top:.2rem;">${totalAnns}</div></div><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">分類數</div><div style="font-size:1.6rem;font-weight:800;color:var(--green);margin-top:.2rem;">${allTopics.length}</div></div></div>${tagStats.some(t=>t.count>0)?`<div class="g-card" style="padding:1rem;margin-bottom:1rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem;">筆記標籤分佈</div><div style="display:flex;flex-wrap:wrap;gap:.4rem;">${tagStats.map(t=>t.count?`<span class="stag ${t.cls}">${t.label} ${t.count}</span>`:'').join('')}</div></div>`:''} ${topicStats.map(ts=>`<div class="g-card" style="padding:1rem;margin-bottom:.6rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><span style="font-size:.88rem;font-weight:700;">${ts.topic}</span><span style="font-size:.7rem;color:var(--text-3);">${ts.matCount} 教材 · ${ts.annCount} 筆記</span></div>${ts.tags.some(t=>t.count>0)?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;">${ts.tags.map(t=>t.count?`<span class="stag ${t.cls}" style="font-size:.6rem">${t.label} ${t.count}</span>`:'').join('')}</div>`:'<span style="font-size:.76rem;color:var(--text-3);">尚無筆記</span>'}</div>`).join('')}${untaggedMats.length?`<div class="g-card" style="padding:1rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><span style="font-size:.88rem;font-weight:700;color:var(--text-3);">未分類</span><span style="font-size:.7rem;color:var(--text-3);">${untaggedMats.length} 教材</span></div></div>`:''}</div>`;}
 
 async function syncStudyToCloud(){
-  if(!_supa||!_currentUser)return;
+  if(!_supa||!_currentUser||!_accessToken)return;
   const uid=_currentUser.id;
-  // materials
-  for(const m of S.materials){
+  // materials — batch upsert in one request
+  if(S.materials.length){
     const{error}=await _supa.from('study_materials').upsert(
-      {id:m.id,user_id:uid,title:m.title,raw:m.raw,sections:m.sections,toc:m.toc,mat_tags:m.matTags||[],uploaded_at:m.uploadedAt},
+      S.materials.map(m=>({id:m.id,user_id:uid,title:m.title,raw:m.raw,sections:m.sections,toc:m.toc,mat_tags:m.matTags||[],uploaded_at:m.uploadedAt})),
       {onConflict:'user_id,id'});
     if(error)throw new Error('study_materials: '+error.message);
   }
-  const{data:cm}=await _supa.from('study_materials').select('id').eq('user_id',uid);
-  if(cm){const ids=new Set(S.materials.map(m=>m.id));for(const r of cm){if(!ids.has(r.id))await _supa.from('study_materials').delete().eq('user_id',uid).eq('id',r.id);}}
-  // annotations
-  for(const a of S.annotations){
+  // garbage-collect deleted materials
+  const{data:cm,error:cme}=await _supa.from('study_materials').select('id').eq('user_id',uid);
+  if(cme)throw new Error('study_materials select: '+cme.message);
+  if(cm){
+    const ids=new Set(S.materials.map(m=>m.id));
+    const toDelete=cm.filter(r=>!ids.has(r.id)).map(r=>r.id);
+    if(toDelete.length){
+      const{error}=await _supa.from('study_materials').delete().eq('user_id',uid).in('id',toDelete);
+      if(error)throw new Error('study_materials delete: '+error.message);
+    }
+  }
+  // annotations — batch upsert in one request
+  if(S.annotations.length){
     const{error}=await _supa.from('study_annotations').upsert(
-      {id:a.id,user_id:uid,mat_id:a.matId,sec_id:a.secId,tag:a.tag,memo:a.memo||'',mat_title:a.matTitle||'',section_heading:a.sectionHeading||'',html:a.html||'',created_at:a.createdAt},
+      S.annotations.map(a=>({id:a.id,user_id:uid,mat_id:a.matId,sec_id:a.secId,tag:a.tag,memo:a.memo||'',mat_title:a.matTitle||'',section_heading:a.sectionHeading||'',html:a.html||'',created_at:a.createdAt})),
       {onConflict:'user_id,mat_id,sec_id'});
     if(error)throw new Error('study_annotations: '+error.message);
   }
-  const{data:ca}=await _supa.from('study_annotations').select('id,mat_id,sec_id').eq('user_id',uid);
-  if(ca){const keys=new Set(S.annotations.map(a=>a.matId+'|'+a.secId));for(const r of ca){if(!keys.has(r.mat_id+'|'+r.sec_id))await _supa.from('study_annotations').delete().eq('user_id',uid).eq('id',r.id);}}
+  // garbage-collect deleted annotations
+  const{data:ca,error:cae}=await _supa.from('study_annotations').select('id,mat_id,sec_id').eq('user_id',uid);
+  if(cae)throw new Error('study_annotations select: '+cae.message);
+  if(ca){
+    const keys=new Set(S.annotations.map(a=>a.matId+'|'+a.secId));
+    const toDelete=ca.filter(r=>!keys.has(r.mat_id+'|'+r.sec_id)).map(r=>r.id);
+    if(toDelete.length){
+      const{error}=await _supa.from('study_annotations').delete().eq('user_id',uid).in('id',toDelete);
+      if(error)throw new Error('study_annotations delete: '+error.message);
+    }
+  }
 }
 async function loadStudyFromCloud(){if(!_supa||!_currentUser)return;const uid=_currentUser.id;try{const{data:mats}=await _supa.from('study_materials').select('*').eq('user_id',uid).order('uploaded_at');if(mats&&mats.length){S.materials=mats.map(m=>({id:m.id,title:m.title,raw:m.raw,sections:m.sections,toc:m.toc,matTags:m.mat_tags||[],uploadedAt:m.uploaded_at}));}const{data:anns}=await _supa.from('study_annotations').select('*').eq('user_id',uid).order('created_at');if(anns&&anns.length){S.annotations=anns.map(a=>({id:a.id,matId:a.mat_id,secId:a.sec_id,tag:a.tag,memo:a.memo,matTitle:a.mat_title,sectionHeading:a.section_heading,html:a.html,createdAt:a.created_at}));}}catch(e){console.warn('[Supa] study load:',e);}}
 
