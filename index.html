@@ -428,6 +428,7 @@ let _fullSyncTimer  = null;
 let _accessToken = null;  // cached JWT — no network needed 
 let _blockCloudRender = false; // prevent cloud re-render from overwriting fresh quiz result
 let _lastSyncTime = null;  // timestamp of last successful cloud syncfor sync
+let _lastCloudFetch = 0;   // epoch ms of last loadCloudData() call — used for auto-pull debounce
 
 const STORAGE_KEY_BASE = 'neurolearn_v2';
 function getStorageKey() {
@@ -573,6 +574,7 @@ async function syncAllToCloud() {
 /* Load all data from normalized tables; auto-migrate if tables are empty */
 async function loadCloudData() {
   if (!_supa || !_currentUser) return;
+  _lastCloudFetch = Date.now(); // mark start time — prevents duplicate fetches from navigate()
   const uid = _currentUser.id;
   try {
     const [stateRes, filesRes, qRes, sessRes] = await Promise.all([
@@ -987,6 +989,14 @@ function navigate(page) {
   S.page = page;
   if (page === 'quiz') { S.quizMode = 'menu'; S.quizConfig = null; S.quizSetup = null; }
   render();
+  // Auto-pull latest cloud data on every feature page entry (debounced to 60s)
+  if (page !== 'home' && page !== 'login' && _supa && _currentUser) {
+    const now = Date.now();
+    if (now - _lastCloudFetch > 60000) {
+      _lastCloudFetch = now; // set eagerly to block concurrent fetches
+      loadCloudData().catch(e => console.warn('[Supa] auto-pull on navigate:', e));
+    }
+  }
 }
 
 let _currentZone = 'study';
