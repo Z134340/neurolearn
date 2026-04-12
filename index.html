@@ -1423,11 +1423,11 @@ async function datasetsSyncNow() {
   const btn = document.getElementById('dataset-sync-btn');
   const msg = document.getElementById('dataset-sync-msg');
   if (btn) { btn.disabled = true; btn.style.opacity = '.5'; const sp = btn.querySelector('span'); if (sp) sp.textContent = '同步中…'; }
-  if (msg) { msg.textContent = ''; }
+  if (msg) { msg.textContent = '⏳ 連線雲端中，首次可能需要 30 秒…'; msg.style.color = 'var(--text-3)'; }
   let _syncOk = false, _syncErr = '';
   try {
     const _timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('同步逾時（20 秒），請確認網路後重試')), 20000));
+      setTimeout(() => reject(new Error('同步逾時（60 秒），雲端服務可能正在喚醒，請稍後再試')), 60000));
     await Promise.race([syncAllToCloud(), _timeout]);
     _lastSyncTime = new Date();
     _syncOk = true;
@@ -2999,7 +2999,7 @@ async function dashSyncNow() {
   let _syncOk = false, _syncErr = '';
   try {
     const _timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('同步逾時（20 秒），請確認網路後重試')), 20000));
+      setTimeout(() => reject(new Error('同步逾時（60 秒），雲端服務可能正在喚醒，請稍後再試')), 60000));
     await Promise.race([syncAllToCloud(), _timeout]);
     _lastSyncTime = new Date();
     _syncOk = true;
@@ -3561,12 +3561,12 @@ async function librarySyncNow() {
   const msg = document.getElementById('lib-sync-msg');
   const mc = S.materials.length;
   if (btn) { btn.disabled = true; btn.style.opacity = '.5'; const sp = btn.querySelector('span'); if (sp) sp.textContent = '同步中…'; }
-  if (msg) { msg.textContent = `⏳ 同步中（共 ${mc} 份教材）…`; msg.style.color = 'var(--text-3)'; }
+  if (msg) { msg.textContent = `⏳ 連線雲端中，首次可能需要 30 秒（共 ${mc} 份教材）…`; msg.style.color = 'var(--text-3)'; }
   let _syncOk = false, _syncErr = '';
   try {
-    // No hard timeout — let the parallel sync finish naturally; 90s safety net only
+    // 60s timeout — gives Supabase free-tier time to wake from pause
     const _timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('同步逾時（20 秒），請確認網路後重試')), 20000));
+      setTimeout(() => reject(new Error('同步逾時（60 秒），雲端服務可能正在喚醒，請稍後再試')), 60000));
     await Promise.race([syncStudyToCloud(), _timeout]);
     _lastSyncTime = new Date();
     _syncOk = true;
