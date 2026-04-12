@@ -758,11 +758,25 @@ function subscribeRealtime() {
   });
   _realtimeChannel = ch.subscribe(status => {
     console.log('[Supa] Realtime', status);
+    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      // WebSocket failed — fall back to polling every 30s
+      console.warn('[Supa] Realtime unavailable, switching to 30s polling');
+      unsubscribeRealtime();
+      clearInterval(window._realtimePollInterval);
+      window._realtimePollInterval = setInterval(() => {
+        if (!_supa || !_currentUser || _blockCloudRender) return;
+        _lastCloudFetch = 0;
+        loadCloudData().catch(e => console.warn('[Supa] poll reload:', e));
+      }, 30000);
+    } else if (status === 'SUBSCRIBED') {
+      clearInterval(window._realtimePollInterval);
+    }
   });
 }
 
 function unsubscribeRealtime() {
   clearTimeout(_realtimeReloadTimer);
+  clearInterval(window._realtimePollInterval);
   if (_realtimeChannel && _supa) { try { _supa.removeChannel(_realtimeChannel); } catch(_){} _realtimeChannel = null; }
 }
 
@@ -774,7 +788,7 @@ function scheduleSyncToCloud() {
   // Tier 1 — fast: user_state + study (0.8s) — covers bookmarks, notes, tags, read progress
   clearTimeout(_cloudSyncTimer);
   _cloudSyncTimer = setTimeout(() => {
-    syncUserState().then(() => { _lastSyncTime = new Date(); if (!_blockCloudRender) render(); })
+    syncUserState().then(() => { _lastSyncTime = new Date(); })
       .catch(e => console.warn('[Supa] userState sync:', e.message||e));
     syncStudyToCloud().catch(e => console.warn('[Supa] study sync:', e));
   }, 800);
@@ -1048,9 +1062,10 @@ function navigate(page) {
   if (page !== 'home' && page !== 'login' && _supa && _currentUser && !_isFetchingCloud) {
     _isFetchingCloud = true;
     _lastCloudFetch = Date.now();
+    const _navFetchTimeout = setTimeout(() => { _isFetchingCloud = false; }, 20000); // safety reset if hung
     loadCloudData()
       .catch(e => console.warn('[Supa] auto-pull on navigate:', e))
-      .finally(() => { _isFetchingCloud = false; });
+      .finally(() => { clearTimeout(_navFetchTimeout); _isFetchingCloud = false; });
   }
 }
 
@@ -1073,9 +1088,10 @@ function switchZone(zone) {
     if (_supa && _currentUser && !_isFetchingCloud) {
       _isFetchingCloud = true;
       _lastCloudFetch = Date.now();
+      const _zoneFetchTimeout = setTimeout(() => { _isFetchingCloud = false; }, 20000);
       loadCloudData()
         .catch(e => console.warn('[Supa] auto-pull on switchZone:', e))
-        .finally(() => { _isFetchingCloud = false; });
+        .finally(() => { clearTimeout(_zoneFetchTimeout); _isFetchingCloud = false; });
     }
   }
 }
@@ -1418,7 +1434,7 @@ async function datasetsSyncNow() {
   let _syncOk = false, _syncErr = '';
   try {
     const _timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('同步逾時（90 秒），請確認網路後重試')), 90000));
+      setTimeout(() => reject(new Error('同步逾時（20 秒），請確認網路後重試')), 20000));
     await Promise.race([syncAllToCloud(), _timeout]);
     _lastSyncTime = new Date();
     _syncOk = true;
@@ -2990,7 +3006,7 @@ async function dashSyncNow() {
   let _syncOk = false, _syncErr = '';
   try {
     const _timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('同步逾時（90 秒），請確認網路後重試')), 90000));
+      setTimeout(() => reject(new Error('同步逾時（20 秒），請確認網路後重試')), 20000));
     await Promise.race([syncAllToCloud(), _timeout]);
     _lastSyncTime = new Date();
     _syncOk = true;
@@ -3557,7 +3573,7 @@ async function librarySyncNow() {
   try {
     // No hard timeout — let the parallel sync finish naturally; 90s safety net only
     const _timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('同步逾時（90 秒），請確認網路後重試')), 90000));
+      setTimeout(() => reject(new Error('同步逾時（20 秒），請確認網路後重試')), 20000));
     await Promise.race([syncStudyToCloud(), _timeout]);
     _lastSyncTime = new Date();
     _syncOk = true;
