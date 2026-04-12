@@ -260,6 +260,7 @@
   /* ─── Score ring ─── */
   .score-ring{position:relative;display:inline-flex;align-items:center;justify-content:center}
 
+  .zt-short{display:none}
   @media(max-width:640px){
     /* Datasets page buttons on mobile */
     #cloud-refresh-btn { font-size:.78rem !important; padding:.5rem .9rem !important; }
@@ -312,7 +313,6 @@
   #zt-study.active{color:var(--accent)}
   #zt-exam.active{color:var(--gold)}
   #zt-dash.active{color:var(--green)}
-  .zt-short{display:none}
   #nav-sub-tabs{position:fixed;top:calc(52px + env(safe-area-inset-top, 0px));left:0;right:0;height:44px;background:rgba(14,14,22,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:199;display:flex;align-items:center;gap:.15rem;padding:0 1.25rem;overflow-x:auto}
   #nav-sub-tabs::-webkit-scrollbar{height:0}
   .sub-tab{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .8rem;border-radius:9px;font-size:.78rem;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text-3);transition:all .18s;border:none;background:none;font-family:'DM Sans',sans-serif}
