@@ -667,6 +667,7 @@ async function loadCloudData() {
       await _migrateLegacyBlob();
     }
 
+    if (!_lastSyncTime) _lastSyncTime = new Date(); // fallback: mark successful cloud fetch time
     saveToStorage();
     if (!_blockCloudRender) render();
     console.log('[Supa] Cloud loaded — files:', S.files.length,
@@ -773,7 +774,7 @@ function scheduleSyncToCloud() {
   // Tier 1 — fast: user_state + study (0.8s) — covers bookmarks, notes, tags, read progress
   clearTimeout(_cloudSyncTimer);
   _cloudSyncTimer = setTimeout(() => {
-    syncUserState().then(() => { _lastSyncTime = new Date(); })
+    syncUserState().then(() => { _lastSyncTime = new Date(); if (!_blockCloudRender) render(); })
       .catch(e => console.warn('[Supa] userState sync:', e.message||e));
     syncStudyToCloud().catch(e => console.warn('[Supa] study sync:', e));
   }, 800);
