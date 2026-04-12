@@ -1250,10 +1250,13 @@ function fileCardHTML(f) {
       </div>` : `<span style="font-size:.7rem;color:var(--text-3);">輸入新標籤後按確認即可新增</span>`}
     </div>` : '';
 
+  const _importedCount = f.imported != null
+    ? f.imported
+    : S.extraQs.filter(q => String(q._fileId) === String(f.id)).length;
   const actionArea = f.importing
     ? `<span style="font-size:.72rem;color:var(--accent);">⏳ 解析中…</span>`
-    : f.imported > 0
-      ? `<span style="font-size:.72rem;color:#4ADE80;font-weight:600;">✓ ${f.imported} 題</span>`
+    : _importedCount > 0
+      ? `<span style="font-size:.72rem;color:#4ADE80;font-weight:600;">✓ ${_importedCount} 題</span>`
       : isImportable && f.status === 'ready'
         ? `<span style="font-size:.7rem;color:var(--text-3);font-style:italic;">等待匯入…</span>`
         : isAIPending && f.status === 'ready'
