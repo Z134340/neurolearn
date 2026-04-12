@@ -795,10 +795,7 @@ function initFirebase() {
 async function authSignIn(email, pw) {
   if (!_auth) throw new Error('Firebase 未連線');
   const { user } = await _auth.signInWithEmailAndPassword(email, pw);
-  if (!user.emailVerified) {
-    await _auth.signOut();
-    throw new Error('Email 尚未驗證，請查看信箱並點擊驗證連結。');
-  }
+  _currentUser = user; // 立即設定，不等 onAuthStateChanged
 }
 
 async function authSignUp(email, pw) {
@@ -820,7 +817,7 @@ async function doSignIn() {
   if (!email||!pw) { if(msg){ msg.style.color='#F87171'; msg.textContent='請填寫 Email 和密碼。'; } return; }
   if (msg) { msg.style.color='var(--text-3)'; msg.textContent='登入中…'; }
   try {
-    await authSignIn(email, pw); navigate('home');
+    await authSignIn(email, pw); updateNavUser(); navigate('home');
   } catch(e) {
     if (msg) {
       const errMsg = (e.message||'').toLowerCase();
