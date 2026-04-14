@@ -1951,13 +1951,15 @@ function _aiGenStep1() {
         const cnt = S.extraQs.filter(q => q._fileId === f.id || (q._fileTags && (f.tags||[]).some(t => q._fileTags.includes(t)))).length;
         const on = _aiGen.selCats.has(f.id);
         const safeId = f.id.replace(/'/g,"\\'");
-        const label = (f.tags && f.tags.length) ? f.tags[0] : (f.name || f.id);
+        const rawName = f.name || f.id;
+        const label = rawName.replace(/\.(xlsx?|csv)$/i,'').replace(/_/g,' ');
+        const tagStr = (f.tags||[]).join(', ');
         return `<label style="display:flex;align-items:center;gap:.65rem;padding:.55rem .75rem;border-radius:9px;cursor:pointer;background:${on?accentBg:'rgba(255,255,255,.02)'};border:1px solid ${on?accentBd:'var(--border)'};transition:all .2s;margin-bottom:.3rem;">
           <input type="checkbox" ${on?'checked':''} style="accent-color:var(--gold);width:14px;height:14px;flex-shrink:0;"
             onchange="if(this.checked)_aiGen.selCats.add('${safeId}');else _aiGen.selCats.delete('${safeId}');_aiGenRender()">
           <div style="flex:1;min-width:0;">
             <div style="font-size:.84rem;font-weight:600;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}</div>
-            <div style="font-size:.7rem;color:var(--text-3);">${cnt} 題${f.tags&&f.tags.length>1?' · '+f.tags.slice(1).join(', '):''}</div>
+            <div style="font-size:.7rem;color:var(--text-3);">${cnt} 題${tagStr?' · '+tagStr:''}</div>
           </div>
         </label>`;
       }).join('');
