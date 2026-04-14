@@ -450,7 +450,7 @@ function resetState() {
   S.materials = []; S.annotations = []; S.currentMat = null;
   S.readProgress = {}; S._editingMatTag = null;
   // Reset module-level filter variables
-  _noteFilter = 'all'; _noteTopicFilter = 'all'; _matTagFilter = null;
+  _noteFilter = 'all'; _noteTopicFilter = 'all'; _matTagFilter = null; _libMatPage = 0;
   _stagMatId = ''; _stagSecId = ''; _stagSel = '';
 }
 
@@ -3598,8 +3598,9 @@ function addMatTag(mid,tag,keepOpen){tag=(tag||'').trim().slice(0,10);if(!tag)re
 function removeMatTag(mid,tag){const m=S.materials.find(x=>x.id===mid);if(!m)return;m.matTags=(m.matTags||[]).filter(t=>t!==tag);saveToStorage();refreshMatCard(mid);}
 let _matTagFilter=null;
 let _matSortOrder='date-desc';
-function setMatTagFilter(tag){_matTagFilter=tag;render();}
-function setMatSort(order){_matSortOrder=order;render();}
+let _libMatPage=0;
+function setMatTagFilter(tag){_matTagFilter=tag;_libMatPage=0;render();}
+function setMatSort(order){_matSortOrder=order;_libMatPage=0;render();}
 
 function libraryHTML() {
   const allMatTags = [...new Set(S.materials.flatMap(m => m.matTags || []))];
@@ -3613,7 +3614,19 @@ function libraryHTML() {
     if(_matSortOrder==='name-desc') return b.title.localeCompare(a.title,'zh-TW');
     return 0;
   });
-  const matsHTML = displayMats.map(m => matCardHTML(m)).join('');
+  const MAT_PAGE_SIZE = 10;
+  const totalMatPages = Math.max(1, Math.ceil(displayMats.length / MAT_PAGE_SIZE));
+  _libMatPage = Math.max(0, Math.min(_libMatPage, totalMatPages - 1));
+  const pageSlice = displayMats.slice(_libMatPage * MAT_PAGE_SIZE, (_libMatPage + 1) * MAT_PAGE_SIZE);
+  const matsHTML = pageSlice.map(m => matCardHTML(m)).join('');
+  const canPrev = _libMatPage > 0;
+  const canNext = _libMatPage < totalMatPages - 1;
+  const matPageBtns = totalMatPages > 1 ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0 .1rem;margin-top:.25rem;border-top:1px solid var(--border);">
+      <button onclick="_libMatPage=Math.max(0,_libMatPage-1);render()" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canPrev?'':'opacity:.3;pointer-events:none;'}" ${canPrev?'':'disabled'}>← 上一頁</button>
+      <span style="font-size:.75rem;color:var(--text-3);">第 ${_libMatPage+1} / ${totalMatPages} 頁 · 共 ${displayMats.length} 份</span>
+      <button onclick="_libMatPage=Math.min(${totalMatPages-1},_libMatPage+1);render()" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canNext?'':'opacity:.3;pointer-events:none;'}" ${canNext?'':'disabled'}>下一頁 →</button>
+    </div>` : '';
   const _libSyncInfo = (() => {
     if (!_currentUser) return `<span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>`;
     const syncBtn = `<button id="lib-sync-btn" onclick="librarySyncNow()" style="display:inline-flex;align-items:center;gap:.3rem;font-size:.65rem;padding:.2rem .55rem;min-height:0;border-radius:6px;background:rgba(123,111,224,.12);border:1px solid var(--accent-border);color:var(--accent);cursor:pointer;white-space:nowrap;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg><span>同步雲端</span></button>`;
@@ -3703,6 +3716,7 @@ function libraryHTML() {
       </div>` : ''}
       ${matsHTML}
       ${displayMats.length === 0 ? `<div style="text-align:center;color:var(--text-3);font-size:.85rem;padding:1.5rem 0;">沒有符合「${_matTagFilter}」標籤的教材</div>` : ''}
+      ${matPageBtns}
     </div>` : `<div style="margin-top:2rem;text-align:center;color:var(--text-3);font-size:.88rem;padding:1.5rem 0;">尚未上傳任何教材</div>`}
   </div>`;
 }
