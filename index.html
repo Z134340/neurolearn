@@ -392,6 +392,17 @@
   .smodal textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.78rem;color:var(--text-1);resize:vertical;min-height:32px;outline:none;font-family:inherit}
   .smodal textarea:focus{border-color:var(--accent-border)}
 
+  /* ── AI Gen Modal ── */
+  #aiGenModal{z-index:310}
+  .aigen-modal{max-width:560px;max-height:88vh;overflow-y:auto;padding:1.4rem 1.5rem}
+  .aigen-modal input[type="text"],.aigen-modal input[type="number"],.aigen-modal input:not([type="checkbox"]):not([type="range"]):not([type="radio"]){background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:.3rem .6rem;font-size:.76rem;color:var(--text-1);outline:none;font-family:inherit;transition:border-color .2s}
+  .aigen-modal input:focus{border-color:var(--accent-border)}
+  .aigen-modal select{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:.35rem .6rem;font-size:.78rem;color:var(--text-1);outline:none;font-family:inherit}
+  .aigen-source-btn{display:flex;align-items:center;gap:.9rem;padding:1rem 1.1rem;border-radius:12px;cursor:pointer;text-align:left;width:100%;border:1.5px solid;transition:all .2s}
+  .aigen-q-row{padding:.7rem .8rem;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--border);margin-bottom:.45rem}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .aigen-spinner{width:48px;height:48px;border-radius:50%;border:3px solid var(--accent-border);border-top-color:var(--accent);animation:spin 1s linear infinite;margin:0 auto 1.2rem}
+
   .mobile-toc-toggle{display:none;align-items:center;gap:.35rem;padding:.35rem .75rem;margin-bottom:.85rem;border-radius:8px;background:var(--accent-dim);border:1px solid var(--accent-border);color:var(--accent);font-size:.76rem;font-weight:600;cursor:pointer;touch-action:manipulation}
   .sidebar-overlay{display:none;position:fixed;inset:0;z-index:49;background:rgba(0,0,0,.35)}
   @media(max-width:768px){
@@ -432,6 +443,9 @@
 <div id="nav-sub-tabs"></div>
 
 <main id="page-content"></main>
+<!-- ════ AI 題目生成 Modal ════ -->
+<div class="smodal-bg" id="aiGenModal"><div class="smodal aigen-modal"><div id="aiGenContent"></div></div></div>
+
 <div class="smodal-bg" id="stagModal"><div class="smodal"><h3 style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;margin-bottom:.6rem;">標記此段落</h3><p style="font-size:.78rem;color:var(--text-3);margin-bottom:.6rem;">選擇分類標籤：</p><div id="stagModalTags" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.8rem;"></div><textarea id="stagModalMemo" placeholder="加入個人備註（可選）..." rows="2"></textarea><div style="display:flex;gap:.5rem;margin-top:.8rem;justify-content:flex-end;"><button class="btn btn-ghost" style="font-size:.78rem;padding:.4rem .8rem;min-height:0;" onclick="closeStagModal()">取消</button><button class="btn btn-primary" style="font-size:.78rem;padding:.4rem .8rem;min-height:0;" onclick="saveSTag()">儲存</button></div></div></div>
 
 <script>
@@ -1814,6 +1828,400 @@ function importCSVQuestions(file, fObj) {
   reader.readAsText(file, 'UTF-8');
 }
 
+/* ════════════════════════════════════════════════════════════
+   AI 題目生成 — Ollama / Gemma 4 本機推論
+   ════════════════════════════════════════════════════════════ */
+
+const _aiGenDef = { model: 'gemma4:12b', port: 11434 };
+let _aiGen = { step:0, source:null, selMats:new Set(), selCats:new Set(), count:10, difficulty:'exam', results:[], removedIdx:new Set() };
+
+function _aiGenCfg() {
+  try { return { ..._aiGenDef, ...JSON.parse(localStorage.getItem('aiGenSettings')||'{}') }; }
+  catch { return { ..._aiGenDef }; }
+}
+function _aiGenSaveCfg(patch) {
+  localStorage.setItem('aiGenSettings', JSON.stringify({ ..._aiGenCfg(), ...patch }));
+}
+
+function openAIGenModal() {
+  _aiGen = { step:0, source:null, selMats:new Set(), selCats:new Set(), count:10, difficulty:'exam', results:[], removedIdx:new Set() };
+  document.getElementById('aiGenModal').classList.add('show');
+  _aiGenRender();
+}
+function closeAIGenModal() {
+  document.getElementById('aiGenModal').classList.remove('show');
+}
+function _aiGenRender() {
+  const el = document.getElementById('aiGenContent');
+  if (!el) return;
+  const s = _aiGen.step;
+  el.innerHTML = s===0 ? _aiGenStep0() : s===1 ? _aiGenStep1() : s===2 ? _aiGenStep2() : _aiGenStep3();
+}
+
+/* ── Step 0：選擇來源 ── */
+function _aiGenStep0() {
+  const cfg = _aiGenCfg();
+  return `
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.1rem;">
+    <div>
+      <div class="badge badge-v" style="font-size:.6rem;margin-bottom:.3rem;">AI 題目生成</div>
+      <h3 style="font-family:'Sora',sans-serif;font-size:1.05rem;font-weight:700;">✨ 選擇生成來源</h3>
+    </div>
+    <button onclick="closeAIGenModal()" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:.65rem;margin-bottom:1.25rem;">
+    <!-- 教材庫 -->
+    <button class="aigen-source-btn" style="background:rgba(123,111,224,.07);border-color:var(--accent-border);"
+      onmouseover="this.style.background='rgba(123,111,224,.15)'" onmouseout="this.style.background='rgba(123,111,224,.07)'"
+      onclick="_aiGen.source='material';_aiGen.step=1;_aiGenRender()">
+      <div style="width:42px;height:42px;border-radius:10px;background:var(--accent-dim);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      </div>
+      <div style="flex:1;text-align:left;">
+        <div style="font-size:.9rem;font-weight:600;color:var(--text-1);margin-bottom:.15rem;">📚 從教材庫生成</div>
+        <div style="font-size:.76rem;color:var(--text-2);">AI 閱讀你的 Markdown 教材，直接理解並出題</div>
+        <div style="font-size:.7rem;color:var(--accent);margin-top:.2rem;">共 ${S.materials.length} 份教材</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+
+    <!-- 考古題 -->
+    <button class="aigen-source-btn" style="background:rgba(200,150,62,.07);border-color:var(--gold-border);"
+      onmouseover="this.style.background='rgba(200,150,62,.15)'" onmouseout="this.style.background='rgba(200,150,62,.07)'"
+      onclick="_aiGen.source='quiz';_aiGen.step=1;_aiGenRender()">
+      <div style="width:42px;height:42px;border-radius:10px;background:var(--gold-dim);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div style="flex:1;text-align:left;">
+        <div style="font-size:.9rem;font-weight:600;color:var(--text-1);margin-bottom:.15rem;">📝 從考古題延伸</div>
+        <div style="font-size:.76rem;color:var(--text-2);">根據現有題庫主題，生成全新延伸題目</div>
+        <div style="font-size:.7rem;color:var(--gold);margin-top:.2rem;">共 ${S.extraQs.length} 題</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
+
+  <!-- Ollama 設定 -->
+  <div style="border-top:1px solid var(--border);padding-top:.9rem;">
+    <details>
+      <summary style="font-size:.74rem;color:var(--text-3);cursor:pointer;list-style:none;display:flex;align-items:center;gap:.35rem;user-select:none;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        Ollama 連線設定
+      </summary>
+      <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:.5rem;">
+        <div style="display:flex;align-items:center;gap:.55rem;">
+          <label style="font-size:.73rem;color:var(--text-2);width:64px;flex-shrink:0;">模型名稱</label>
+          <input id="aiGenModel" value="${cfg.model}" placeholder="gemma4:12b"
+            style="flex:1;font-family:'JetBrains Mono','Courier New',monospace;"
+            oninput="_aiGenSaveCfg({model:this.value})">
+        </div>
+        <div style="display:flex;align-items:center;gap:.55rem;">
+          <label style="font-size:.73rem;color:var(--text-2);width:64px;flex-shrink:0;">Port</label>
+          <input id="aiGenPort" value="${cfg.port}" type="number" style="width:88px;font-family:'JetBrains Mono','Courier New',monospace;" oninput="_aiGenSaveCfg({port:parseInt(this.value)||11434})">
+          <button id="aiGenConnBtn" onclick="aiGenTestConn()" style="font-size:.72rem;padding:.28rem .65rem;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-2);cursor:pointer;transition:all .2s;">測試連線</button>
+        </div>
+        <p style="font-size:.68rem;color:var(--text-3);line-height:1.55;margin-top:.1rem;">需先設定：<code style="background:rgba(255,255,255,.08);padding:.1rem .3rem;border-radius:4px;font-size:.65rem;font-family:'JetBrains Mono','Courier New',monospace;">OLLAMA_ORIGINS=https://z134340.github.io</code></p>
+      </div>
+    </details>
+  </div>`;
+}
+
+/* ── Step 1：選擇項目 + 設定 ── */
+function _aiGenStep1() {
+  const isMat = _aiGen.source === 'material';
+  const accentC = isMat ? 'var(--accent)' : 'var(--gold)';
+  const accentBg = isMat ? 'rgba(123,111,224,.1)' : 'rgba(200,150,62,.1)';
+  const accentBd = isMat ? 'var(--accent-border)' : 'var(--gold-border)';
+
+  let itemsHTML = '';
+  if (isMat) {
+    if (!S.materials.length) {
+      itemsHTML = '<div class="empty-state">尚未上傳任何教材，請先至「教材庫」上傳</div>';
+    } else {
+      itemsHTML = S.materials.map(m => {
+        const on = _aiGen.selMats.has(m.id);
+        const safeId = m.id.replace(/'/g,"\\'");
+        return `<label style="display:flex;align-items:center;gap:.65rem;padding:.55rem .75rem;border-radius:9px;cursor:pointer;background:${on?accentBg:'rgba(255,255,255,.02)'};border:1px solid ${on?accentBd:'var(--border)'};transition:all .2s;margin-bottom:.3rem;">
+          <input type="checkbox" ${on?'checked':''} style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;"
+            onchange="if(this.checked)_aiGen.selMats.add('${safeId}');else _aiGen.selMats.delete('${safeId}');_aiGenRender()">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.84rem;font-weight:600;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.title}</div>
+            <div style="font-size:.7rem;color:var(--text-3);">${(m.sections||[]).length} 章節</div>
+          </div>
+        </label>`;
+      }).join('');
+    }
+  } else {
+    const cats = [...new Set(S.extraQs.map(q => q.category||'未分類'))].sort();
+    if (!cats.length) {
+      itemsHTML = '<div class="empty-state">尚未匯入任何考古題</div>';
+    } else {
+      itemsHTML = cats.map(c => {
+        const cnt = S.extraQs.filter(q => (q.category||'未分類') === c).length;
+        const on = _aiGen.selCats.has(c);
+        const safeC = c.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        return `<label style="display:flex;align-items:center;gap:.65rem;padding:.55rem .75rem;border-radius:9px;cursor:pointer;background:${on?accentBg:'rgba(255,255,255,.02)'};border:1px solid ${on?accentBd:'var(--border)'};transition:all .2s;margin-bottom:.3rem;">
+          <input type="checkbox" ${on?'checked':''} style="accent-color:var(--gold);width:14px;height:14px;flex-shrink:0;"
+            onchange="if(this.checked)_aiGen.selCats.add('${safeC}');else _aiGen.selCats.delete('${safeC}');_aiGenRender()">
+          <div style="flex:1;">
+            <div style="font-size:.84rem;font-weight:600;color:var(--text-1);">${c}</div>
+            <div style="font-size:.7rem;color:var(--text-3);">${cnt} 題</div>
+          </div>
+        </label>`;
+      }).join('');
+    }
+  }
+
+  const hasSel = isMat ? _aiGen.selMats.size > 0 : _aiGen.selCats.size > 0;
+  // default tag: first tag of first selected material
+  let defTag = '';
+  if (isMat && _aiGen.selMats.size === 1) {
+    const m = S.materials.find(m => _aiGen.selMats.has(m.id));
+    defTag = (m?.matTags||[])[0] || m?.title || '';
+  } else if (!isMat && _aiGen.selCats.size > 0) {
+    defTag = [..._aiGen.selCats][0];
+  }
+
+  return `
+  <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;">
+    <button onclick="_aiGen.step=0;_aiGenRender()" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div style="flex:1;">
+      <div class="badge badge-v" style="font-size:.6rem;margin-bottom:.2rem;">Step 2</div>
+      <h3 style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;">${isMat?'選擇教材':'選擇題目分類'}</h3>
+    </div>
+    <button onclick="closeAIGenModal()" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+
+  <div style="max-height:200px;overflow-y:auto;margin-bottom:.85rem;">${itemsHTML}</div>
+
+  <div style="border-top:1px solid var(--border);padding-top:.9rem;margin-bottom:1rem;">
+    <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.7rem;">生成設定</p>
+    <div style="display:flex;flex-direction:column;gap:.65rem;">
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <label style="font-size:.78rem;color:var(--text-2);width:56px;flex-shrink:0;">題數</label>
+        <input type="range" min="3" max="30" value="${_aiGen.count}" style="flex:1;accent-color:${accentC};"
+          oninput="_aiGen.count=parseInt(this.value);this.nextElementSibling.textContent=this.value">
+        <span style="font-size:.88rem;font-weight:700;color:${accentC};width:26px;text-align:right;">${_aiGen.count}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <label style="font-size:.78rem;color:var(--text-2);width:56px;flex-shrink:0;">難度</label>
+        <select onchange="_aiGen.difficulty=this.value" style="flex:1;">
+          <option value="basic"  ${_aiGen.difficulty==='basic' ?'selected':''}>基礎記憶型（名詞定義）</option>
+          <option value="apply"  ${_aiGen.difficulty==='apply' ?'selected':''}>應用理解型（觀念判斷）</option>
+          <option value="exam"   ${_aiGen.difficulty==='exam'  ?'selected':''}>考試等級（情境分析）</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <label style="font-size:.78rem;color:var(--text-2);width:56px;flex-shrink:0;">標籤</label>
+        <input id="aiGenTag" placeholder="${isMat?'沿用教材名稱':'沿用題目分類'}" value="${defTag}" style="flex:1;">
+      </div>
+    </div>
+  </div>
+
+  <button onclick="aiGenRun()" ${hasSel?'':'disabled'}
+    style="width:100%;padding:.7rem;border-radius:10px;font-size:.9rem;font-weight:700;border:none;
+           cursor:${hasSel?'pointer':'not-allowed'};transition:all .2s;
+           background:${hasSel?accentC:'rgba(255,255,255,.08)'};
+           color:${hasSel?'#fff':'var(--text-3)'};
+           display:flex;align-items:center;justify-content:center;gap:.5rem;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    開始生成
+  </button>`;
+}
+
+/* ── Step 2：生成中 ── */
+function _aiGenStep2() {
+  return `
+  <div style="text-align:center;padding:2.2rem 1rem;">
+    <div class="aigen-spinner"></div>
+    <h3 style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;margin-bottom:.5rem;">Gemma 4 思考中…</h3>
+    <p style="font-size:.82rem;color:var(--text-3);">正在生成 <strong style="color:var(--accent)">${_aiGen.count}</strong> 道題目，請稍候</p>
+    <p style="font-size:.72rem;color:var(--text-3);margin-top:.4rem;">依模型大小約需 15 秒 ~ 2 分鐘</p>
+  </div>`;
+}
+
+/* ── Step 3：預覽與匯入 ── */
+function _aiGenStep3() {
+  const visible = _aiGen.results.filter((_,i) => !_aiGen.removedIdx.has(i));
+  const rows = _aiGen.results.map((q,i) => {
+    if (_aiGen.removedIdx.has(i)) return '';
+    const optLetters = ['a','b','c','d','e','f'].filter(k => q['option_'+k] && q['option_'+k].trim());
+    const ansUp = (q.answer||'').toUpperCase();
+    return `<div class="aigen-q-row">
+      <div style="display:flex;align-items:flex-start;gap:.5rem;">
+        <span style="font-size:.7rem;font-weight:700;color:var(--accent);flex-shrink:0;margin-top:.15rem;">Q${i+1}</span>
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:.82rem;font-weight:600;color:var(--text-1);margin-bottom:.35rem;line-height:1.55;">${q.question||q.text||''}</p>
+          <div style="font-size:.75rem;line-height:1.8;">
+            ${optLetters.map(k=>`<span style="color:${ansUp.includes(k.toUpperCase())?'var(--green)':'var(--text-2)'};">${k.toUpperCase()}. ${q['option_'+k]}</span><br>`).join('')}
+          </div>
+          ${q.explanation?`<p style="font-size:.72rem;color:var(--text-3);margin-top:.35rem;line-height:1.5;">💡 ${q.explanation}</p>`:''}
+        </div>
+        <button onclick="_aiGen.removedIdx.add(${i});_aiGenRender()" title="移除此題"
+          style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:.1rem;flex-shrink:0;transition:color .2s;"
+          onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-3)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.9rem;">
+    <div style="flex:1;">
+      <div class="badge badge-gr" style="font-size:.6rem;margin-bottom:.2rem;">生成完成</div>
+      <h3 style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;">預覽題目</h3>
+    </div>
+    <button onclick="closeAIGenModal()" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <p style="font-size:.78rem;color:var(--text-2);margin-bottom:.75rem;">共 <strong style="color:var(--accent)">${visible.length}</strong> 題（點 ✕ 可移除不需要的）</p>
+  <div style="max-height:380px;overflow-y:auto;margin-bottom:1rem;">${rows}</div>
+  <div style="display:flex;gap:.5rem;">
+    <button onclick="_aiGen.step=1;_aiGen.results=[];_aiGen.removedIdx=new Set();_aiGenRender()" class="btn btn-ghost" style="flex:1;font-size:.82rem;min-height:40px;">↩ 重新設定</button>
+    <button onclick="aiGenImport()" class="btn btn-primary" style="flex:2;font-size:.82rem;min-height:40px;" ${visible.length?'':'disabled'}>✅ 匯入 ${visible.length} 題</button>
+  </div>`;
+}
+
+/* ── Ollama 連線測試 ── */
+async function aiGenTestConn() {
+  const cfg = _aiGenCfg();
+  const btn = document.getElementById('aiGenConnBtn');
+  if (!btn) return;
+  btn.textContent = '測試中…'; btn.disabled = true;
+  try {
+    const r = await fetch(`http://localhost:${cfg.port}/api/tags`, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const data = await r.json();
+      const models = (data.models||[]).map(m=>m.name).join('、') || '（無已載入模型）';
+      btn.textContent = '✅ 連線成功';
+      btn.style.color = 'var(--green)';
+      btn.title = '已載入：' + models;
+    } else throw new Error();
+  } catch {
+    btn.textContent = '❌ 無法連線'; btn.style.color = 'var(--red)';
+  }
+  btn.disabled = false;
+  setTimeout(() => { if (btn) { btn.textContent = '測試連線'; btn.style.color = ''; btn.title = ''; } }, 4000);
+}
+
+/* ── 組合 Prompt ── */
+function _aiGenBuildPrompt() {
+  const isMat = _aiGen.source === 'material';
+  const diffMap = {
+    basic: '基礎記憶型：考定義、名詞、基本概念，答案可直接在文中找到',
+    apply: '應用理解型：考觀念應用與情境判斷，需理解才能作答',
+    exam:  '技術證照考試等級：情境式題目，需綜合分析，選項設計要有迷惑性'
+  };
+  const tag = document.getElementById('aiGenTag')?.value?.trim() || (isMat ? '教材主題' : [..._aiGen.selCats][0] || 'AI生成');
+
+  const system = `你是專業的技術證照考試命題老師，專門設計繁體中文選擇題。
+請輸出純 JSON 陣列，不得包含任何說明文字、markdown 或程式碼區塊。格式如下：
+[{"exam":"${tag}","question":"題目文字","option_a":"選項A","option_b":"選項B","option_c":"選項C","option_d":"選項D","answer":"B","explanation":"詳細解析，說明正確答案的原因"}]
+注意：answer 欄單選填單一大寫字母（A-D），多選填多個字母（如 AC）。每題至少要有 option_a 到 option_d。`;
+
+  let content = '';
+  if (isMat) {
+    const mats = S.materials.filter(m => _aiGen.selMats.has(m.id));
+    content = mats.map(m => {
+      const txt = (m.sections||[]).map(s => (s.html||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim()).join('\n').slice(0, 7000);
+      return `【教材：${m.title}】\n${txt}`;
+    }).join('\n\n---\n\n');
+  } else {
+    const cats = [..._aiGen.selCats];
+    const sample = S.extraQs.filter(q => cats.includes(q.category||'未分類')).slice(0, 50);
+    content = `現有考古題（共 ${sample.length} 題，作為出題主題參考，請生成全新不重複的題目）：\n` +
+      sample.map((q,i) => `${i+1}. ${q.text}（答案：${Array.isArray(q.answer) ? q.answer.map(n=>['A','B','C','D','E','F'][n]).join('') : ['A','B','C','D','E','F'][q.answer]||q.answer}）`).join('\n');
+  }
+
+  const user = `請根據以下${isMat?'教材內容':'考古題主題'}，生成 ${_aiGen.count} 道繁體中文選擇題。
+難度要求：${diffMap[_aiGen.difficulty]||diffMap.exam}
+題目分類標籤：${tag}
+
+${content}`;
+
+  return { system, user };
+}
+
+/* ── 呼叫 Ollama API ── */
+async function aiGenRun() {
+  const cfg = _aiGenCfg();
+  _aiGen.step = 2;
+  _aiGenRender();
+
+  try {
+    const { system, user } = _aiGenBuildPrompt();
+    const res = await fetch(`http://localhost:${cfg.port}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model:   cfg.model,
+        messages:[{ role:'system', content:system }, { role:'user', content:user }],
+        stream:  false,
+        options: { temperature:0.7, num_predict:4096 }
+      }),
+      signal: AbortSignal.timeout(180000)
+    });
+
+    if (!res.ok) throw new Error(`Ollama 回應錯誤 HTTP ${res.status}，請確認模型已載入`);
+    const data = await res.json();
+    const text = data?.message?.content || data?.response || '';
+    const questions = _aiGenParseJSON(text);
+    if (!questions.length) throw new Error('未解析到有效題目。請確認模型已正確載入，或嘗試減少題數後重試');
+    _aiGen.results = questions;
+    _aiGen.removedIdx = new Set();
+    _aiGen.step = 3;
+  } catch (err) {
+    _aiGen.step = 1;
+    _aiGenRender();
+    const el = document.getElementById('aiGenContent');
+    if (el) {
+      const d = document.createElement('div');
+      d.style.cssText = 'margin-top:.75rem;padding:.65rem .85rem;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);font-size:.78rem;color:var(--red);line-height:1.55;';
+      d.textContent = '❌ ' + (err.message || '生成失敗，請確認 Ollama 正在執行');
+      el.appendChild(d);
+      setTimeout(() => d.remove(), 8000);
+    }
+    return;
+  }
+  _aiGenRender();
+}
+
+/* ── JSON 解析（含 fallback）── */
+function _aiGenParseJSON(text) {
+  text = text.trim();
+  // 1. Direct parse
+  try { const r = JSON.parse(text); if (Array.isArray(r)) return r; } catch {}
+  // 2. Extract array from surrounding text / markdown code block
+  const m = text.match(/\[[\s\S]*\]/);
+  if (m) { try { const r = JSON.parse(m[0]); if (Array.isArray(r)) return r; } catch {} }
+  return [];
+}
+
+/* ── 匯入至題庫 ── */
+function aiGenImport() {
+  const toImport = _aiGen.results.filter((_,i) => !_aiGen.removedIdx.has(i));
+  if (!toImport.length) return;
+  const tag = document.getElementById('aiGenTag')?.value?.trim() || 'AI生成';
+  // Normalize to the format parseQuestionRows expects
+  const norm = toImport.map(q => {
+    const out = {};
+    Object.keys(q).forEach(k => { out[k.toLowerCase().trim()] = String(q[k]||'').trim(); });
+    if (!out.exam) out.exam = tag;
+    return out;
+  });
+  const parsed = parseQuestionRows(norm);
+  if (!parsed.length) { showImportToast('❌ 題目格式不符，請確認 AI 輸出包含 question 與 option_a/b', 4000); return; }
+  // Virtual file (not pushed to S.files — questions appear in quiz pool by tag)
+  const fakeFile = { id: 'ai_' + Date.now(), tags: [tag] };
+  _mergeQuestions(parsed, fakeFile);
+  closeAIGenModal();
+  showImportToast(`✅ 成功匯入 ${parsed.length} 道 AI 生成題目（標籤：${tag}）`, 5000);
+  render();
+}
+
+/* ════════════════════════════════════════════════════════════ */
+
 function downloadQuestionTemplate() {
   if (typeof XLSX === 'undefined') {
     alert('XLSX 函式庫未載入，請確認網路連線後重新整理頁面');
@@ -2119,9 +2527,15 @@ function quizMenuHTML_page() {
 
   return `
   <div class="page" style="max-width:680px;margin:0 auto;padding:3rem 1.5rem;">
-    <div style="margin-bottom:2rem;">
-      <div class="badge badge-g" style="margin-bottom:.7rem">智能模擬考</div>
-      <h2 style="font-size:1.8rem;font-weight:700;letter-spacing:-.035em;">設定測驗</h2>
+    <div style="margin-bottom:2rem;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+      <div>
+        <div class="badge badge-g" style="margin-bottom:.7rem">智能模擬考</div>
+        <h2 style="font-size:1.8rem;font-weight:700;letter-spacing:-.035em;">設定測驗</h2>
+      </div>
+      <button onclick="openAIGenModal()" style="display:flex;align-items:center;gap:.5rem;padding:.6rem 1.1rem;border-radius:10px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .18s;background:linear-gradient(135deg,rgba(123,111,224,.18),rgba(200,150,62,.12));color:var(--accent);border:1.5px solid rgba(123,111,224,.35);white-space:nowrap;margin-top:.15rem;" onmouseover="this.style.background='linear-gradient(135deg,rgba(123,111,224,.28),rgba(200,150,62,.18))';" onmouseout="this.style.background='linear-gradient(135deg,rgba(123,111,224,.18),rgba(200,150,62,.12))';">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        AI 生成題目
+      </button>
     </div>
 
     <!-- ① 選分類 -->
