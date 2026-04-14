@@ -8,7 +8,14 @@ Port: 7734  |  只接受 127.0.0.1 本機請求
 import subprocess
 import json
 import shutil
+import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
+
+# launchd 啟動時 PATH 很精簡，手動補常見路徑
+_EXTRA_PATHS = ['/opt/homebrew/bin', '/usr/local/bin', os.path.expanduser('~/.local/bin')]
+for _p in _EXTRA_PATHS:
+    if _p not in os.environ.get('PATH', ''):
+        os.environ['PATH'] = _p + ':' + os.environ.get('PATH', '')
 
 PORT = 7734
 ALLOWED_ORIGIN = '*'   # 僅本機使用，CORS 全開
@@ -44,6 +51,12 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 return self._json(400, {'ok': False, 'error': 'prompt 不可為空'})
 
             claude_bin = shutil.which('claude')
+            if not claude_bin:
+                # 嘗試已知的絕對路徑
+                for _try in ['/opt/homebrew/bin/claude', '/usr/local/bin/claude']:
+                    if os.path.isfile(_try) and os.access(_try, os.X_OK):
+                        claude_bin = _try
+                        break
             if not claude_bin:
                 return self._json(500, {
                     'ok': False,
