@@ -1944,12 +1944,15 @@ function _aiGenStep1() {
       }).join('');
     }
   } else {
-    const cats = [...new Set(S.extraQs.map(q => q.category||'未分類'))].sort();
+    const cats = [...new Set([
+      ...S.files.flatMap(f => f.tags || []),
+      ...S.extraQs.map(q => q.category||'未分類').filter(c => c !== '未分類')
+    ])].sort();
     if (!cats.length) {
       itemsHTML = '<div class="empty-state">尚未匯入任何考古題</div>';
     } else {
       itemsHTML = cats.map(c => {
-        const cnt = S.extraQs.filter(q => (q.category||'未分類') === c).length;
+        const cnt = S.extraQs.filter(q => (q.category||'未分類') === c || (q._fileTags && q._fileTags.includes(c))).length;
         const on = _aiGen.selCats.has(c);
         const safeC = c.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         return `<label style="display:flex;align-items:center;gap:.65rem;padding:.55rem .75rem;border-radius:9px;cursor:pointer;background:${on?accentBg:'rgba(255,255,255,.02)'};border:1px solid ${on?accentBd:'var(--border)'};transition:all .2s;margin-bottom:.3rem;">
@@ -2131,7 +2134,7 @@ function _aiGenBuildPrompt() {
     }).join('\n\n---\n\n');
   } else {
     const cats = [..._aiGen.selCats];
-    const sample = S.extraQs.filter(q => cats.includes(q.category||'未分類')).slice(0, 50);
+    const sample = S.extraQs.filter(q => cats.includes(q.category||'未分類') || (q._fileTags && q._fileTags.some(t => cats.includes(t)))).slice(0, 50);
     content = `現有考古題（共 ${sample.length} 題，作為出題主題參考，請生成全新不重複的題目）：\n` +
       sample.map((q,i) => `${i+1}. ${q.text}（答案：${Array.isArray(q.answer) ? q.answer.map(n=>['A','B','C','D','E','F'][n]).join('') : ['A','B','C','D','E','F'][q.answer]||q.answer}）`).join('\n');
   }
