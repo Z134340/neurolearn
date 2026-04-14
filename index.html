@@ -1944,23 +1944,20 @@ function _aiGenStep1() {
       }).join('');
     }
   } else {
-    const cats = [...new Set([
-      ...S.files.flatMap(f => f.tags || []),
-      ...S.extraQs.map(q => q.category||'未分類').filter(c => c !== '未分類')
-    ])].sort();
-    if (!cats.length) {
+    if (!S.files.length) {
       itemsHTML = '<div class="empty-state">尚未匯入任何考古題</div>';
     } else {
-      itemsHTML = cats.map(c => {
-        const cnt = S.extraQs.filter(q => (q.category||'未分類') === c || (q._fileTags && q._fileTags.includes(c))).length;
-        const on = _aiGen.selCats.has(c);
-        const safeC = c.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      itemsHTML = S.files.map(f => {
+        const cnt = S.extraQs.filter(q => q._fileId === f.id || (q._fileTags && (f.tags||[]).some(t => q._fileTags.includes(t)))).length;
+        const on = _aiGen.selCats.has(f.id);
+        const safeId = f.id.replace(/'/g,"\\'");
+        const label = (f.tags && f.tags.length) ? f.tags[0] : (f.name || f.id);
         return `<label style="display:flex;align-items:center;gap:.65rem;padding:.55rem .75rem;border-radius:9px;cursor:pointer;background:${on?accentBg:'rgba(255,255,255,.02)'};border:1px solid ${on?accentBd:'var(--border)'};transition:all .2s;margin-bottom:.3rem;">
           <input type="checkbox" ${on?'checked':''} style="accent-color:var(--gold);width:14px;height:14px;flex-shrink:0;"
-            onchange="if(this.checked)_aiGen.selCats.add('${safeC}');else _aiGen.selCats.delete('${safeC}');_aiGenRender()">
-          <div style="flex:1;">
-            <div style="font-size:.84rem;font-weight:600;color:var(--text-1);">${c}</div>
-            <div style="font-size:.7rem;color:var(--text-3);">${cnt} 題</div>
+            onchange="if(this.checked)_aiGen.selCats.add('${safeId}');else _aiGen.selCats.delete('${safeId}');_aiGenRender()">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.84rem;font-weight:600;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}</div>
+            <div style="font-size:.7rem;color:var(--text-3);">${cnt} 題${f.tags&&f.tags.length>1?' · '+f.tags.slice(1).join(', '):''}</div>
           </div>
         </label>`;
       }).join('');
@@ -1974,7 +1971,8 @@ function _aiGenStep1() {
     const m = S.materials.find(m => _aiGen.selMats.has(m.id));
     defTag = (m?.matTags||[])[0] || m?.title || '';
   } else if (!isMat && _aiGen.selCats.size > 0) {
-    defTag = [..._aiGen.selCats][0];
+    const firstFile = S.files.find(f => _aiGen.selCats.has(f.id));
+    defTag = (firstFile?.tags && firstFile.tags.length) ? firstFile.tags[0] : (firstFile?.name || [..._aiGen.selCats][0]);
   }
 
   return `
@@ -2118,7 +2116,9 @@ function _aiGenBuildPrompt() {
     apply: '應用理解型：考觀念應用與情境判斷，需理解才能作答',
     exam:  '技術證照考試等級：情境式題目，需綜合分析，選項設計要有迷惑性'
   };
-  const tag = document.getElementById('aiGenTag')?.value?.trim() || (isMat ? '教材主題' : [..._aiGen.selCats][0] || 'AI生成');
+  const _firstSelFile = !isMat ? S.files.find(f => _aiGen.selCats.has(f.id)) : null;
+  const _defaultTag = isMat ? '教材主題' : ((_firstSelFile?.tags||[])[0] || _firstSelFile?.name || 'AI生成');
+  const tag = document.getElementById('aiGenTag')?.value?.trim() || _defaultTag;
 
   const system = `你是專業的技術證照考試命題老師，專門設計繁體中文選擇題。
 請輸出純 JSON 陣列，不得包含任何說明文字、markdown 或程式碼區塊。格式如下：
@@ -2133,8 +2133,14 @@ function _aiGenBuildPrompt() {
       return `【教材：${m.title}】\n${txt}`;
     }).join('\n\n---\n\n');
   } else {
-    const cats = [..._aiGen.selCats];
-    const sample = S.extraQs.filter(q => cats.includes(q.category||'未分類') || (q._fileTags && q._fileTags.some(t => cats.includes(t)))).slice(0, 50);
+    const selFileIds = [..._aiGen.selCats];
+    const selFiles = S.files.filter(f => selFileIds.includes(f.id));
+    const selFileTags = selFiles.flatMap(f => f.tags || []);
+    const sample = S.extraQs.filter(q =>
+      selFileIds.includes(q._fileId) ||
+      (q._fileTags && q._fileTags.some(t => selFileTags.includes(t))) ||
+      selFileTags.includes(q.category)
+    ).slice(0, 50);
     content = `現有考古題（共 ${sample.length} 題，作為出題主題參考，請生成全新不重複的題目）：\n` +
       sample.map((q,i) => `${i+1}. ${q.text}（答案：${Array.isArray(q.answer) ? q.answer.map(n=>['A','B','C','D','E','F'][n]).join('') : ['A','B','C','D','E','F'][q.answer]||q.answer}）`).join('\n');
   }
