@@ -1829,7 +1829,7 @@ function importCSVQuestions(file, fObj) {
 }
 
 /* ════════════════════════════════════════════════════════════
-   AI 題目生成 — Ollama / Gemma 4 本機推論
+   AI 題目生成 — Claude Sonnet 4.6（本機 Proxy）
    ════════════════════════════════════════════════════════════ */
 
 const _aiGenDef = { model: 'claude-sonnet-4-6', port: 7734 };
@@ -2030,7 +2030,7 @@ function _aiGenStep2() {
   return `
   <div style="text-align:center;padding:2.2rem 1rem;">
     <div class="aigen-spinner"></div>
-    <h3 style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;margin-bottom:.5rem;">Gemma 4 思考中…</h3>
+    <h3 style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;margin-bottom:.5rem;">Claude Sonnet 4.6 思考中…</h3>
     <p style="font-size:.82rem;color:var(--text-3);">正在生成 <strong style="color:var(--accent)">${_aiGen.count}</strong> 道題目，請稍候</p>
     <p style="font-size:.72rem;color:var(--text-3);margin-top:.4rem;">依模型大小約需 15 秒 ~ 2 分鐘</p>
   </div>`;
@@ -2213,7 +2213,7 @@ function aiGenImport() {
   const toImport = _aiGen.results.filter((_,i) => !_aiGen.removedIdx.has(i));
   if (!toImport.length) return;
   const tag = document.getElementById('aiGenTag')?.value?.trim() || 'AI生成';
-  // Normalize to the format parseQuestionRows expects
+
   const norm = toImport.map(q => {
     const out = {};
     Object.keys(q).forEach(k => { out[k.toLowerCase().trim()] = String(q[k]||'').trim(); });
@@ -2222,11 +2222,33 @@ function aiGenImport() {
   });
   const parsed = parseQuestionRows(norm);
   if (!parsed.length) { showImportToast('❌ 題目格式不符，請確認 AI 輸出包含 question 與 option_a/b', 4000); return; }
-  // Virtual file (not pushed to S.files — questions appear in quiz pool by tag)
-  const fakeFile = { id: 'ai_' + Date.now(), tags: [tag] };
-  _mergeQuestions(parsed, fakeFile);
+
+  // 建立真實的 file 記錄加入 S.files，題庫頁面才看得到
+  const fid = 'ai_' + Date.now();
+  const fname = `AI生成_${tag}_${new Date().toISOString().slice(0,10)}.xlsx`;
+  const fileRec = { id: fid, name: fname, tags: [tag], status: 'ready', imported: 0, aiGenerated: true };
+  S.files.unshift(fileRec);
+
+  // 直接寫入 S.extraQs（繞過 _mergeQuestions 的 refreshCard 避免出錯）
+  let _nextId = 10000 + S.extraQs.length;
+  const existingIds = new Set(S.extraQs.map(q => q.id));
+  while (existingIds.has(_nextId)) _nextId++;
+  let added = 0;
+  parsed.forEach(q => {
+    q.id       = _nextId++;
+    q.category = tag;
+    q._fileTags = [tag];
+    q._fileId   = fid;
+    q._fileName = fname;
+    S.extraQs.push(q);
+    added++;
+  });
+  fileRec.imported = added;
+
   closeAIGenModal();
-  showImportToast(`✅ 成功匯入 ${parsed.length} 道 AI 生成題目（標籤：${tag}）`, 5000);
+  saveToStorage();
+  scheduleSyncToCloud();
+  showImportToast(`✅ 成功匯入 ${added} 道 AI 生成題目（標籤：${tag}）`, 5000);
   render();
 }
 
