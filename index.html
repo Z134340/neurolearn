@@ -1949,8 +1949,9 @@ function _aiGenStep1() {
     } else {
       itemsHTML = S.files.map(f => {
         const cnt = S.extraQs.filter(q => q._fileId === f.id || (q._fileTags && (f.tags||[]).some(t => q._fileTags.includes(t)))).length;
-        const on = _aiGen.selCats.has(f.id);
-        const safeId = String(f.id).replace(/'/g,"\\'");
+        const fid = String(f.id);
+        const on = _aiGen.selCats.has(fid);
+        const safeId = fid.replace(/'/g,"\\'");
         const rawName = f.name || f.id;
         const label = rawName.replace(/\.(xlsx?|csv)$/i,'').replace(/_/g,' ');
         const tagStr = (f.tags||[]).join(', ');
