@@ -168,7 +168,7 @@
     width:100%;text-align:left;
     background:rgba(255,255,255,.025);border:1px solid var(--border);
     border-radius:12px;padding:.9rem 1.1rem;color:var(--text-1);
-    cursor:pointer;transition:all .18s ease;
+    cursor:pointer;transition:all .2s ease;
     font-family:'DM Sans','Inter','Segoe UI',system-ui,-apple-system,sans-serif;font-size:.92rem;
     display:flex;align-items:flex-start;gap:.75rem;
     overflow-wrap:break-word;word-break:break-word;
@@ -251,6 +251,26 @@
 
   .sep{height:1px;background:var(--border);margin:1.25rem 0}
 
+  /* ─── Empty State ─── */
+  .empty-state{text-align:center;padding:2rem 1rem;color:var(--text-3);font-size:.85rem;line-height:1.6;}
+
+  /* ─── Danger Button ─── */
+  .btn-danger{display:inline-flex;align-items:center;gap:.35rem;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:var(--red);border-radius:8px;padding:.38rem .75rem;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s ease;}
+  .btn-danger:hover{background:rgba(248,113,113,.16);border-color:var(--red);}
+
+  /* ─── Sync Button (shared across pages) ─── */
+  .btn-sync{display:inline-flex;align-items:center;gap:.3rem;font-size:.65rem;padding:.2rem .55rem;min-height:0;border-radius:6px;background:rgba(123,111,224,.12);border:1px solid var(--accent-border);color:var(--accent);cursor:pointer;white-space:nowrap;transition:all .2s ease;font-family:inherit;font-weight:600;}
+  .btn-sync:hover{background:rgba(123,111,224,.22);}
+
+  /* ─── Sort / Filter Button (shared) ─── */
+  .btn-sort{display:inline-flex;align-items:center;gap:.25rem;font-size:.68rem;padding:.2rem .55rem;border-radius:6px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-3);font-weight:600;transition:all .2s ease;font-family:inherit;}
+  .btn-sort.active{border-color:var(--accent-border);background:rgba(123,111,224,.12);color:var(--accent);}
+
+  /* ─── Pagination Button ─── */
+  .btn-page{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;transition:all .2s ease;font-family:inherit;}
+  .btn-page:hover:not(:disabled){border-color:var(--accent-border);color:var(--accent);}
+  .btn-page:disabled{opacity:.3;pointer-events:none;}
+
   /* ─── Pulse dot ─── */
   .pulse-dot{
     width:7px;height:7px;border-radius:50%;background:var(--green);
@@ -306,7 +326,7 @@
 
   /* ─── Zone Tabs ─── */
   .zone-tabs{display:flex;align-items:center;gap:2px;margin:0 auto;background:rgba(255,255,255,.03);border-radius:10px;padding:3px}
-  .zone-tab{padding:.38rem 1.1rem;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--text-3);border:none;background:none;font-family:'Sora',sans-serif;letter-spacing:-.01em;transition:all .18s}
+  .zone-tab{padding:.38rem 1.1rem;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--text-3);border:none;background:none;font-family:'Sora',sans-serif;letter-spacing:-.01em;transition:all .2s}
   .zone-tab:hover{color:var(--text-2)}
   .zone-tab.active{color:var(--text-1);background:rgba(255,255,255,.07)}
   #zt-study.active{color:var(--accent)}
@@ -314,7 +334,7 @@
   #zt-dash.active{color:var(--green)}
   #nav-sub-tabs{position:fixed;top:calc(52px + env(safe-area-inset-top, 0px));left:0;right:0;height:44px;background:rgba(14,14,22,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:199;display:flex;align-items:center;gap:.15rem;padding:0 1.25rem;overflow-x:auto;overflow-y:visible}
   #nav-sub-tabs::-webkit-scrollbar{height:0}
-  .sub-tab{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .8rem;border-radius:9px;font-size:.78rem;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text-2);transition:all .18s;border:none;background:none;font-family:'DM Sans',sans-serif}
+  .sub-tab{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .8rem;border-radius:9px;font-size:.78rem;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text-2);transition:all .2s;border:none;background:none;font-family:'DM Sans',sans-serif}
   .sub-tab:hover{color:var(--text-1);background:rgba(255,255,255,.05)}
   .sub-tab.active{background:rgba(255,255,255,.07)}
   .zone-study .sub-tab.active{color:var(--accent)}
@@ -1424,14 +1444,14 @@ function datasetsHTML() {
   const canFileNext = _datasetFilePage < totalFilePages - 1;
   const filePageBtns = totalFilePages > 1 ? `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0 .1rem;margin-top:.25rem;border-top:1px solid var(--border);">
-      <button onclick="_datasetFilePage=Math.max(0,_datasetFilePage-1);render()" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canFilePrev?'':'opacity:.3;pointer-events:none;'}" ${canFilePrev?'':'disabled'}>← 上一頁</button>
+      <button onclick="_datasetFilePage=Math.max(0,_datasetFilePage-1);render()" class="btn-page" ${canFilePrev?'':'disabled'}>← 上一頁</button>
       <span style="font-size:.75rem;color:var(--text-3);">第 ${_datasetFilePage+1} / ${totalFilePages} 頁 · 共 ${displayFiles.length} 份</span>
-      <button onclick="_datasetFilePage=Math.min(${totalFilePages-1},_datasetFilePage+1);render()" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canFileNext?'':'opacity:.3;pointer-events:none;'}" ${canFileNext?'':'disabled'}>下一頁 →</button>
+      <button onclick="_datasetFilePage=Math.min(${totalFilePages-1},_datasetFilePage+1);render()" class="btn-page" ${canFileNext?'':'disabled'}>下一頁 →</button>
     </div>` : '';
   const importedTotal = S.extraQs.length;
   const _datasetSyncInfo = (() => {
     if (!_currentUser) return `<span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${importedTotal} 題</span>`;
-    const syncBtn = `<button id="dataset-sync-btn" onclick="datasetsSyncNow()" style="display:inline-flex;align-items:center;gap:.3rem;font-size:.65rem;padding:.2rem .55rem;min-height:0;border-radius:6px;background:rgba(123,111,224,.12);border:1px solid var(--accent-border);color:var(--accent);cursor:pointer;white-space:nowrap;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg><span>同步雲端</span></button>`;
+    const syncBtn = `<button id="dataset-sync-btn" class="btn-sync" onclick="datasetsSyncNow()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg><span>同步雲端</span></button>`;
     if (!_lastSyncTime) return `
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;">
         <span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${importedTotal} 題</span>
@@ -1531,9 +1551,9 @@ function datasetsHTML() {
         ${allTags.map(tag => { const tc=tagColor(tag); const active=S.tagFilter===tag; return `<span data-tag="${tag.replace(/"/g,'&quot;')}" onclick="setTagFilter(this.dataset.tag)" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`; }).join('')}
       </div>
       ${filesHTML}
-      ${displayFiles.length === 0 ? `<div style="text-align:center;color:var(--text-3);font-size:.85rem;padding:1.5rem 0;">沒有符合「${S.tagFilter}」標籤的檔案</div>` : ''}
+      ${displayFiles.length === 0 ? `<div class="empty-state">沒有符合「${S.tagFilter}」標籤的檔案</div>` : ''}
       ${filePageBtns}
-    </div>` : `<div style="margin-top:2rem;text-align:center;color:var(--text-3);font-size:.88rem;padding:1.5rem 0;">尚未上傳任何檔案</div>`}
+    </div>` : `<div class="empty-state" style="margin-top:2rem;">尚未上傳任何檔案</div>`}
   </div>`;
 }
 
@@ -2508,13 +2528,13 @@ function quizActiveHTML() {
   </div>`;
 
   const hasPrev = S.currentQ > 0;
-  const prevBtn = hasPrev ? `<button class="btn btn-ghost" onclick="prevQuestion()" style="touch-action:manipulation;font-size:.85rem;min-height:44px;padding:.5rem .9rem;">← 上一題</button>` : '';
-  const editBtn = ans.confirmed ? `<button class="btn btn-ghost" onclick="unconfirmAns()" style="touch-action:manipulation;font-size:.83rem;min-height:44px;padding:.5rem .9rem;">✏️ 修改</button>` : '';
+  const prevBtn = hasPrev ? `<button class="btn btn-ghost" onclick="prevQuestion()" style="touch-action:manipulation;min-height:44px;padding:.6rem 1rem;font-size:.88rem;">← 上一題</button>` : '';
+  const editBtn = ans.confirmed ? `<button class="btn btn-ghost" onclick="unconfirmAns()" style="touch-action:manipulation;min-height:44px;padding:.6rem 1rem;font-size:.88rem;">✏️ 修改</button>` : '';
 
   const confirmDisabled = q.isMulti ? (ans.selected.length === 0 ? 'disabled' : '') : (ans.selected === null ? 'disabled' : '');
   const actionBtn = ans.confirmed
-    ? `<div style="display:flex;gap:.5rem;flex-wrap:wrap;">${prevBtn}${editBtn}<button class="btn btn-primary" onclick="nextQuestion()" style="touch-action:manipulation;flex:1;min-height:44px;">${isLast?'完成測驗 →':'下一題 →'}</button></div>`
-    : `<div style="display:flex;gap:.5rem;align-items:center;">${prevBtn}<button id="confirm-btn" class="btn btn-primary" onclick="confirmAns()" style="touch-action:manipulation;min-height:44px;padding:.6rem 1.8rem;font-size:.95rem;" ${confirmDisabled}>確認答案</button></div>`;
+    ? `<div style="display:flex;gap:.5rem;flex-wrap:wrap;">${prevBtn}${editBtn}<button class="btn btn-primary" onclick="nextQuestion()" style="touch-action:manipulation;flex:1;min-height:44px;padding:.6rem 1.5rem;font-size:.9rem;">${isLast?'完成測驗 →':'下一題 →'}</button></div>`
+    : `<div style="display:flex;gap:.5rem;align-items:center;">${prevBtn}<button id="confirm-btn" class="btn btn-primary" onclick="confirmAns()" style="touch-action:manipulation;min-height:44px;padding:.6rem 1.5rem;font-size:.9rem;" ${confirmDisabled}>確認答案</button></div>`;
 
   return `
   <div class="page" style="max-width:660px;margin:0 auto;padding:clamp(.75rem,3vw,2rem) clamp(.75rem,4vw,1.5rem);">
@@ -2653,7 +2673,7 @@ function confirmAns() {
   const actionDiv = document.getElementById('action-btn');
   if (actionDiv) {
     const isLast = S.currentQ === S.activeQs.length - 1;
-    actionDiv.innerHTML = `<button class="btn btn-primary" onclick="nextQuestion()">${isLast ? '完成測驗 →' : '下一題 →'}</button>`;
+    actionDiv.innerHTML = `<button class="btn btn-primary" onclick="nextQuestion()" style="min-height:44px;padding:.6rem 1.5rem;font-size:.9rem;">${isLast ? '完成測驗 →' : '下一題 →'}</button>`;
   }
 }
 
@@ -3056,7 +3076,7 @@ function dashHTML() {
   const _dashSyncInfo = (() => {
     const tot = S.history.length;
     if (!_currentUser) return `<span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${tot} 次測驗</span>`;
-    const syncBtn = `<button id="dash-sync-btn" onclick="dashSyncNow()" style="display:inline-flex;align-items:center;gap:.3rem;font-size:.65rem;padding:.2rem .55rem;min-height:0;border-radius:6px;background:rgba(123,111,224,.12);border:1px solid var(--accent-border);color:var(--accent);cursor:pointer;white-space:nowrap;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg><span>同步雲端</span></button>`;
+    const syncBtn = `<button id="dash-sync-btn" class="btn-sync" onclick="dashSyncNow()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg><span>同步雲端</span></button>`;
     if (!_lastSyncTime) return `
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;">
         <span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${tot} 次測驗</span>
@@ -3188,7 +3208,7 @@ function dashStatsHTML() {
           </div>
         </div>`;
       }).join('')
-    : `<p style="font-size:.83rem;color:var(--text-3);text-align:center;padding:1.5rem 0;">${dt?`「${dt}」尚無測驗紀錄`:'完成測驗後將顯示趨勢圖'}</p>`;
+    : `<p class="empty-state">${dt?`「${dt}」尚無測驗紀錄`:'完成測驗後將顯示趨勢圖'}</p>`;
 
   // History rows
   const reversed = [...filtHist].reverse();
@@ -3211,15 +3231,15 @@ function dashStatsHTML() {
           <div style="font-size:.82rem;color:var(--gold);">${h.bk>0?`🔖 ${h.bk}`:'—'}</div>
         </div>`;
       }).join('')
-    : `<div style="padding:2rem;text-align:center;color:var(--text-3);font-size:.85rem;">${dt?`「${dt}」尚無測驗紀錄。`:'尚無測驗紀錄，完成第一次測驗後將顯示於此。'}</div>`;
+    : `<div class="empty-state">${dt?`「${dt}」尚無測驗紀錄。`:'尚無測驗紀錄，完成第一次測驗後將顯示於此。'}</div>`;
 
   const canOlder = safePage < totalPages - 1;
   const canNewer = safePage > 0;
   const pageBtns = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.1rem .85rem;border-top:1px solid var(--border);margin-top:auto;">
-      <button onclick="S._dashHistPage=Math.min(${totalPages-1},S._dashHistPage+1);var el=document.getElementById('dash-stats');if(el){el.innerHTML=dashStatsHTML();setTimeout(initChart,30);}" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canOlder?'':'opacity:.3;pointer-events:none;'}" ${canOlder?'':'disabled'}>← 較舊</button>
+      <button onclick="S._dashHistPage=Math.min(${totalPages-1},S._dashHistPage+1);var el=document.getElementById('dash-stats');if(el){el.innerHTML=dashStatsHTML();setTimeout(initChart,30);}" class="btn-page" ${canOlder?'':'disabled'}>← 較舊</button>
       <span style="font-size:.75rem;color:var(--text-3);">${totalPages>1?'第 '+(safePage+1)+' / '+totalPages+' 頁 · ':''}共 ${reversed.length} 筆</span>
-      <button onclick="S._dashHistPage=Math.max(0,S._dashHistPage-1);var el=document.getElementById('dash-stats');if(el){el.innerHTML=dashStatsHTML();setTimeout(initChart,30);}" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canNewer?'':'opacity:.3;pointer-events:none;'}" ${canNewer?'':'disabled'}>較新 →</button>
+      <button onclick="S._dashHistPage=Math.max(0,S._dashHistPage-1);var el=document.getElementById('dash-stats');if(el){el.innerHTML=dashStatsHTML();setTimeout(initChart,30);}" class="btn-page" ${canNewer?'':'disabled'}>較新 →</button>
     </div>`;
 
   const dlWrong = '';
@@ -3680,13 +3700,13 @@ function libraryHTML() {
   const canNext = _libMatPage < totalMatPages - 1;
   const matPageBtns = totalMatPages > 1 ? `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0 .1rem;margin-top:.25rem;border-top:1px solid var(--border);">
-      <button onclick="_libMatPage=Math.max(0,_libMatPage-1);render()" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canPrev?'':'opacity:.3;pointer-events:none;'}" ${canPrev?'':'disabled'}>← 上一頁</button>
+      <button onclick="_libMatPage=Math.max(0,_libMatPage-1);render()" class="btn-page" ${canPrev?'':'disabled'}>← 上一頁</button>
       <span style="font-size:.75rem;color:var(--text-3);">第 ${_libMatPage+1} / ${totalMatPages} 頁 · 共 ${displayMats.length} 份</span>
-      <button onclick="_libMatPage=Math.min(${totalMatPages-1},_libMatPage+1);render()" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canNext?'':'opacity:.3;pointer-events:none;'}" ${canNext?'':'disabled'}>下一頁 →</button>
+      <button onclick="_libMatPage=Math.min(${totalMatPages-1},_libMatPage+1);render()" class="btn-page" ${canNext?'':'disabled'}>下一頁 →</button>
     </div>` : '';
   const _libSyncInfo = (() => {
     if (!_currentUser) return `<span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>`;
-    const syncBtn = `<button id="lib-sync-btn" onclick="librarySyncNow()" style="display:inline-flex;align-items:center;gap:.3rem;font-size:.65rem;padding:.2rem .55rem;min-height:0;border-radius:6px;background:rgba(123,111,224,.12);border:1px solid var(--accent-border);color:var(--accent);cursor:pointer;white-space:nowrap;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg><span>同步雲端</span></button>`;
+    const syncBtn = `<button id="lib-sync-btn" class="btn-sync" onclick="librarySyncNow()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg><span>同步雲端</span></button>`;
     if (!_lastSyncTime) return `
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;">
         <span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>
@@ -3772,9 +3792,9 @@ function libraryHTML() {
         ${allMatTags.map(tag => { const tc=tagColor(tag); const active=_matTagFilter===tag; return `<span onclick="setMatTagFilter(${active?'null':"'"+tag+"'"})" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`; }).join('')}
       </div>` : ''}
       ${matsHTML}
-      ${displayMats.length === 0 ? `<div style="text-align:center;color:var(--text-3);font-size:.85rem;padding:1.5rem 0;">沒有符合「${_matTagFilter}」標籤的教材</div>` : ''}
+      ${displayMats.length === 0 ? `<div class="empty-state">沒有符合「${_matTagFilter}」標籤的教材</div>` : ''}
       ${matPageBtns}
-    </div>` : `<div style="margin-top:2rem;text-align:center;color:var(--text-3);font-size:.88rem;padding:1.5rem 0;">尚未上傳任何教材</div>`}
+    </div>` : `<div class="empty-state" style="margin-top:2rem;">尚未上傳任何教材</div>`}
   </div>`;
 }
 
