@@ -466,6 +466,7 @@ let _fullSyncTimer  = null;
 let _blockCloudRender = false; // prevent cloud re-render from overwriting fresh quiz result
 let _lastSyncTime = null;  // timestamp of last successful cloud sync
 let _lastCloudFetch = 0;   // epoch ms of last loadCloudData() call — used for auto-pull debounce
+let _localOnlyFiles = [];  // AI 生成或尚未同步至雲端的本地檔案緩衝 [{file, qs}]
 let _realtimeUnsubscribers = []; // Firestore onSnapshot unsubscribe functions
 let _realtimeReloadTimer = null; // debounce timer for realtime-triggered reload
 
@@ -714,6 +715,17 @@ async function loadCloudData() {
 
     // study materials + annotations
     await loadStudyFromCloud();
+
+    // 重新合併本地尚未同步至雲端的 AI 生成資料
+    if (_localOnlyFiles.length) {
+      _localOnlyFiles = _localOnlyFiles.filter(({ file }) =>
+        !S.files.some(f => String(f.id) === String(file.id))
+      );
+      for (const { file, qs } of _localOnlyFiles) {
+        S.files.unshift(file);
+        qs.forEach(q => { if (!S.extraQs.some(eq => eq.id === q.id)) S.extraQs.push(q); });
+      }
+    }
 
     if (!_lastSyncTime) _lastSyncTime = new Date();
     saveToStorage();
@@ -2264,11 +2276,14 @@ function aiGenImport() {
   });
   fileRec.imported = added;
 
+  // 加入本地緩衝，防止 onSnapshot 覆蓋時資料消失
+  _localOnlyFiles.push({ file: { ...fileRec }, qs: parsed.map(q => ({ ...q })) });
+
   closeAIGenModal();
+  render(); // 先更新 UI，讓使用者立即看到結果
   saveToStorage();
   scheduleSyncToCloud();
   showImportToast(`✅ 成功匯入 ${added} 道 AI 生成題目（標籤：${tag}）`, 5000);
-  render();
 }
 
 /* ════════════════════════════════════════════════════════════ */
@@ -3992,6 +4007,23 @@ function saveToStorage() {
     localStorage.setItem(getStorageKey(), JSON.stringify(payload));
     scheduleSyncToCloud();
   } catch(e) {
+    if (e.name === 'QuotaExceededError') {
+      // 第一次重試：移除 explanation 縮減大小
+      try {
+        const slim = { ...payload, extraQs: payload.extraQs.map(({ explanation, ...q }) => q) };
+        localStorage.setItem(getStorageKey(), JSON.stringify(slim));
+        scheduleSyncToCloud();
+        console.warn('[NeuroLearn] localStorage 接近上限，已移除解析文字以節省空間');
+        return;
+      } catch(e2) {}
+      // 第二次重試：只存 metadata，不存題目內容
+      try {
+        const minimal = { ...payload, extraQs: [], materials: [] };
+        localStorage.setItem(getStorageKey(), JSON.stringify(minimal));
+        console.warn('[NeuroLearn] localStorage 已滿，僅儲存基本狀態，題目依賴雲端');
+        return;
+      } catch(e3) {}
+    }
     console.warn('[NeuroLearn] save failed:', e);
   }
 }
