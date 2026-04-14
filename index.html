@@ -1832,7 +1832,7 @@ function importCSVQuestions(file, fObj) {
    AI 題目生成 — Ollama / Gemma 4 本機推論
    ════════════════════════════════════════════════════════════ */
 
-const _aiGenDef = { model: 'gemma4:12b', port: 11434 };
+const _aiGenDef = { model: 'claude-sonnet-4-6', port: 7734 };
 let _aiGen = { step:0, source:null, selMats:new Set(), selCats:new Set(), count:10, difficulty:'exam', results:[], removedIdx:new Set() };
 
 function _aiGenCfg() {
@@ -1902,28 +1902,19 @@ function _aiGenStep0() {
     </button>
   </div>
 
-  <!-- Ollama 設定 -->
+  <!-- Proxy 狀態 -->
   <div style="border-top:1px solid var(--border);padding-top:.9rem;">
-    <details>
-      <summary style="font-size:.74rem;color:var(--text-3);cursor:pointer;list-style:none;display:flex;align-items:center;gap:.35rem;user-select:none;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-        Ollama 連線設定
-      </summary>
-      <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:.5rem;">
-        <div style="display:flex;align-items:center;gap:.55rem;">
-          <label style="font-size:.73rem;color:var(--text-2);width:64px;flex-shrink:0;">模型名稱</label>
-          <input id="aiGenModel" value="${cfg.model}" placeholder="gemma4:12b"
-            style="flex:1;font-family:'JetBrains Mono','Courier New',monospace;"
-            oninput="_aiGenSaveCfg({model:this.value})">
-        </div>
-        <div style="display:flex;align-items:center;gap:.55rem;">
-          <label style="font-size:.73rem;color:var(--text-2);width:64px;flex-shrink:0;">Port</label>
-          <input id="aiGenPort" value="${cfg.port}" type="number" style="width:88px;font-family:'JetBrains Mono','Courier New',monospace;" oninput="_aiGenSaveCfg({port:parseInt(this.value)||11434})">
-          <button id="aiGenConnBtn" onclick="aiGenTestConn()" style="font-size:.72rem;padding:.28rem .65rem;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-2);cursor:pointer;transition:all .2s;">測試連線</button>
-        </div>
-        <p style="font-size:.68rem;color:var(--text-3);line-height:1.55;margin-top:.1rem;">需先設定：<code style="background:rgba(255,255,255,.08);padding:.1rem .3rem;border-radius:4px;font-size:.65rem;font-family:'JetBrains Mono','Courier New',monospace;">OLLAMA_ORIGINS=https://z134340.github.io</code></p>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:.6rem;">
+      <div style="display:flex;align-items:center;gap:.5rem;">
+        <div id="aiGenProxyDot" style="width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;"></div>
+        <span style="font-size:.72rem;color:var(--text-3);" id="aiGenProxyLabel">檢查 Proxy 狀態中…</span>
       </div>
-    </details>
+      <button id="aiGenConnBtn" onclick="aiGenTestConn()" style="font-size:.72rem;padding:.28rem .65rem;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-2);cursor:pointer;transition:all .2s;">重新測試</button>
+    </div>
+    <p style="font-size:.67rem;color:var(--text-3);margin-top:.45rem;line-height:1.6;">
+      若顯示離線，請在終端機執行：<br>
+      <code style="background:rgba(255,255,255,.07);padding:.15rem .4rem;border-radius:4px;font-size:.64rem;font-family:'JetBrains Mono','Courier New',monospace;">cd ~/NeuroLearn &amp;&amp; bash setup_proxy.sh</code>
+    </p>
   </div>`;
 }
 
@@ -2083,27 +2074,38 @@ function _aiGenStep3() {
   </div>`;
 }
 
-/* ── Ollama 連線測試 ── */
+/* ── Proxy 連線測試 ── */
 async function aiGenTestConn() {
   const cfg = _aiGenCfg();
-  const btn = document.getElementById('aiGenConnBtn');
-  if (!btn) return;
-  btn.textContent = '測試中…'; btn.disabled = true;
+  const btn  = document.getElementById('aiGenConnBtn');
+  const dot  = document.getElementById('aiGenProxyDot');
+  const lbl  = document.getElementById('aiGenProxyLabel');
+  if (btn) { btn.textContent = '測試中…'; btn.disabled = true; }
   try {
-    const r = await fetch(`http://localhost:${cfg.port}/api/tags`, { signal: AbortSignal.timeout(5000) });
-    if (r.ok) {
-      const data = await r.json();
-      const models = (data.models||[]).map(m=>m.name).join('、') || '（無已載入模型）';
-      btn.textContent = '✅ 連線成功';
-      btn.style.color = 'var(--green)';
-      btn.title = '已載入：' + models;
+    const r = await fetch(`http://127.0.0.1:${cfg.port}/health`, { signal: AbortSignal.timeout(4000) });
+    const data = await r.json();
+    if (r.ok && data.ok) {
+      if (dot) dot.style.background = 'var(--green,#4ade80)';
+      if (lbl) lbl.textContent = `Proxy 運行中 · ${data.model || cfg.model}`;
+      if (btn) { btn.textContent = '✅ 已連線'; btn.style.color = 'var(--green,#4ade80)'; }
     } else throw new Error();
   } catch {
-    btn.textContent = '❌ 無法連線'; btn.style.color = 'var(--red)';
+    if (dot) dot.style.background = 'var(--red,#f87171)';
+    if (lbl) lbl.textContent = 'Proxy 離線，請執行 setup_proxy.sh';
+    if (btn) { btn.textContent = '❌ 離線'; btn.style.color = 'var(--red,#f87171)'; }
   }
-  btn.disabled = false;
-  setTimeout(() => { if (btn) { btn.textContent = '測試連線'; btn.style.color = ''; btn.title = ''; } }, 4000);
+  if (btn) {
+    btn.disabled = false;
+    setTimeout(() => { if (btn) { btn.textContent = '重新測試'; btn.style.color = ''; } }, 4000);
+  }
 }
+
+/* 開啟 modal 時自動檢查 */
+const _origOpenAIGenModal = openAIGenModal;
+openAIGenModal = function() {
+  _origOpenAIGenModal();
+  setTimeout(aiGenTestConn, 300);
+};
 
 /* ── 組合 Prompt ── */
 function _aiGenBuildPrompt() {
@@ -2143,7 +2145,7 @@ ${content}`;
   return { system, user };
 }
 
-/* ── 呼叫 Ollama API ── */
+/* ── 呼叫 Claude Proxy API ── */
 async function aiGenRun() {
   const cfg = _aiGenCfg();
   _aiGen.step = 2;
@@ -2151,23 +2153,19 @@ async function aiGenRun() {
 
   try {
     const { system, user } = _aiGenBuildPrompt();
-    const res = await fetch(`http://localhost:${cfg.port}/api/chat`, {
+    const prompt = `${system}\n\n${user}`;
+    const res = await fetch(`http://127.0.0.1:${cfg.port}/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model:   cfg.model,
-        messages:[{ role:'system', content:system }, { role:'user', content:user }],
-        stream:  false,
-        options: { temperature:0.7, num_predict:4096 }
-      }),
+      body: JSON.stringify({ prompt, model: cfg.model }),
       signal: AbortSignal.timeout(180000)
     });
 
-    if (!res.ok) throw new Error(`Ollama 回應錯誤 HTTP ${res.status}，請確認模型已載入`);
     const data = await res.json();
-    const text = data?.message?.content || data?.response || '';
+    if (!res.ok || !data.ok) throw new Error(data.error || `Proxy 回應錯誤 HTTP ${res.status}`);
+    const text = data.text || '';
     const questions = _aiGenParseJSON(text);
-    if (!questions.length) throw new Error('未解析到有效題目。請確認模型已正確載入，或嘗試減少題數後重試');
+    if (!questions.length) throw new Error('未解析到有效題目，請再試一次');
     _aiGen.results = questions;
     _aiGen.removedIdx = new Set();
     _aiGen.step = 3;
@@ -2178,7 +2176,7 @@ async function aiGenRun() {
     if (el) {
       const d = document.createElement('div');
       d.style.cssText = 'margin-top:.75rem;padding:.65rem .85rem;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);font-size:.78rem;color:var(--red);line-height:1.55;';
-      d.textContent = '❌ ' + (err.message || '生成失敗，請確認 Ollama 正在執行');
+      d.textContent = '❌ ' + (err.message || '生成失敗，請確認 Proxy 正在執行（執行 setup_proxy.sh）');
       el.appendChild(d);
       setTimeout(() => d.remove(), 8000);
     }
