@@ -1539,7 +1539,8 @@ function datasetsHTML() {
 
 function bindDataset() {
   const dz = document.getElementById('dropZone');
-  if (!dz) return;
+  if (!dz || dz._bound) return;
+  dz._bound = true;
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dv'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('dv'));
   dz.addEventListener('drop', e => {
@@ -1786,6 +1787,10 @@ function importCSVQuestions(file, fObj) {
       showImportToast(`❌ 解析失敗：${err.message}`, 5000);
     }
   };
+  reader.onerror = () => {
+    if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
+    showImportToast('❌ 檔案讀取失敗，請重試', 5000);
+  };
   reader.readAsText(file, 'UTF-8');
 }
 
@@ -1838,6 +1843,10 @@ function importXLSXQuestions(file, fObj) {
       if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
       showImportToast(`❌ XLSX 解析失敗：${err.message}`, 5000);
     }
+  };
+  reader.onerror = () => {
+    if (fObj) { fObj.importing=false; fObj.importErr=true; refreshCard(fObj.id); }
+    showImportToast('❌ 檔案讀取失敗，請重試', 5000);
   };
   reader.readAsArrayBuffer(file);
 }
@@ -2368,7 +2377,10 @@ function setConfigCount(n) { S.quizConfig.count = n; render(); }
 function launchQuiz() {
   const setup = S.quizSetup;
   const pool  = getAvailPool();
-  if (!pool || !pool.length) return;
+  if (!pool || !pool.length) {
+    alert('目前沒有可用的題目，請先至「上傳考古題題庫」匯入題目。');
+    return;
+  }
   const count = Math.min(setup.count || pool.length, pool.length);
   const mode  = setup.mode;
 
@@ -2667,9 +2679,10 @@ function nextQuestion() {
   // Auto-confirm current answer before moving
   const ans = S.answers[S.currentQ];
   const q0  = S.activeQs[S.currentQ];
-  const hasSelection = q0 && q0.isMulti
+  if (!ans || !q0) { render(); return; }
+  const hasSelection = q0.isMulti
     ? Array.isArray(ans.selected) && ans.selected.length > 0
-    : ans && ans.selected !== null;
+    : ans.selected !== null;
   if (hasSelection && !ans.confirmed) { ans.confirmed = true; }
 
   if (S.currentQ === S.activeQs.length - 1) {
@@ -2681,13 +2694,15 @@ function nextQuestion() {
 }
 
 function finishQuiz() {
-  const score = S.activeQs.filter((q,i) => isCorrectAnswer(q, S.answers[i].selected)).length;
+  if (!S.activeQs.length) { S.quizState = 'idle'; render(); return; }
+  const safeSelected = i => (S.answers[i] ? S.answers[i].selected : null);
+  const score = S.activeQs.filter((q,i) => isCorrectAnswer(q, safeSelected(i))).length;
   // Track wrong answers
   // Update wrongQs based on this quiz result (works for all modes)
   // Correct answers → remove from wrongQs (learned!)
   // Incorrect answers → add to wrongQs (still needs practice)
   S.activeQs.forEach((q,i) => {
-    const isCorrect = isCorrectAnswer(q, S.answers[i].selected);
+    const isCorrect = isCorrectAnswer(q, safeSelected(i));
     if (!isCorrect) S.wrongQs.add(String(q.id));
     else S.wrongQs.delete(String(q.id));
   });
@@ -2697,13 +2712,13 @@ function finishQuiz() {
     const c = q.category || '其他';
     if (!catMap[c]) catMap[c] = {correct:0,total:0};
     catMap[c].total++;
-    if (isCorrectAnswer(q, S.answers[i].selected)) catMap[c].correct++;
+    if (isCorrectAnswer(q, safeSelected(i))) catMap[c].correct++;
   });
   const quizName = (S.quizSetup && S.quizSetup.name && S.quizSetup.name.trim())
     || `第 ${S.history.length+1} 回合`;
   // Collect wrong + bookmarked IDs from this quiz only
   const _wrongIds = S.activeQs
-    .filter((q,i) => !isCorrectAnswer(q, S.answers[i].selected))
+    .filter((q,i) => !isCorrectAnswer(q, safeSelected(i)))
     .map(q => String(q.id));
   const _bkIds = S.activeQs
     .filter(q => S.bookmarks.has(String(q.id)))
@@ -2747,13 +2762,14 @@ function finishQuiz() {
 
 /* ── Result ── */
 function quizResultHTML() {
-  const score = S.activeQs.filter((q,i) => isCorrectAnswer(q, S.answers[i].selected)).length;
+  if (!S.activeQs.length) { S.quizState = 'idle'; return quizIdleHTML(); }
+  const score = S.activeQs.filter((q,i) => isCorrectAnswer(q, S.answers[i] ? S.answers[i].selected : null)).length;
   const pct   = Math.round((score / S.activeQs.length) * 100);
   const color = pct >= 80 ? '#4ADE80' : pct >= 60 ? '#FBBF24' : '#F87171';
   const msg   = pct >= 80 ? '表現優異！🎉' : pct >= 60 ? '繼續加油！' : '建議再次複習';
 
   const items = S.activeQs.map((q,i) => {
-    const ok = isCorrectAnswer(q, S.answers[i].selected);
+    const ok = isCorrectAnswer(q, S.answers[i] ? S.answers[i].selected : null);
     const bk = S.bookmarks.has(String(q.id));
     const src = questionSource(q);
     return `
