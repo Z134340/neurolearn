@@ -444,7 +444,7 @@
 
 <main id="page-content"></main>
 <!-- ════ AI 題目生成 Modal ════ -->
-<div class="smodal-bg" id="aiGenModal"><div class="smodal aigen-modal"><div id="aiGenContent"></div></div></div>
+<div class="smodal-bg" id="aiGenModal" onclick="event.target===this&&closeAIGenModal()"><div class="smodal aigen-modal" onclick="event.stopPropagation()"><div id="aiGenContent"></div></div></div>
 
 <div class="smodal-bg" id="stagModal"><div class="smodal"><h3 style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;margin-bottom:.6rem;">標記此段落</h3><p style="font-size:.78rem;color:var(--text-3);margin-bottom:.6rem;">選擇分類標籤：</p><div id="stagModalTags" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.8rem;"></div><textarea id="stagModalMemo" placeholder="加入個人備註（可選）..." rows="2"></textarea><div style="display:flex;gap:.5rem;margin-top:.8rem;justify-content:flex-end;"><button class="btn btn-ghost" style="font-size:.78rem;padding:.4rem .8rem;min-height:0;" onclick="closeStagModal()">取消</button><button class="btn btn-primary" style="font-size:.78rem;padding:.4rem .8rem;min-height:0;" onclick="saveSTag()">儲存</button></div></div></div>
 
@@ -1931,7 +1931,7 @@ function _aiGenStep1() {
       itemsHTML = '<div class="empty-state">尚未上傳任何教材，請先至「教材庫」上傳</div>';
     } else {
       itemsHTML = S.materials.map(m => {
-        const on = _aiGen.selMats.has(m.id);
+        const on = _aiGen.selMats.has(String(m.id));
         const safeId = m.id.replace(/'/g,"\\'");
         return `<label style="display:flex;align-items:center;gap:.65rem;padding:.55rem .75rem;border-radius:9px;cursor:pointer;background:${on?accentBg:'rgba(255,255,255,.02)'};border:1px solid ${on?accentBd:'var(--border)'};transition:all .2s;margin-bottom:.3rem;">
           <input type="checkbox" ${on?'checked':''} style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;"
@@ -1948,7 +1948,7 @@ function _aiGenStep1() {
       itemsHTML = '<div class="empty-state">尚未匯入任何考古題</div>';
     } else {
       itemsHTML = S.files.map(f => {
-        const cnt = S.extraQs.filter(q => q._fileId === f.id || (q._fileTags && (f.tags||[]).some(t => q._fileTags.includes(t)))).length;
+        const cnt = S.extraQs.filter(q => String(q._fileId) === String(f.id) || (q._fileTags && (f.tags||[]).some(t => q._fileTags.includes(t)))).length;
         const fid = String(f.id);
         const on = _aiGen.selCats.has(fid);
         const safeId = fid.replace(/'/g,"\\'");
@@ -1971,10 +1971,10 @@ function _aiGenStep1() {
   // default tag: first tag of first selected material
   let defTag = '';
   if (isMat && _aiGen.selMats.size === 1) {
-    const m = S.materials.find(m => _aiGen.selMats.has(m.id));
+    const m = S.materials.find(m => _aiGen.selMats.has(String(m.id)));
     defTag = (m?.matTags||[])[0] || m?.title || '';
   } else if (!isMat && _aiGen.selCats.size > 0) {
-    const firstFile = S.files.find(f => _aiGen.selCats.has(f.id));
+    const firstFile = S.files.find(f => _aiGen.selCats.has(String(f.id)));
     defTag = (firstFile?.tags && firstFile.tags.length) ? firstFile.tags[0] : (firstFile?.name || [..._aiGen.selCats][0]);
   }
 
@@ -2119,7 +2119,7 @@ function _aiGenBuildPrompt() {
     apply: '應用理解型：考觀念應用與情境判斷，需理解才能作答',
     exam:  '技術證照考試等級：情境式題目，需綜合分析，選項設計要有迷惑性'
   };
-  const _firstSelFile = !isMat ? S.files.find(f => _aiGen.selCats.has(f.id)) : null;
+  const _firstSelFile = !isMat ? S.files.find(f => _aiGen.selCats.has(String(f.id))) : null;
   const _defaultTag = isMat ? '教材主題' : ((_firstSelFile?.tags||[])[0] || _firstSelFile?.name || 'AI生成');
   const tag = document.getElementById('aiGenTag')?.value?.trim() || _defaultTag;
 
@@ -2142,7 +2142,7 @@ function _aiGenBuildPrompt() {
 
   let content = '';
   if (isMat) {
-    const mats = S.materials.filter(m => _aiGen.selMats.has(m.id));
+    const mats = S.materials.filter(m => _aiGen.selMats.has(String(m.id)));
     content = mats.map(m => {
       const txt = (m.sections||[]).map(s => (s.html||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim()).join('\n').slice(0, 7000);
       return `【教材：${m.title}】\n${txt}`;
@@ -2152,7 +2152,7 @@ function _aiGenBuildPrompt() {
     const selFiles = S.files.filter(f => selFileIds.includes(String(f.id)));
     const selFileTags = selFiles.flatMap(f => f.tags || []);
     const sample = S.extraQs.filter(q =>
-      selFileIds.includes(q._fileId) ||
+      selFileIds.includes(String(q._fileId)) ||
       (q._fileTags && q._fileTags.some(t => selFileTags.includes(t))) ||
       selFileTags.includes(q.category)
     ).slice(0, 50);
@@ -2177,6 +2177,7 @@ ${content}`;
 
 /* ── 呼叫 Claude Proxy API ── */
 async function aiGenRun() {
+  if (_aiGen.step === 2) return; // 防止重複點擊
   const cfg = _aiGenCfg();
   _aiGen.step = 2;
   _aiGenRender();
@@ -3659,7 +3660,7 @@ function dashStatsHTML() {
   const catEntries = Object.entries(catMap).sort((a,b)=>b[1].total-a[1].total);
   const catBars = catEntries.length > 0
     ? catEntries.map(([cat,st]) => {
-        const p  = Math.round((st.correct/st.total)*100);
+        const p  = st.total > 0 ? Math.min(100, Math.round((st.correct/st.total)*100)) : 0;
         const bc = p>=80?'linear-gradient(90deg,#4ADE80,#22C55E)':p>=60?'linear-gradient(90deg,#FBBF24,#F59E0B)':'linear-gradient(90deg,#F87171,#EF4444)';
         const pc = p>=80?'#4ADE80':p>=60?'#FBBF24':'#F87171';
         return `<div style="margin-bottom:.95rem">
