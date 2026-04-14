@@ -1489,8 +1489,16 @@ function datasetsHTML() {
       </div>
     </div>
 
+    <!-- Download template button -->
+    <div style="margin-top:.75rem;display:flex;justify-content:flex-end;">
+      <button onclick="downloadQuestionTemplate()" style="display:inline-flex;align-items:center;gap:.4rem;font-size:.82rem;padding:.38rem .9rem;border-radius:8px;cursor:pointer;border:1px solid var(--accent-border);background:rgba(123,111,224,.15);color:var(--accent);font-weight:600;transition:background .15s;" onmouseover="this.style.background='rgba(123,111,224,.28)'" onmouseout="this.style.background='rgba(123,111,224,.15)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        下載題目匯入範本.xlsx
+      </button>
+    </div>
+
     <!-- Format guide -->
-    <div style="margin-top:.85rem;padding:.85rem 1rem;border-radius:10px;background:rgba(123,111,224,.07);border:1px solid var(--accent-border);display:flex;gap:.65rem;align-items:flex-start;">
+    <div style="margin-top:.6rem;padding:.85rem 1rem;border-radius:10px;background:rgba(123,111,224,.07);border:1px solid var(--accent-border);display:flex;gap:.65rem;align-items:flex-start;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <div style="font-size:.78rem;color:var(--accent);line-height:1.6;">
         <strong>CSV / XLSX 欄位：</strong>
@@ -1779,6 +1787,24 @@ function importCSVQuestions(file, fObj) {
     }
   };
   reader.readAsText(file, 'UTF-8');
+}
+
+function downloadQuestionTemplate() {
+  if (typeof XLSX === 'undefined') {
+    alert('XLSX 函式庫未載入，請確認網路連線後重新整理頁面');
+    return;
+  }
+  const headers = ['exam','question','option_a','option_b','option_c','option_d','option_e','option_f','answer','explanation'];
+  const example = ['護理師國考','下列何者是急性心肌梗塞最常見的初期症狀？','胸痛並放射至左臂','呼吸困難','噁心嘔吐','背部疼痛','頭暈','','A','急性心肌梗塞典型症狀為胸痛，可放射至左臂、下頷或背部。'];
+  const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+  // 欄寬設定
+  ws['!cols'] = [
+    {wch:16},{wch:42},{wch:20},{wch:20},{wch:20},{wch:20},{wch:20},{wch:20},{wch:8},{wch:36}
+  ];
+  // 標頭列樣式（粗體，需 xlsx-style；此處僅設欄寬）
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '題目範本');
+  XLSX.writeFile(wb, '題目匯入範本.xlsx');
 }
 
 function importXLSXQuestions(file, fObj) {
