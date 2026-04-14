@@ -450,7 +450,7 @@ function resetState() {
   S.materials = []; S.annotations = []; S.currentMat = null;
   S.readProgress = {}; S._editingMatTag = null;
   // Reset module-level filter variables
-  _noteFilter = 'all'; _noteTopicFilter = 'all'; _matTagFilter = null; _libMatPage = 0;
+  _noteFilter = 'all'; _noteTopicFilter = 'all'; _matTagFilter = null; _libMatPage = 0; _datasetFilePage = 0;
   _stagMatId = ''; _stagSecId = ''; _stagSel = '';
 }
 
@@ -1415,7 +1415,19 @@ function datasetsHTML() {
     if (_fileSortOrder === 'name-desc') return b.name.localeCompare(a.name, 'zh-TW');
     return 0;
   });
-  const filesHTML    = displayFiles.map(f => fileCardHTML(f)).join('');
+  const FILE_PAGE_SIZE = 10;
+  const totalFilePages = Math.max(1, Math.ceil(displayFiles.length / FILE_PAGE_SIZE));
+  _datasetFilePage = Math.max(0, Math.min(_datasetFilePage, totalFilePages - 1));
+  const filePageSlice = displayFiles.slice(_datasetFilePage * FILE_PAGE_SIZE, (_datasetFilePage + 1) * FILE_PAGE_SIZE);
+  const filesHTML    = filePageSlice.map(f => fileCardHTML(f)).join('');
+  const canFilePrev = _datasetFilePage > 0;
+  const canFileNext = _datasetFilePage < totalFilePages - 1;
+  const filePageBtns = totalFilePages > 1 ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0 .1rem;margin-top:.25rem;border-top:1px solid var(--border);">
+      <button onclick="_datasetFilePage=Math.max(0,_datasetFilePage-1);render()" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canFilePrev?'':'opacity:.3;pointer-events:none;'}" ${canFilePrev?'':'disabled'}>← 上一頁</button>
+      <span style="font-size:.75rem;color:var(--text-3);">第 ${_datasetFilePage+1} / ${totalFilePages} 頁 · 共 ${displayFiles.length} 份</span>
+      <button onclick="_datasetFilePage=Math.min(${totalFilePages-1},_datasetFilePage+1);render()" style="background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;${canFileNext?'':'opacity:.3;pointer-events:none;'}" ${canFileNext?'':'disabled'}>下一頁 →</button>
+    </div>` : '';
   const importedTotal = S.extraQs.length;
   const _datasetSyncInfo = (() => {
     if (!_currentUser) return `<span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${importedTotal} 題</span>`;
@@ -1512,6 +1524,7 @@ function datasetsHTML() {
       </div>
       ${filesHTML}
       ${displayFiles.length === 0 ? `<div style="text-align:center;color:var(--text-3);font-size:.85rem;padding:1.5rem 0;">沒有符合「${S.tagFilter}」標籤的檔案</div>` : ''}
+      ${filePageBtns}
     </div>` : `<div style="margin-top:2rem;text-align:center;color:var(--text-3);font-size:.88rem;padding:1.5rem 0;">尚未上傳任何檔案</div>`}
   </div>`;
 }
@@ -1673,6 +1686,7 @@ function toggleTagEdit(fid) {
 }
 function setTagFilter(tag) {
   S.tagFilter = (S.tagFilter === tag) ? null : tag;
+  _datasetFilePage = 0;
   // Show/hide file cards based on filter — no full re-render
   document.querySelectorAll('.g-card[id^="fcard-"]').forEach(el => {
     const fid = parseInt(el.id.replace('fcard-',''));
@@ -1700,7 +1714,8 @@ function setTagFilter(tag) {
 }
 
 let _fileSortOrder = 'date-desc';
-function setFileSort(order) { _fileSortOrder = order; render(); }
+let _datasetFilePage = 0;
+function setFileSort(order) { _fileSortOrder = order; _datasetFilePage = 0; render(); }
 
 // Future AI extraction interface
 async function extractTextFromFile(file) {
