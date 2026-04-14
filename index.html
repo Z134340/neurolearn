@@ -1950,7 +1950,7 @@ function _aiGenStep1() {
       itemsHTML = S.files.map(f => {
         const cnt = S.extraQs.filter(q => q._fileId === f.id || (q._fileTags && (f.tags||[]).some(t => q._fileTags.includes(t)))).length;
         const on = _aiGen.selCats.has(f.id);
-        const safeId = f.id.replace(/'/g,"\\'");
+        const safeId = String(f.id).replace(/'/g,"\\'");
         const rawName = f.name || f.id;
         const label = rawName.replace(/\.(xlsx?|csv)$/i,'').replace(/_/g,' ');
         const tagStr = (f.tags||[]).join(', ');
@@ -2136,7 +2136,7 @@ function _aiGenBuildPrompt() {
     }).join('\n\n---\n\n');
   } else {
     const selFileIds = [..._aiGen.selCats];
-    const selFiles = S.files.filter(f => selFileIds.includes(f.id));
+    const selFiles = S.files.filter(f => selFileIds.includes(String(f.id)));
     const selFileTags = selFiles.flatMap(f => f.tags || []);
     const sample = S.extraQs.filter(q =>
       selFileIds.includes(q._fileId) ||
