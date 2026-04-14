@@ -2123,10 +2123,22 @@ function _aiGenBuildPrompt() {
   const _defaultTag = isMat ? '教材主題' : ((_firstSelFile?.tags||[])[0] || _firstSelFile?.name || 'AI生成');
   const tag = document.getElementById('aiGenTag')?.value?.trim() || _defaultTag;
 
-  const system = `你是專業的技術證照考試命題老師，專門設計繁體中文選擇題。
-請輸出純 JSON 陣列，不得包含任何說明文字、markdown 或程式碼區塊。格式如下：
-[{"exam":"${tag}","question":"題目文字","option_a":"選項A","option_b":"選項B","option_c":"選項C","option_d":"選項D","answer":"B","explanation":"詳細解析，說明正確答案的原因"}]
-注意：answer 欄單選填單一大寫字母（A-D），多選填多個字母（如 AC）。每題至少要有 option_a 到 option_d。`;
+  const system = `你是專業的技術證照考試命題專家，任務是根據使用者提供的教材或考古題，生成高度貼近原始考試風格與重點的繁體中文選擇題。
+
+【核心原則】
+1. 先深度分析提供的內容，萃取高頻關鍵概念、術語、情境與易混淆知識點
+2. 題目必須覆蓋這些核心重點，而非隨機發散
+3. 選項設計要仿照原始題目的迷惑性與區辨度，錯誤選項要「似是而非」
+4. 解析須點出正確答案的關鍵理由，並說明為何其他選項錯誤
+
+【輸出格式】
+僅輸出純 JSON 陣列，不含任何說明文字、markdown、程式碼區塊或換行符以外的任何內容：
+[{"exam":"${tag}","question":"題目文字","option_a":"選項A","option_b":"選項B","option_c":"選項C","option_d":"選項D","answer":"B","explanation":"解析：正確答案原因。錯誤選項說明。"}]
+
+【格式規則】
+- answer 欄：單選填單一大寫字母（A/B/C/D），多選填多字母（如 AC）
+- 每題必須有 option_a 到 option_d，可選填 option_e/option_f
+- explanation 須包含正確答案理由及至少一個錯誤選項的排除說明`;
 
   let content = '';
   if (isMat) {
@@ -2148,10 +2160,16 @@ function _aiGenBuildPrompt() {
       sample.map((q,i) => `${i+1}. ${q.text}（答案：${Array.isArray(q.answer) ? q.answer.map(n=>['A','B','C','D','E','F'][n]).join('') : ['A','B','C','D','E','F'][q.answer]||q.answer}）`).join('\n');
   }
 
-  const user = `請根據以下${isMat?'教材內容':'考古題主題'}，生成 ${_aiGen.count} 道繁體中文選擇題。
-難度要求：${diffMap[_aiGen.difficulty]||diffMap.exam}
-題目分類標籤：${tag}
+  const user = `【任務】根據以下${isMat?'教材內容':'考古題'}，生成 ${_aiGen.count} 道繁體中文選擇題。
 
+【要求】
+- 難度等級：${diffMap[_aiGen.difficulty]||diffMap.exam}
+- 題目分類標籤：${tag}
+- 題目必須緊扣以下內容的核心知識點，不得超出範圍
+- ${isMat?'從教材中找出最重要的概念、服務特性、使用情境與限制，針對這些重點出題':'分析考古題的出題方向、高頻考點與選項設計邏輯，生成全新但風格相近的題目，不得直接複製原題'}
+- 每題的錯誤選項須與正確答案在表面上相近，增加區辨難度
+
+【${isMat?'教材內容':'考古題參考'}】
 ${content}`;
 
   return { system, user };
