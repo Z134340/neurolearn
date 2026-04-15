@@ -467,6 +467,7 @@ let _blockCloudRender = false; // prevent cloud re-render from overwriting fresh
 let _lastSyncTime = null;  // timestamp of last successful cloud sync
 let _lastCloudFetch = 0;   // epoch ms of last loadCloudData() call — used for auto-pull debounce
 let _localOnlyFiles = [];  // AI 生成或尚未同步至雲端的本地檔案緩衝 [{file, qs}]
+let _syncPausedUntil = 0;  // epoch ms：quota 超限時暫停同步直到此時間
 let _realtimeUnsubscribers = []; // Firestore onSnapshot unsubscribe functions
 let _realtimeReloadTimer = null; // debounce timer for realtime-triggered reload
 
@@ -507,7 +508,7 @@ async function syncUserState() {
       read_progress: S.readProgress || {},
       updated_at:    new Date().toISOString(),
     }, { merge: true });
-  } catch(e) { console.warn('[FB] syncUserState:', e); }
+  } catch(e) { _pauseSync(e); console.warn('[FB] syncUserState:', e); }
 }
 
 /* Sync one file metadata + all its questions → Firestore exam_files / exam_questions */
@@ -584,6 +585,7 @@ async function syncQuizSession(session) {
 /* Full sync — all Firestore subcollections */
 async function syncAllToCloud() {
   if (!_db || !_currentUser) return;
+  if (Date.now() < _syncPausedUntil) return;
   const uid = _currentUser.uid;
   const now = new Date().toISOString();
 
@@ -789,19 +791,33 @@ function unsubscribeRealtime() {
 /* ── Tiered background auto-save to Firestore ───────────────────────────────
    fast (0.8s): user_state + study materials
    full (3s):   all subcollections incl. exam files & questions */
+function _isQuotaErr(e) {
+  const msg = (e?.message || e?.code || String(e)).toLowerCase();
+  return msg.includes('resource-exhausted') || msg.includes('quota') || msg.includes('429');
+}
+function _pauseSync(e) {
+  if (_isQuotaErr(e)) {
+    _syncPausedUntil = Date.now() + 30 * 60 * 1000; // 暫停 30 分鐘
+    console.warn('[FB] Firestore quota 超限，同步暫停 30 分鐘（資料已存於 localStorage）');
+  }
+}
+
 function scheduleSyncToCloud() {
   if (!_db || !_currentUser) return;
+  if (Date.now() < _syncPausedUntil) return; // quota 超限期間跳過
   clearTimeout(_cloudSyncTimer);
   _cloudSyncTimer = setTimeout(() => {
+    if (Date.now() < _syncPausedUntil) return;
     syncUserState().then(() => { _lastSyncTime = new Date(); })
-      .catch(e => console.warn('[FB] userState sync:', e.message||e));
-    syncStudyToCloud().catch(e => console.warn('[FB] study sync:', e));
-  }, 800);
+      .catch(e => { _pauseSync(e); console.warn('[FB] userState sync:', e.message||e); });
+    syncStudyToCloud().catch(e => { _pauseSync(e); console.warn('[FB] study sync:', e); });
+  }, 60000); // 60 秒後才同步輕量狀態
   clearTimeout(_fullSyncTimer);
   _fullSyncTimer = setTimeout(() => {
+    if (Date.now() < _syncPausedUntil) return;
     syncAllToCloud().then(() => { _lastSyncTime = new Date(); })
-      .catch(e => console.warn('[FB] fullSync:', e.message||e));
-  }, 3000);
+      .catch(e => { _pauseSync(e); console.warn('[FB] fullSync:', e.message||e); });
+  }, 5 * 60 * 1000); // 5 分鐘後才全量同步
 }
 
 function updateNavUser() {
