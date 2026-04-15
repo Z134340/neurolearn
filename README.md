@@ -1,4 +1,4 @@
-# NeuroLearn 🧠 v2.3
+# NeuroLearn 🧠 v2.4
 
 > **智能模擬考平台** — 單一 HTML 檔案，完全離線可用，Firebase 雲端帳號同步，支援 AI 本機生成題目
 
@@ -339,17 +339,30 @@ Firestore Security Rules 確保每位使用者只能存取自己的資料。
 
 | 操作 | 觸發方式 |
 |------|---------|
-| 完成測驗 | 立即 |
-| 書籤 / 移除書籤 | 600ms debounce |
-| 上傳 / 刪除資料集 | 立即 |
-| 新增 / 移除標籤 | 立即 |
-| 匯入 JSON 備份 | 立即 |
-| 教材上傳 / 筆記標記 | 立即 |
+| 完成測驗 | 60 秒後（輕量）/ 5 分鐘後（全量）|
+| 書籤 / 移除書籤 | 60 秒後 |
+| 上傳 / 刪除資料集 | 60 秒後（輕量）/ 5 分鐘後（全量）|
+| 新增 / 移除標籤 | 60 秒後 |
+| 匯入 JSON 備份 | 60 秒後 |
+| 教材上傳 / 筆記標記 | 60 秒後 |
 | 立即同步按鈕 | 立即 |
+| Firestore quota 超限 | 自動暫停 30 分鐘後恢復 |
 
 ---
 
 ## 更新紀錄
+
+### v2.4（2026-04-15）
+
+- **[修正]** Firestore quota 超限導致大量 backoff log：sync debounce 由 0.8s/3s 拉長至 60s/5min
+- **[新增]** `_syncPausedUntil` 機制：偵測到 `resource-exhausted` 時自動暫停所有 Firestore 同步 30 分鐘
+- **[修正]** AI 生成匯入被 Firebase onSnapshot 覆蓋：新增 `_localOnlyFiles` 緩衝，loadCloudData 後自動重新合併本地資料
+- **[修正]** `saveToStorage()` QuotaExceededError 三段降級：完整 → 移除 explanation → 僅 metadata
+- **[修正]** `aiGenImport()` 先呼叫 `render()` 再 `saveToStorage()`，確保 UI 立即反映匯入結果
+- **[修正]** AI Gen 全部 id 比對統一 `String()` 型別轉換（7 處），修正勾選無效 / 計數不準問題
+- **[修正]** 儀表板分類統計除零保護（`st.total=0` 回傳 0，結果 clamp 至 100）
+- **[修正]** `aiGenRun()` 防重複點擊（生成中再點無效）
+- **[優化]** AI Gen Modal 背景點擊可關閉
 
 ### v2.3（2026-04-15）
 
