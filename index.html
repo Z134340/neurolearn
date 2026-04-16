@@ -718,15 +718,22 @@ async function loadCloudData() {
     // study materials + annotations
     await loadStudyFromCloud();
 
-    // 重新合併本地尚未同步至雲端的 AI 生成資料
+    // 重新合併本地尚未同步至雲端的 AI 生成資料（逐題比對，防止部分同步時遺失）
     if (_localOnlyFiles.length) {
-      _localOnlyFiles = _localOnlyFiles.filter(({ file }) =>
-        !S.files.some(f => String(f.id) === String(file.id))
-      );
+      const existingQIds = new Set(S.extraQs.map(q => String(q.id)));
       for (const { file, qs } of _localOnlyFiles) {
-        S.files.unshift(file);
-        qs.forEach(q => { if (!S.extraQs.some(eq => eq.id === q.id)) S.extraQs.push(q); });
+        const missingQs = qs.filter(q => !existingQIds.has(String(q.id)));
+        if (missingQs.length > 0) {
+          if (!S.files.some(f => String(f.id) === String(file.id))) {
+            S.files.unshift(file);
+          }
+          missingQs.forEach(q => { S.extraQs.push(q); existingQIds.add(String(q.id)); });
+        }
       }
+      // 清除已完整同步的項目
+      _localOnlyFiles = _localOnlyFiles.filter(({ qs }) =>
+        qs.some(q => !S.extraQs.some(eq => String(eq.id) === String(q.id)))
+      );
     }
 
     if (!_lastSyncTime) _lastSyncTime = new Date();
@@ -4036,6 +4043,7 @@ function saveToStorage() {
       try {
         const minimal = { ...payload, extraQs: [], materials: [] };
         localStorage.setItem(getStorageKey(), JSON.stringify(minimal));
+        scheduleSyncToCloud();
         console.warn('[NeuroLearn] localStorage 已滿，僅儲存基本狀態，題目依賴雲端');
         return;
       } catch(e3) {}
