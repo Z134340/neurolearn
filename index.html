@@ -1143,6 +1143,10 @@ function render() {
 
   const c = document.getElementById('page-content');
   if (!c) return;
+
+  // 保存 study sidebar 捲動位置，避免 re-render 後歸零
+  const _sidebarScrollTop = document.getElementById('studySidebar')?.scrollTop || 0;
+
   updateNavUser();
   setActiveNav(S.page);
   switch(S.page) {
@@ -1158,7 +1162,16 @@ function render() {
     case 'login':     c.innerHTML = loginPageHTML();   break;
     case 'dashboard': c.innerHTML = dashHTML();       setTimeout(initChart, 80); break;
     case 'library':   c.innerHTML = libraryHTML();    setTimeout(bindStudyDrop, 0); break;
-    case 'reader':    c.innerHTML = readerHTML();     break;
+    case 'reader':
+      c.innerHTML = readerHTML();
+      // 還原 sidebar 捲動位置（re-render 後不跳回頂部）
+      if (_sidebarScrollTop > 0) {
+        requestAnimationFrame(() => {
+          const sb = document.getElementById('studySidebar');
+          if (sb) sb.scrollTop = _sidebarScrollTop;
+        });
+      }
+      break;
     case 'notes':     c.innerHTML = notesHTML();      break;
 
     case 'studystats': c.innerHTML = studyStatsHTML(); break;
