@@ -1,0 +1,67 @@
+name: validate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  sanity:
+    name: 靜態 sanity 檢查（blocking）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: index.html 必須在 repo root（GitHub Pages 部署入口）
+        run: test -f index.html
+
+      - name: 無 merge conflict 殘留標記
+        run: |
+          if grep -rnE '^(<<<<<<<|>>>>>>>)' --include='*.html' --include='*.js' --include='*.py' --include='*.md' .; then
+            echo "::error::發現 merge conflict 標記"; exit 1
+          fi
+          echo "OK：無 conflict 標記"
+
+      - name: script / style 標籤配對（防單檔結構破損）
+        run: |
+          so=$(grep -c '<script' index.html); sc=$(grep -c '</script>' index.html)
+          to=$(grep -c '<style'  index.html); tc=$(grep -c '</style>'  index.html)
+          echo "script open/close = $so/$sc ; style open/close = $to/$tc"
+          test "$so" -eq "$sc" && test "$to" -eq "$tc"
+
+      - name: 第三方 CDN 須鎖版 + SRI（防 F1 floating 回升）
+        run: |
+          grep -q 'marked@4.3.0/marked.min.js' index.html
+          grep -q 'xlsx@0.18.5/dist/xlsx.full.min.js' index.html
+          n=$(grep -cE 'cdn\.jsdelivr\.net/npm/.*integrity=' index.html)
+          echo "jsdelivr 帶 integrity 的 script 數 = $n（需 ≥2）"
+          test "$n" -ge 2
+
+      - name: 技術債 ratchet（inline handler / innerHTML 不得超過基準）
+        run: |
+          oc=$(grep -o 'onclick=' index.html | wc -l | tr -d ' ')
+          ih=$(grep -o 'innerHTML' index.html | wc -l | tr -d ' ')
+          echo "onclick=$oc（上限 131）; innerHTML=$ih（上限 30）"
+          fail=0
+          if [ "$oc" -gt 131 ]; then echo "::error::inline onclick 由 131 增至 $oc，請改事件委派（BACKLOG B3）"; fail=1; fi
+          if [ "$ih" -gt 30 ];  then echo "::error::innerHTML 由 30 增至 $ih，新注入點需先做 XSS escape（BACKLOG B4）"; fail=1; fi
+          test "$fail" -eq 0
+
+      - name: Python proxy 語法檢查
+        run: python3 -m py_compile scripts/claude_proxy.py
+
+      - name: setup_proxy.sh 語法檢查
+        run: bash -n scripts/setup_proxy.sh
+
+  htmlvalidate:
+    name: HTML 驗證（advisory，不擋合併）
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: html-validate（顧問性質）
+        run: npx -y html-validate index.html

@@ -1,0 +1,27 @@
+# ── macOS ──────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# ── Claude Code（本機設定，不入版控）────────────────────
+.claude/settings.local.json
+.claude/worktrees/
+
+# ── Python（claude_proxy.py 執行產物）──────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ── Log / 暫存 ─────────────────────────────────────────
+*.log
+/tmp/neurolearn_proxy.log
+
+# ── 編輯器 ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+
+# ── Node（如未來引入建構工具）──────────────────────────
+node_modules/

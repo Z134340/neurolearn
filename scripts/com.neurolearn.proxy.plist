@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- 參考模板：實際安裝時由 scripts/setup_proxy.sh 動態產生（路徑與 python3 自動計算）。 -->
+<!-- 路徑請依你的實際 clone 位置調整；建議直接執行 setup_proxy.sh，勿手動複製此檔。 -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.neurolearn.proxy</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>/Users/zyc/NeuroLearn/scripts/claude_proxy.py</string>
+  </array>
+
+  <!-- 登入後自動啟動 -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- 若程式崩潰自動重啟 -->
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/neurolearn_proxy.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/tmp/neurolearn_proxy.log</string>
+</dict>
+</plist>
