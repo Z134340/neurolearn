@@ -92,7 +92,7 @@ NeuroLearn/
 │   ├── claude_proxy.py        #   AI 生成用 proxy，port 7734，轉送至 claude CLI
 │   ├── setup_proxy.sh         #   一鍵安裝（動態產生 plist）
 │   ├── com.neurolearn.proxy.plist  # launchd 參考模板
-│   ├── deploy_cloudflare.sh   #   本機部署 public/ 至 Cloudflare Pages
+│   ├── deploy_cloudflare.sh   #   本機部署 public/ 至 Cloudflare Pages（方案 A 之外的後備路徑）
 │   └── add_firebase_domain.sh #   安全新增 Firebase Auth 授權網域（只增不減）
 ├── tests/
 │   └── smoke.mjs              # 端到端 smoke test（Playwright，不入 package.json）

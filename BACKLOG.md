@@ -31,6 +31,10 @@
 > `onclick` 與大量 inline style，沒有 `'unsafe-inline'` 會整站失效。CSP 應等 B3
 > （事件委派重構）完成後再導入，屆時才有意義。
 
+> **本檔為待辦的單一真實來源。** 先前的 `scripts/seed_issues.sh`（種子化 GitHub
+> Issues）已於 2026-08 刪除——它製造第二個來源且內容易分歧，實際已出現「建立
+> 已完成項目的 issue」與數字失準。如需 issue 追蹤，請由本檔手動建立。
+
 ## 部署現況（2026-08 移轉後）
 
 - 網站發布目錄為 **`public/`**，repo root 不得再放 `index.html`（CI 有守門）。
