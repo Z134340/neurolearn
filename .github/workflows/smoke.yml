@@ -1,0 +1,50 @@
+name: smoke-test
+
+# BACKLOG B7 —— 端到端 smoke test。
+#
+# 範圍界定：只涵蓋「不依賴外部服務」的流程。Firebase 登入／雲端同步需真實憑證
+# （CI 不該持有），AI 題目生成需本機 proxy 127.0.0.1:7734（runner 沒有），
+# 這兩項維持人工驗證，見 docs/DEPLOY.md §4。
+#
+# 依賴安裝刻意使用 `npm i --no-save`：不建立 package.json、不進版控，
+# 產品維持零建構、單檔、離線可用（AGENTS.md Golden Rule #2／#3）。
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: 端到端 smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # --no-save：不產生 package.json / package-lock.json，維持 repo 零自製依賴
+      - name: 安裝 Playwright（不入版控）
+        run: npm i --no-save playwright@1.49.1
+
+      - name: 安裝 Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: 執行 smoke test
+        run: node tests/smoke.mjs
+
+      - name: 確認未意外產生依賴檔
+        if: always()
+        run: |
+          for f in package.json package-lock.json; do
+            if [ -f "$f" ]; then
+              echo "::error::$f 不應存在——本專案維持零自製依賴（AGENTS.md Golden Rule #3）"
+              exit 1
+            fi
+          done
+          echo "OK：未產生 package.json / package-lock.json"

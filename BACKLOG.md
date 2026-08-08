@@ -16,7 +16,7 @@
 | B4 | 30 處 `innerHTML=` 注入點 XSS 稽核（使用者上傳內容渲染；含 marked 輸出 passthrough HTML） | 安全 | 🟡 | M | CC | 高風險注入點改用 textContent/escape + DOMPurify；附稽核清單 |
 | ~~B5~~ | ✅ **已完成（P0）** 35 處 `console.*` 收斂到 debug flag（`?debug=1`） | 整潔 | ⚪ | S | — | public/index.html:501 單點攔截，預設靜默、可開關 |
 | B6 | 7×`alert()` + 2×`confirm()` → 站內 toast/modal | UX | ⚪ | S | CC | 阻斷式對話框移除，UX 一致 |
-| B7 | 端到端 smoke test（Playwright） | 品質 | 🟡 | M | CC | 涵蓋登入→匯入→測驗→同步→教材→AI 生成 happy path |
+| ~~B7~~ | ✅ **已完成** 端到端 smoke test（Playwright）— `tests/smoke.mjs`，36 項斷言，CI 自動執行 | 品質 | 🟡 | M | — | 涵蓋各頁渲染／六斷點無溢出／CSV 匯入→測驗→儀表板／教材→閱讀頁／漸進式揭露與空狀態／設計基準。**驗收條件較原案縮小**：登入・同步・AI 生成需外部服務（真實 Firebase 憑證、本機 proxy 7734），CI 無法且不該涵蓋，維持人工驗證 |
 | B8 | GitHub Actions CI（lint/validate，PR 觸發） | 品質 | ⚪ | S | **CW** | ✅ **已強化（P0）**：新增 CDN 鎖版+SRI 守門、技術債 ratchet（onclick≤131/innerHTML≤30）為 blocking；html-validate 維持 advisory |
 | ~~B9~~ | ✅ **已完成（P0）** 解決現存 1 處 `TODO` | 整潔 | ⚪ | S | — | extractTextFromFile 佔位改為延後功能註記，行為不變 |
 | **N1** | ✅ **已完成（P0）** CDN 鎖版+SRI（marked/xlsx 原為 jsDelivr latest floating） | 安全/穩定 | 🔴 | S | CW | marked@4.3.0、xlsx@0.18.5，帶 integrity sha256 + crossorigin；CI 守門 |
@@ -43,7 +43,7 @@
 
 ## 給 Claude Code 的建議切入順序
 
-1. **先建護網**：B7（smoke test）+ B8（CI）→ 之後任何重構才有迴歸保護。
+1. ~~**先建護網**：B7（smoke test）+ B8（CI）~~ → ✅ 已完成，之後任何重構皆有迴歸保護。
 2. **再清技術債**：B3（inline handler）→ 解鎖可測性 → B4（XSS）→ B5/B6（log/UX）。
 3. **架構升級**：B2（build step 模組化）為大決策，需先與使用者確認；完成後 B1（IndexedDB）與後續維運都更容易。
 

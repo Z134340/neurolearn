@@ -50,7 +50,15 @@ NeuroLearn 是**單一 HTML 檔**的智能模擬考平台（Vanilla JS、零建�
 
 - **執行**：直接用瀏覽器開 `public/index.html`（或於 `public/` 下 `python3 -m http.server`）。無建構步驟。
 - **AI 生成功能**需本機 proxy：`cd ~/NeuroLearn && bash scripts/setup_proxy.sh`（launchd 開機自動啟動，port 7734）。健康檢查 `curl http://127.0.0.1:7734/health`、log `cat /tmp/neurolearn_proxy.log`。
-- **目前無自動化測試**（見 BACKLOG B7）。改動後請手動驗證：登入→上傳題庫→測驗→書籤→儀表板→教材→AI 生成→登出，並確認跨裝置同步與離線重開資料完整。
+- **自動化 smoke test**（B7 已落地）：`node tests/smoke.mjs`，CI 於 push／PR 自動執行
+  （`.github/workflows/smoke.yml`）。本地執行需先 `npm i --no-save playwright@1.49.1`
+  與 `npx playwright install chromium`；沙箱內可用 `CHROMIUM_PATH=` 指定既有 chromium。
+  **刻意不建立 `package.json`**，依賴只存在執行環境，維持 Golden Rule #3。
+- 涵蓋範圍：各頁渲染無例外、六斷點無橫向溢出、CSV 匯入→測驗→儀表板、
+  Markdown 教材→閱讀頁、漸進式揭露與空狀態、設計基準（字級／容器／可縮放）。
+- **仍需人工驗證**（測試刻意不涵蓋，因需外部服務）：登入／雲端同步（真實 Firebase
+  憑證）、AI 題目生成（本機 proxy 7734）、中文檔名上傳（Playwright 在部分容器環境
+  無法傳遞非 ASCII 檔名，非產品限制）。另請確認跨裝置同步與離線重開資料完整。
 
 ## 5. 部署
 
@@ -78,6 +86,8 @@ NeuroLearn/
 │   ├── com.neurolearn.proxy.plist  # launchd 參考模板
 │   ├── deploy_cloudflare.sh   #   本機部署 public/ 至 Cloudflare Pages
 │   └── add_firebase_domain.sh #   安全新增 Firebase Auth 授權網域（只增不減）
+├── tests/
+│   └── smoke.mjs              # 端到端 smoke test（Playwright，不入 package.json）
 └── docs/
     ├── DEPLOY.md              # 部署與 Cloudflare 移轉 SOP
     └── 題目匯入範本.xlsx       # 參考用（範本實際由瀏覽器端 SheetJS 即時產生）
