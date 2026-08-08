@@ -142,36 +142,31 @@ Cloudflare 免費方案對本站綽綽有餘：無限請求與頻寬、每月 50
 
 ---
 
-## 4. 驗證清單（在 Cloudflare 新網域上逐項確認）
+## 4. 驗證清單
 
-> **驗證進度（2026-08-08）**
-> - [x] 首頁載入正常
-> - [x] 發布邊界正確（`/AGENTS.md` 無內容；部署 log `Uploaded 1 files`）
-> - [x] **登入成功** —— 同時證明 Firebase 白名單生效與 Firestore 跨網域同步正常
-> - [ ] 註冊新帳號 → 驗證信回跳網址為新網域（唯一無法從程式碼確認的項目）
-> - [ ] 手機開啟版面確認
->
-> 目前實際狀態（2026-08-08）：
+> **實際狀態（2026-08-08）**
 > - Cloudflare 專案 `neurolearn`，正式網域 **https://neurolearn-48v.pages.dev**
 > - 走方案 A，由 `.github/workflows/cloudflare.yml` 以 wrangler 部署
 > - 首次部署 log 顯示 `Uploaded 1 files`，確認只發布 `public/index.html`
-> - 每次部署另會產生 `<hash>.neurolearn-48v.pages.dev` 快照網址；該類網址
->   因 hash 每次不同無法加入 Firebase 白名單，**登入功能僅在正式網域可用**
+> - 每次部署另會產生 `<hash>.neurolearn-48v.pages.dev` 快照網址；該類網址因 hash
+>   每次不同、無法加入 Firebase 白名單，**登入功能僅在正式網域可用**
 
-
-- [ ] 首頁載入，字型與版面正常（Google Fonts 需能載入）
+- [x] 首頁載入，字型與版面正常
+- [x] 發布邊界正確（`/AGENTS.md` 無內容；部署 log `Uploaded 1 files`）
+- [x] 登入成功（無 `auth/unauthorized-domain`）—— 同時證明 Firebase 白名單生效與
+      Firestore 跨網域同步正常
 - [ ] **註冊新帳號 → 收到驗證信 → 點連結回跳到 Cloudflare 網域**（不是 github.io）
-- [ ] 登入成功（沒有 `auth/unauthorized-domain`）
+      ← 唯一無法從程式碼確認的項目
+- [ ] 重設密碼信的回跳網址也是新網域
 - [ ] 上傳一份 CSV/XLSX 題庫 → 題目正確解析（SRI 生效，`xlsx` 有載入）
 - [ ] 上傳一份 Markdown 教材 → 閱讀頁正常渲染（`marked` 有載入）
 - [ ] 做一次測驗 → 儀表板出現紀錄
-- [ ] **換一台裝置登入同帳號 → 資料同步過來**（Firestore 正常）
-- [ ] 重設密碼信的回跳網址也是新網域
+- [ ] 換一台裝置登入同帳號 → 資料同步過來
 - [ ] 手機開啟，版面無橫向捲動
 
 > AI 題目生成依賴本機 proxy（`127.0.0.1:7734`），與部署平台無關，不必列入驗證。
-> 但注意：從 https 網站呼叫 http 本機端點屬 mixed content，行為與原本在 GitHub Pages 上一致，
-> 未因移轉而改變。
+> 但注意：從 https 網站呼叫 http 本機端點屬 mixed content，行為與原本在 GitHub Pages
+> 上一致，未因移轉而改變。
 
 ---
 
@@ -195,8 +190,9 @@ Cloudflare 免費方案對本站綽綽有餘：無限請求與頻寬、每月 50
 
 ## 7. 已知未處理項目
 
-- **未加 `_headers` 安全標頭**。可加 `nosniff` / `Referrer-Policy` / `X-Frame-Options` 等低風險標頭；
-  但**不建議直接上嚴格 CSP** —— 本站有 131 處 inline `onclick` 與大量 inline style，
-  沒有 `'unsafe-inline'` 會整站失效。CSP 應等 BACKLOG B3（事件委派重構）完成後再導入。
-- **`firestore.rules` 未納入版控**。目前規則只存在 Firebase Console。
-- 以上兩項皆為獨立工項，與本次移轉無相依。
+已收攏至 `BACKLOG.md`，避免兩處維護而分歧：
+
+- **B12** — Cloudflare Pages `_headers` 安全標頭（附「不要直接上嚴格 CSP」的理由）
+- **B13** — `firestore.rules` 納入版控
+
+兩項皆為獨立工項，與本次移轉無相依。
