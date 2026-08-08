@@ -144,6 +144,14 @@ Cloudflare 免費方案對本站綽綽有餘：無限請求與頻寬、每月 50
 
 ## 4. 驗證清單（在 Cloudflare 新網域上逐項確認）
 
+> 目前實際狀態（2026-08-08）：
+> - Cloudflare 專案 `neurolearn`，正式網域 **https://neurolearn-48v.pages.dev**
+> - 走方案 A，由 `.github/workflows/cloudflare.yml` 以 wrangler 部署
+> - 首次部署 log 顯示 `Uploaded 1 files`，確認只發布 `public/index.html`
+> - 每次部署另會產生 `<hash>.neurolearn-48v.pages.dev` 快照網址；該類網址
+>   因 hash 每次不同無法加入 Firebase 白名單，**登入功能僅在正式網域可用**
+
+
 - [ ] 首頁載入，字型與版面正常（Google Fonts 需能載入）
 - [ ] **註冊新帳號 → 收到驗證信 → 點連結回跳到 Cloudflare 網域**（不是 github.io）
 - [ ] 登入成功（沒有 `auth/unauthorized-domain`）

@@ -7,7 +7,9 @@
 
 NeuroLearn 是**單一 HTML 檔**的智能模擬考平台（Vanilla JS、零建構工具、離線可用、Firebase 雲端同步、本機 Claude Proxy 生成題目）。
 
-- Live：https://z134340.github.io/neurolearn/
+- Live（移轉中，兩站並行同一份 `public/`）：
+  - Cloudflare Pages：https://neurolearn-48v.pages.dev ← 新，將成為正式站
+  - GitHub Pages：https://z134340.github.io/neurolearn/ ← 舊，驗證通過後關閉
 - Repo：https://github.com/Z134340/neurolearn （branch：`main`）
 - 入口：`public/index.html`（約 4503 行；CSS 內嵌 21–460、JS 內嵌 490 起，行號為約值）
 - 部署：GitHub Pages 與 Cloudflare Pages **並行**，兩者皆發布 `public/`（見 `docs/DEPLOY.md`）
@@ -52,7 +54,9 @@ NeuroLearn 是**單一 HTML 檔**的智能模擬考平台（Vanilla JS、零建�
 
 ## 5. 部署
 
-- 推 `main` → GitHub Pages（`.github/workflows/pages.yml`）與 Cloudflare Pages 各自發布 `public/`。
+- 推 `main` → GitHub Pages（`pages.yml`）與 Cloudflare Pages（`cloudflare.yml`，wrangler + 
+  `CLOUDFLARE_API_TOKEN`／`CLOUDFLARE_ACCOUNT_ID` 兩個 repo secret）各自發布 `public/`。
+- Cloudflare 專案名 `neurolearn`，配發網域 `neurolearn-48v.pages.dev`（`neurolearn` 已被占用）。
 - ⚠️ GitHub → Settings → Pages 的 **Source 必須設為「GitHub Actions」**；資料夾部署只支援 root 或 `/docs`，無法指向 `public/`。`[未能驗證]` 該設定無法從程式碼判定，請以 repo 設定為準。
 - ⚠️ 新增部署網域時，必須同步加入 Firebase Console → Authentication → Settings → **Authorized domains**，否則登入會噴 `auth/unauthorized-domain`。
 - 完整移轉／回滾步驟見 `docs/DEPLOY.md`。
