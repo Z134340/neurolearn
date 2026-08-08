@@ -203,6 +203,16 @@
   .bk-btn:hover{color:var(--gold);background:var(--gold-dim)}
   .bk-btn.on{color:var(--gold)}
 
+  /* 收合狀態的上傳入口 */
+  .uploader-toggle{
+    display:inline-flex;align-items:center;gap:.4rem;
+    padding:.5rem 1rem;border-radius:10px;cursor:pointer;
+    background:var(--accent-dim);border:1px solid var(--accent-border);
+    color:var(--accent);font-size:.94rem;font-weight:600;
+    font-family:inherit;transition:all .2s ease;
+  }
+  .uploader-toggle:hover{background:rgba(123,111,224,.2);border-color:var(--accent)}
+
   /* ─── Drop Zone ─── */
   .drop-zone{
     border:2px dashed rgba(255,255,255,.12);border-radius:20px;
@@ -272,7 +282,7 @@
   /* 卡片列表：寬螢幕自動並排，窄螢幕自動回單欄 */
   /* min(330px,100%)：可用寬不足 330px 時退回 100%，避免軌道撐破頁面
      minmax(0,…)：1fr 的隱含 min 是 min-content，會被長檔名撐爆，必須歸零 */
-  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr));gap:.55rem;align-items:start}
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr));gap:.55rem;grid-auto-rows:1fr}
   .card-grid>*{min-width:0;margin-bottom:0!important}
   @media(max-width:719px){.card-grid{grid-template-columns:minmax(0,1fr)}}
 
@@ -358,17 +368,15 @@
   .zone-tab{padding:.38rem 1.1rem;border-radius:8px;font-size:.98rem;font-weight:600;cursor:pointer;color:var(--text-3);border:none;background:none;font-family:'Sora',sans-serif;letter-spacing:-.01em;transition:all .2s}
   .zone-tab:hover{color:var(--text-2)}
   .zone-tab.active{color:var(--text-1);background:rgba(255,255,255,.07)}
-  #zt-study.active{color:var(--accent)}
-  #zt-exam.active{color:var(--gold)}
-  #zt-dash.active{color:var(--green)}
+  /* 導航統一單一 accent —— 分區靠圖示與字重區分，不靠顏色。
+     綠／紅／琥珀保留給狀態語意（答對／答錯／警示），避免與分類色混淆 */
+  #zt-study.active,#zt-exam.active,#zt-dash.active{color:var(--accent)}
   #nav-sub-tabs{position:fixed;top:calc(52px + env(safe-area-inset-top, 0px));left:0;right:0;height:44px;background:rgba(14,14,22,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:199;display:flex;align-items:center;gap:.15rem;padding:0 1.25rem;overflow-x:auto;overflow-y:visible}
   #nav-sub-tabs::-webkit-scrollbar{height:0}
   .sub-tab{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .8rem;border-radius:9px;font-size:.94rem;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text-2);transition:all .2s;border:none;background:none;font-family:'DM Sans',sans-serif}
   .sub-tab:hover{color:var(--text-1);background:rgba(255,255,255,.05)}
   .sub-tab.active{background:rgba(255,255,255,.07)}
-  .zone-study .sub-tab.active{color:var(--accent)}
-  .zone-exam .sub-tab.active{color:var(--gold)}
-  .zone-dash .sub-tab.active{color:var(--green)}
+  .zone-study .sub-tab.active,.zone-exam .sub-tab.active,.zone-dash .sub-tab.active{color:var(--accent)}
   .sub-tab svg{opacity:.65;transition:opacity .18s;flex-shrink:0}
   .sub-tab.active svg{opacity:1}
   .sub-cnt{font-size:.74rem;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:1px}
@@ -1216,7 +1224,7 @@ function render() {
   setActiveNav(S.page);
   switch(S.page) {
     case 'home':      c.innerHTML = homeHTML();       break;
-    case 'datasets':  c.innerHTML = datasetsHTML();   setTimeout(bindDataset, 0); break;
+    case 'datasets':  c.innerHTML = datasetsHTML();   setTimeout(()=>{bindDataset();bindUploaderToggle();}, 0); break;
     case 'quiz':
       try { c.innerHTML = quizHTML(); }
       catch(err) {
@@ -1226,7 +1234,7 @@ function render() {
       break;
     case 'login':     c.innerHTML = loginPageHTML();   break;
     case 'dashboard': c.innerHTML = dashHTML();       setTimeout(initChart, 80); break;
-    case 'library':   c.innerHTML = libraryHTML();    setTimeout(bindStudyDrop, 0); break;
+    case 'library':   c.innerHTML = libraryHTML();    setTimeout(()=>{bindStudyDrop();bindUploaderToggle();}, 0); break;
     case 'reader':
       c.innerHTML = readerHTML();
       // 還原 sidebar 捲動位置（re-render 後不跳回頂部）
@@ -1253,7 +1261,7 @@ function render() {
    ╚══════════════════════════════════╝ */
 function homeHTML() {
   return `
-  <div class="page" style="min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 1.5rem 4rem;">
+  <div class="page" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1.5rem 3rem;">
 
     <!-- Hero -->
     <div style="text-align:center;margin-bottom:5rem;max-width:660px;">
@@ -1261,7 +1269,7 @@ function homeHTML() {
         <div class="pulse-dot"></div>
         <span class="badge badge-v">Beta · AI 學習平台</span>
       </div>
-      <h1 style="font-size:clamp(2.76rem,7.4vw,4.35rem);font-weight:800;letter-spacing:-.045em;line-height:1.08;margin-bottom:1.3rem;">
+      <h1 style="font-size:clamp(2.6rem,6.4vw,3.9rem);font-weight:800;letter-spacing:-.045em;line-height:1.06;margin-bottom:1rem;">
         <span style="color:var(--text-1)">智能學習，</span><br>
         <span class="grad-text">從教材到考題</span>
       </h1>
@@ -1299,7 +1307,7 @@ function homeHTML() {
             </svg>
           </div>
           <div>
-            <div class="badge badge-v" style="margin-bottom:.2rem">模考區</div>
+            <div class="badge badge-g" style="margin-bottom:.2rem">模考區</div>
             <div style="font-size:.84rem;color:var(--text-3);letter-spacing:.04em">Datasets</div>
           </div>
         </div>
@@ -1331,21 +1339,21 @@ function homeHTML() {
         </div>
       </div>
 
-      <div class="n-card" onclick="navigate('dashboard')" style="--c:#4ADE80;--c-border:rgba(74,222,128,.25);--c-glow:rgba(74,222,128,.06)">
+      <div class="n-card" onclick="navigate('dashboard')" style="--c:#7B6FE0;--c-border:rgba(123,111,224,.3);--c-glow:rgba(123,111,224,.08)">
         <div style="display:flex;align-items:center;gap:.9rem;margin-bottom:1.6rem;">
-          <div style="width:50px;height:50px;border-radius:13px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.2);display:flex;align-items:center;justify-content:center;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <div style="width:50px;height:50px;border-radius:13px;background:var(--accent-dim);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
             </svg>
           </div>
           <div>
-            <div class="badge badge-gr" style="margin-bottom:.2rem">總覽</div>
+            <div class="badge badge-v" style="margin-bottom:.2rem">總覽</div>
             <div style="font-size:.84rem;color:var(--text-3);letter-spacing:.04em">Dashboard</div>
           </div>
         </div>
         <h3 style="font-size:1.4rem;font-weight:700;letter-spacing:-.025em;margin-bottom:.55rem;">學習儀表板</h3>
         <p style="color:var(--text-2);font-size:1.03rem;line-height:1.68;">視覺化追蹤整體答對率、各次測驗成效與學習趨勢曲線。</p>
-        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--green);font-size:1rem;font-weight:600;">
+        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--accent);font-size:1rem;font-weight:600;">
           <span>查看成效</span>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
         </div>
@@ -1619,7 +1627,8 @@ function datasetsHTML() {
 
     </div>
 
-        <!-- Drop Zone -->
+        <!-- Drop Zone（有題庫檔時收合）-->
+    ${S.files.length && !_uploaderOpen.datasets ? uploaderToggleHTML('datasets','上傳題庫') : `
     <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
       <input type="file" id="fileInput" style="display:none" multiple accept=".pdf,.docx,.csv,.xlsx" onchange="handleFileSelect(this.files)">
       <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.5" style="margin:0 auto .9rem;">
@@ -1634,7 +1643,7 @@ function datasetsHTML() {
         <span style="background:rgba(248,113,113,.08);color:#F87171;border:1px solid rgba(248,113,113,.22);border-radius:6px;padding:.15rem .5rem;font-size:.82rem;font-weight:700">PDF AI端口</span>
         <span style="background:rgba(251,146,60,.08);color:#FB923C;border:1px solid rgba(251,146,60,.22);border-radius:6px;padding:.15rem .5rem;font-size:.82rem;font-weight:700">DOCX AI端口</span>
       </div>
-    </div>
+    </div>`}
 
     <!-- Download template button -->
     <div style="margin-top:.75rem;display:flex;justify-content:flex-end;">
@@ -4169,6 +4178,23 @@ let _autoSaveTimer = null;
 const STAGS=[{id:'must',label:'必考重點',cls:'stag-red',color:'var(--red)'},{id:'confused',label:'易混淆',cls:'stag-gold',color:'var(--gold)'},{id:'understood',label:'已理解',cls:'stag-green',color:'var(--green)'},{id:'review',label:'待複習',cls:'stag-blue',color:'#60A5FA'},{id:'important',label:'重要概念',cls:'stag-purple',color:'var(--accent)'}];
 
 function parseMD(raw){const lines=raw.split('\n'),sections=[];let buf=[],curH='',curL=0,si=0;const toc=[];function flush(){if(!buf.length)return;const md=buf.join('\n').trim();if(!md){buf=[];return;}sections.push({id:'s'+si,heading:curH,level:curL,md,html:marked.parse(md)});si++;buf=[];}for(const line of lines){const hm=line.match(/^(#{1,3})\s+(.+)/);if(hm){flush();curH=hm[2].replace(/\*\*/g,'');curL=hm[1].length;toc.push({heading:curH,level:curL,secId:'s'+si});buf.push(line);}else{buf.push(line);}}flush();return{sections,toc};}
+/* 上傳區漸進式揭露（Linear／Notion 模式）：已有內容時預設收合成一顆按鈕，
+   把版面讓給主要內容；空狀態才展開完整 dropzone。狀態存於全域以跨 render 保留。 */
+let _uploaderOpen = {};
+function bindUploaderToggle(){
+  document.querySelectorAll('[data-uploader]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.uploader;
+      _uploaderOpen[k] = !_uploaderOpen[k];
+      render();
+    });
+  });
+}
+function uploaderToggleHTML(key, label){
+  return `<button data-uploader="${key}" class="uploader-toggle">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    ${label}</button>`;
+}
 function bindStudyDrop(){const dz=document.getElementById('study-dropzone');if(!dz)return;dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dv');});dz.addEventListener('dragleave',()=>dz.classList.remove('dv'));dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dv');handleMDFiles(e.dataTransfer.files);});}
 function showLibraryMsg(msg, durationMs) {
   const el = document.getElementById('lib-upload-msg');
@@ -4343,7 +4369,8 @@ function libraryHTML() {
       </div>
     </div>
 
-    <!-- Drop Zone -->
+    <!-- Drop Zone（有教材時收合，見 uploaderToggleHTML）-->
+    ${S.materials.length && !_uploaderOpen.library ? uploaderToggleHTML('library','上傳教材') : `
     <div class="drop-zone" id="study-dropzone" onclick="document.getElementById('study-file-input').click()">
       <input type="file" id="study-file-input" style="display:none" multiple accept=".md" onchange="handleMDFiles(this.files)">
       <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.5" style="margin:0 auto .9rem;">
@@ -4355,7 +4382,7 @@ function libraryHTML() {
       <div style="display:flex;justify-content:center;gap:.4rem;margin-top:1rem;flex-wrap:wrap;">
         <span style="background:rgba(74,222,128,.1);color:#4ADE80;border:1px solid rgba(74,222,128,.28);border-radius:6px;padding:.15rem .5rem;font-size:.82rem;font-weight:700">Markdown ✓ 自動解析</span>
       </div>
-    </div>
+    </div>`}
 
     <!-- Upload feedback message -->
     <div id="lib-upload-msg" style="display:none;margin-top:.85rem;padding:.75rem 1rem;border-radius:10px;font-size:.98rem;"></div>
