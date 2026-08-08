@@ -9,7 +9,7 @@ NeuroLearn 是**單一 HTML 檔**的智能模擬考平台（Vanilla JS、零建�
 
 - Live：https://z134340.github.io/neurolearn/
 - Repo：https://github.com/Z134340/neurolearn （branch：`main`）
-- 入口：`index.html`（約 4455 行；CSS 內嵌 18–421、JS 內嵌 453 起，行號為約值）
+- 入口：`index.html`（約 4470 行；CSS 內嵌 21–438、JS 內嵌 468 起，行號為約值）
 
 ## 2. Golden Rules（動手前必讀，違反會破壞產品）
 
@@ -26,20 +26,20 @@ NeuroLearn 是**單一 HTML 檔**的智能模擬考平台（Vanilla JS、零建�
 
 | 區段 | 行號(約) | 內容 |
 |------|---------|------|
-| `<style>` | 18–421 | 全站 CSS（含 iOS safe-area、共用 btn 類別） |
-| `FIREBASE_CONFIG` | 453 | Firebase 設定（公開值） |
-| Firebase 同步層 | 469–840 | `syncUserState` / `syncExamFileToCloud` / `loadCloudData` / `syncStudyToCloud` / `loadStudyFromCloud` / onSnapshot / `_syncPausedUntil` / `_localOnlyFiles` |
-| `initFirebase()` | 843 | Auth + Firestore 初始化 |
-| STATE | 1045 | 全域 `S` 狀態物件 |
-| NAVIGATION | 1074 | 切頁 |
-| MASTER RENDER `render()` | 1139 | 總渲染入口 |
-| HOME / DATASETS PAGE | 1186 / 1296 | 首頁、考古題題庫（CSV/XLSX 匯入：1858 / 2345） |
-| AI 題目生成 | 1879–2325 | `aiGenTestConn` / `aiGenRun` / `aiGenImport`（呼叫本機 proxy） |
-| QUIZ PAGE | 2506 | `launchQuiz()` 2913、作答流程 |
-| DASHBOARD PAGE | 3451 | 趨勢圖（純 Canvas）、匯出 |
-| PERSISTENT STORAGE | 4020 | `saveToStorage()` 4025、`loadFromStorage()` 4070（localStorage 三段降級） |
-| STUDY AREA | 4103 | 教材庫 `handleMDFiles()` 4119、筆記 |
-| BOOT | 4423 | `loadFromStorage()` → `render()` → `initFirebase()` |
+| `<style>` | 21–438 | 全站 CSS（含 iOS safe-area、共用 btn 類別、字級基準） |
+| `FIREBASE_CONFIG` | 485 | Firebase 設定（公開值） |
+| Firebase 同步層 | 501–872 | `syncUserState` / `syncExamFileToCloud` / `loadCloudData` / `syncStudyToCloud` / `loadStudyFromCloud` / onSnapshot / `_syncPausedUntil` / `_localOnlyFiles` |
+| `initFirebase()` | 875 | Auth + Firestore 初始化 |
+| STATE | 1077 | 全域 `S` 狀態物件 |
+| NAVIGATION | 1110 | 切頁 |
+| MASTER RENDER `render()` | 1171 | 總渲染入口 |
+| HOME / DATASETS PAGE | 1221 / 1522 | 首頁、考古題題庫（CSV/XLSX 匯入：1890 / 2377） |
+| AI 題目生成 | 1911–2357 | `aiGenTestConn` / `aiGenRun` / `aiGenImport`（呼叫本機 proxy） |
+| QUIZ PAGE | 2538 | `launchQuiz()` 2945、作答流程 |
+| DASHBOARD PAGE | 3483 | 趨勢圖（純 Canvas）、匯出 |
+| PERSISTENT STORAGE | 4052 | `saveToStorage()` 4057、`loadFromStorage()` 4100（localStorage 三段降級） |
+| STUDY AREA | 4135 | 教材庫 `handleMDFiles()` 4151、筆記 |
+| BOOT | 4438 | `loadFromStorage()` → `render()` → `initFirebase()` |
 
 ## 4. 本機開發 / 執行 / 測試
 
@@ -74,5 +74,5 @@ NeuroLearn/
 
 - 語言：UI 與註解繁體中文；變數/函式英文。
 - JS：Vanilla、ES6、無模組系統；大量 inline `onclick`（**131 處**）+ `innerHTML`（30 處）為現況技術債（見 BACKLOG B3/B4）。CI 有 ratchet 守門，數量不得超過此基準。
-- console：預設靜默（log/warn/info/debug），`?debug=1` 或 `localStorage.neurolearn_debug='1'` 開啟（index.html:459 單點攔截，B5 已落地）。
+- console：預設靜默（log/warn/info/debug），`?debug=1` 或 `localStorage.neurolearn_debug='1'` 開啟（index.html:474 單點攔截，B5 已落地）。
 - 同步觸發：60s（輕量）/ 5min（全量）debounce；quota 超限自動暫停 30 分鐘。

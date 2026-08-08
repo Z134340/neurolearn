@@ -5,7 +5,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="theme-color" content="#0B0B12">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <!-- 允許使用者縮放（WCAG 1.4.4）：字級放大後仍保留 pinch-zoom 作為最後手段 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NeuroLearn — 智能學習平台</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -43,8 +44,12 @@
     font-family:'DM Sans','Inter','Segoe UI',system-ui,-apple-system,sans-serif;
     background:var(--bg-base);
     color:var(--text-1);
+    /* 中文字面率高，行高需比英文寬鬆才好讀；元件可自行覆寫 */
+    line-height:1.55;
     min-height:100svh;
     overflow-x:hidden;
+    -webkit-text-size-adjust:100%;
+    text-size-adjust:100%;
   }
   /* Ambient background */
   body::before{
@@ -88,11 +93,11 @@
     display:flex;align-items:center;justify-content:center;
     box-shadow:0 0 14px rgba(123,111,224,.35);
   }
-  .nav-logo-text{font-family:'Sora','Inter','Segoe UI',system-ui,-apple-system,sans-serif;font-weight:700;font-size:1.05rem;letter-spacing:-.02em}
+  .nav-logo-text{font-family:'Sora','Inter','Segoe UI',system-ui,-apple-system,sans-serif;font-weight:700;font-size:1.26rem;letter-spacing:-.02em}
   .nav-links{display:flex;align-items:center;gap:.25rem}
   .nav-link{
     background:transparent;border:none;color:var(--text-2);
-    padding:.42rem .85rem;border-radius:8px;font-size:.83rem;
+    padding:.42rem .85rem;border-radius:8px;font-size:1rem;
     font-family:'DM Sans','Inter','Segoe UI',system-ui,-apple-system,sans-serif;cursor:pointer;
     transition:all .2s ease;
   }
@@ -106,7 +111,7 @@
   .badge{
     display:inline-flex;align-items:center;gap:.25rem;
     padding:.18rem .55rem;border-radius:999px;
-    font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
   }
   .badge-v{background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border)}
   .badge-g{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border)}
@@ -120,7 +125,7 @@
     display:inline-flex;align-items:center;gap:.4rem;
     border:none;border-radius:10px;cursor:pointer;
     font-family:'Sora','Inter','Segoe UI',system-ui,-apple-system,sans-serif;font-weight:600;
-    font-size:.875rem;letter-spacing:.01em;transition:all .2s ease;
+    font-size:1.05rem;letter-spacing:.01em;transition:all .2s ease;
     padding:.7rem 1.5rem;
   }
   .btn-primary{
@@ -171,7 +176,8 @@
     background:rgba(255,255,255,.025);border:1px solid var(--border);
     border-radius:12px;padding:.9rem 1.1rem;color:var(--text-1);
     cursor:pointer;transition:all .2s ease;
-    font-family:'DM Sans','Inter','Segoe UI',system-ui,-apple-system,sans-serif;font-size:.92rem;
+    font-family:'DM Sans','Inter','Segoe UI',system-ui,-apple-system,sans-serif;font-size:1.1rem;
+    line-height:1.65;
     display:flex;align-items:flex-start;gap:.75rem;
     overflow-wrap:break-word;word-break:break-word;
   }
@@ -254,22 +260,22 @@
   .sep{height:1px;background:var(--border);margin:1.25rem 0}
 
   /* ─── Empty State ─── */
-  .empty-state{text-align:center;padding:2rem 1rem;color:var(--text-3);font-size:.85rem;line-height:1.6;}
+  .empty-state{text-align:center;padding:2rem 1rem;color:var(--text-3);font-size:1.02rem;line-height:1.6;}
 
   /* ─── Danger Button ─── */
-  .btn-danger{display:inline-flex;align-items:center;gap:.35rem;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:var(--red);border-radius:8px;padding:.38rem .75rem;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s ease;}
+  .btn-danger{display:inline-flex;align-items:center;gap:.35rem;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:var(--red);border-radius:8px;padding:.38rem .75rem;font-size:.94rem;font-weight:600;cursor:pointer;transition:all .2s ease;}
   .btn-danger:hover{background:rgba(248,113,113,.16);border-color:var(--red);}
 
   /* ─── Sync Button (shared across pages) ─── */
-  .btn-sync{display:inline-flex;align-items:center;gap:.3rem;font-size:.65rem;padding:.2rem .55rem;min-height:0;border-radius:6px;background:rgba(123,111,224,.12);border:1px solid var(--accent-border);color:var(--accent);cursor:pointer;white-space:nowrap;transition:all .2s ease;font-family:inherit;font-weight:600;}
+  .btn-sync{display:inline-flex;align-items:center;gap:.3rem;font-size:.78rem;padding:.2rem .55rem;min-height:0;border-radius:6px;background:rgba(123,111,224,.12);border:1px solid var(--accent-border);color:var(--accent);cursor:pointer;white-space:nowrap;transition:all .2s ease;font-family:inherit;font-weight:600;}
   .btn-sync:hover{background:rgba(123,111,224,.22);}
 
   /* ─── Sort / Filter Button (shared) ─── */
-  .btn-sort{display:inline-flex;align-items:center;gap:.25rem;font-size:.68rem;padding:.2rem .55rem;border-radius:6px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-3);font-weight:600;transition:all .2s ease;font-family:inherit;}
+  .btn-sort{display:inline-flex;align-items:center;gap:.25rem;font-size:.82rem;padding:.2rem .55rem;border-radius:6px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-3);font-weight:600;transition:all .2s ease;font-family:inherit;}
   .btn-sort.active{border-color:var(--accent-border);background:rgba(123,111,224,.12);color:var(--accent);}
 
   /* ─── Pagination Button ─── */
-  .btn-page{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;cursor:pointer;touch-action:manipulation;transition:all .2s ease;font-family:inherit;}
+  .btn-page{background:transparent;border:1px solid var(--border);color:var(--text-2);border-radius:8px;padding:.35rem .75rem;font-size:.94rem;cursor:pointer;touch-action:manipulation;transition:all .2s ease;font-family:inherit;}
   .btn-page:hover:not(:disabled){border-color:var(--accent-border);color:var(--accent);}
   .btn-page:disabled{opacity:.3;pointer-events:none;}
 
@@ -291,7 +297,7 @@
   body.no-anim .page{animation:none!important}
   @media(max-width:640px){
     /* Datasets page buttons on mobile */
-    #cloud-refresh-btn { font-size:.78rem !important; padding:.5rem .9rem !important; }
+    #cloud-refresh-btn { font-size:.94rem !important; padding:.5rem .9rem !important; }
     /* Single-row navbar: NeuroLearn logo + zone-tabs + user area all in one row */
     #navbar{
       height:calc(52px + env(safe-area-inset-top, 0px));
@@ -304,13 +310,13 @@
     #navbar-top{display:contents;}
     .nav-logo{flex-shrink:0;gap:.4rem;}
     .zone-tabs{flex:1;min-width:0;height:auto;margin:0;background:transparent;border-radius:0;padding:0;justify-content:center;gap:0;}
-    .zone-tab{flex:1;text-align:center;font-size:.55rem;padding:.3rem .2rem;white-space:nowrap;}
+    .zone-tab{flex:1;text-align:center;font-size:.66rem;padding:.3rem .2rem;white-space:nowrap;}
     #nav-user-area>span{display:none;}
     .nav-logo-text{display:none;}
     .nav-logo-icon{width:28px;height:28px;border-radius:7px}
     .zt-full{display:none}.zt-short{display:inline}
     #nav-sub-tabs{top:calc(52px + env(safe-area-inset-top, 0px));height:38px;padding:0 .75rem;overflow-y:visible;z-index:201}
-    .sub-tab{font-size:.72rem;padding:.3rem .6rem}
+    .sub-tab{font-size:.86rem;padding:.3rem .6rem}
     #page-content{padding-top:calc(90px + env(safe-area-inset-top, 0px))}
     .page{animation:none}
     .g-card{border-radius:14px}
@@ -320,7 +326,11 @@
     #page-content{padding-bottom:env(safe-area-inset-bottom,0px)}
   }
   @media(max-width:400px){
-    .zone-tab{font-size:.52rem;padding:.28rem .1rem}
+    .zone-tab{font-size:.62rem;padding:.28rem .1rem}
+  }
+  /* 字級放大後，平板寬度的 zone-tabs 需收斂左右內距才不會擠壓 navbar */
+  @media(min-width:641px) and (max-width:840px){
+    .zone-tab{padding:.38rem .7rem}
   }
   @media(hover:hover){.btn:hover{opacity:.82}}
   @media(hover:none){.btn:active{opacity:.82}}
@@ -328,7 +338,7 @@
 
   /* ─── Zone Tabs ─── */
   .zone-tabs{display:flex;align-items:center;gap:2px;margin:0 auto;background:rgba(255,255,255,.03);border-radius:10px;padding:3px}
-  .zone-tab{padding:.38rem 1.1rem;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--text-3);border:none;background:none;font-family:'Sora',sans-serif;letter-spacing:-.01em;transition:all .2s}
+  .zone-tab{padding:.38rem 1.1rem;border-radius:8px;font-size:.98rem;font-weight:600;cursor:pointer;color:var(--text-3);border:none;background:none;font-family:'Sora',sans-serif;letter-spacing:-.01em;transition:all .2s}
   .zone-tab:hover{color:var(--text-2)}
   .zone-tab.active{color:var(--text-1);background:rgba(255,255,255,.07)}
   #zt-study.active{color:var(--accent)}
@@ -336,7 +346,7 @@
   #zt-dash.active{color:var(--green)}
   #nav-sub-tabs{position:fixed;top:calc(52px + env(safe-area-inset-top, 0px));left:0;right:0;height:44px;background:rgba(14,14,22,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:199;display:flex;align-items:center;gap:.15rem;padding:0 1.25rem;overflow-x:auto;overflow-y:visible}
   #nav-sub-tabs::-webkit-scrollbar{height:0}
-  .sub-tab{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .8rem;border-radius:9px;font-size:.78rem;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text-2);transition:all .2s;border:none;background:none;font-family:'DM Sans',sans-serif}
+  .sub-tab{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .8rem;border-radius:9px;font-size:.94rem;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text-2);transition:all .2s;border:none;background:none;font-family:'DM Sans',sans-serif}
   .sub-tab:hover{color:var(--text-1);background:rgba(255,255,255,.05)}
   .sub-tab.active{background:rgba(255,255,255,.07)}
   .zone-study .sub-tab.active{color:var(--accent)}
@@ -344,41 +354,42 @@
   .zone-dash .sub-tab.active{color:var(--green)}
   .sub-tab svg{opacity:.65;transition:opacity .18s;flex-shrink:0}
   .sub-tab.active svg{opacity:1}
-  .sub-cnt{font-size:.62rem;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:1px}
+  .sub-cnt{font-size:.74rem;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:1px}
   /* ─── Study Area ─── */
   .study-reader{display:grid;grid-template-columns:220px 1fr;gap:0;min-height:calc(100svh - 96px - env(safe-area-inset-top, 0px))}
   .study-sidebar{position:sticky;top:calc(96px + env(safe-area-inset-top, 0px));height:calc(100svh - 96px - env(safe-area-inset-top, 0px));overflow-y:auto;border-right:1px solid var(--border);padding:1rem;background:var(--bg-surface)}
   .study-sidebar::-webkit-scrollbar{width:3px}
   .study-sidebar::-webkit-scrollbar-thumb{background:var(--border-h);border-radius:3px}
-  .study-content{padding:1.5rem 2rem;max-width:760px}
-  .toc-item{display:block;padding:5px 8px;font-size:.74rem;border-radius:6px;color:var(--text-3);cursor:pointer;transition:all .15s;line-height:1.4;margin-bottom:1px;text-decoration:none}
+  /* min-width:0 阻止 grid item 被寬表格撐開（1fr 預設 min-width:auto 會溢出）*/
+  .study-content{padding:1.5rem 2rem;max-width:760px;min-width:0}
+  .toc-item{display:block;padding:6px 8px;font-size:.89rem;border-radius:6px;color:var(--text-3);cursor:pointer;transition:all .15s;line-height:1.5;margin-bottom:1px;text-decoration:none}
   .toc-item:hover{color:var(--text-2);background:rgba(255,255,255,.03)}
   .toc-item.active{color:var(--accent);background:var(--accent-dim)}
-  .toc-h2{padding-left:14px}.toc-h3{padding-left:26px;font-size:.68rem}
+  .toc-h2{padding-left:14px}.toc-h3{padding-left:26px;font-size:.82rem}
   .md-sec{position:relative;padding:.8rem 1rem;margin-bottom:.4rem;border-radius:12px;border:1px solid transparent;transition:all .2s}
   .md-sec:hover{background:rgba(255,255,255,.02);border-color:var(--border)}
   .md-sec.tagged{border-left:3px solid var(--accent);border-radius:0 12px 12px 0}
   .md-sec.tagged-red{border-left-color:var(--red)}.md-sec.tagged-gold{border-left-color:var(--gold)}.md-sec.tagged-green{border-left-color:var(--green)}.md-sec.tagged-blue{border-left-color:#60A5FA}
   .md-sec .stag-bar{display:none;position:absolute;top:4px;right:4px;gap:3px;flex-wrap:wrap;align-items:center}
   .md-sec:hover .stag-bar,.md-sec.tagged .stag-bar{display:flex}
-  .md-sec h1{font-size:1.4rem;font-weight:800;margin:.8rem 0 .5rem;letter-spacing:-.02em;color:var(--accent);font-family:'Sora',sans-serif}
-  .md-sec h2{font-size:1.1rem;font-weight:700;margin:.6rem 0 .4rem;padding-bottom:.3rem;border-bottom:1px solid var(--border);font-family:'Sora',sans-serif}
-  .md-sec h3{font-size:.92rem;font-weight:700;margin:.5rem 0 .3rem;color:var(--gold);font-family:'Sora',sans-serif}
-  .md-sec p{font-size:.84rem;line-height:1.7;margin-bottom:.4rem;color:var(--text-2)}
+  .md-sec h1{font-size:1.57rem;font-weight:800;margin:.8rem 0 .5rem;letter-spacing:-.02em;color:var(--accent);font-family:'Sora',sans-serif}
+  .md-sec h2{font-size:1.32rem;font-weight:700;margin:.6rem 0 .4rem;padding-bottom:.3rem;border-bottom:1px solid var(--border);font-family:'Sora',sans-serif}
+  .md-sec h3{font-size:1.1rem;font-weight:700;margin:.5rem 0 .3rem;color:var(--gold);font-family:'Sora',sans-serif}
+  .md-sec p{font-size:1.01rem;line-height:1.7;margin-bottom:.4rem;color:var(--text-2)}
   .md-sec strong{color:var(--text-1);font-weight:700}
-  .md-sec ul,.md-sec ol{margin:.3rem 0 .5rem 1rem;font-size:.82rem;line-height:1.7;color:var(--text-2)}
+  .md-sec ul,.md-sec ol{margin:.3rem 0 .5rem 1rem;font-size:.98rem;line-height:1.7;color:var(--text-2)}
   .md-sec li{margin-bottom:.15rem}
-  .md-sec code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:.76rem;font-family:'JetBrains Mono',monospace;color:#22D3EE}
+  .md-sec code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:.91rem;font-family:'JetBrains Mono',monospace;color:#22D3EE}
   .md-sec pre{background:var(--bg-base);border:1px solid var(--border);border-radius:8px;padding:.7rem;margin:.4rem 0;overflow-x:auto}
-  .md-sec pre code{background:none;padding:0;font-size:.74rem;color:var(--text-2)}
-  .md-sec table{width:100%;border-collapse:collapse;font-size:.76rem;margin:.4rem 0}
-  .md-sec th{text-align:left;padding:5px 7px;border-bottom:2px solid var(--border-h);color:var(--text-3);font-weight:700;font-size:.68rem;text-transform:uppercase;letter-spacing:.04em}
-  .md-sec td{padding:5px 7px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top}
+  .md-sec pre code{background:none;padding:0;font-size:.89rem;color:var(--text-2)}
+  .md-sec table{width:100%;border-collapse:collapse;font-size:.91rem;margin:.4rem 0}
+  .md-sec th{text-align:left;padding:7px 9px;border-bottom:2px solid var(--border-h);color:var(--text-3);font-weight:700;font-size:.82rem;text-transform:uppercase;letter-spacing:.04em}
+  .md-sec td{padding:7px 9px;line-height:1.6;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top}
   .md-sec tr:hover td{background:rgba(255,255,255,.015)}
   .md-sec blockquote{border-left:3px solid var(--accent-border);padding:.4rem .8rem;margin:.4rem 0;background:var(--accent-dim);border-radius:0 8px 8px 0}
   .md-sec hr{border:none;border-top:1px solid var(--border-h);margin:.8rem 0}
   .md-sec a{color:var(--accent);text-decoration:none}
-  .stag{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;font-size:.66rem;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid transparent}
+  .stag{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;font-size:.79rem;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid transparent}
   .stag:hover{filter:brightness(1.2)}
   .stag.active{box-shadow:0 0 0 2px currentColor}
   .stag-red{background:rgba(248,113,113,.1);color:var(--red);border-color:rgba(248,113,113,.3)}
@@ -391,24 +402,28 @@
   .smodal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;align-items:center;justify-content:center;padding:1rem}
   .smodal-bg.show{display:flex}
   .smodal{background:var(--bg-card);border:1px solid var(--border-h);border-radius:18px;padding:1.5rem;max-width:420px;width:100%;animation:fadeUp .2s}
-  .smodal textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.78rem;color:var(--text-1);resize:vertical;min-height:32px;outline:none;font-family:inherit}
+  .smodal textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.94rem;color:var(--text-1);resize:vertical;min-height:32px;outline:none;font-family:inherit}
   .smodal textarea:focus{border-color:var(--accent-border)}
 
   /* ── AI Gen Modal ── */
   #aiGenModal{z-index:310}
   .aigen-modal{max-width:560px;max-height:88vh;overflow-y:auto;padding:1.4rem 1.5rem}
-  .aigen-modal input[type="text"],.aigen-modal input[type="number"],.aigen-modal input:not([type="checkbox"]):not([type="range"]):not([type="radio"]){background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:.3rem .6rem;font-size:.76rem;color:var(--text-1);outline:none;font-family:inherit;transition:border-color .2s}
+  .aigen-modal input[type="text"],.aigen-modal input[type="number"],.aigen-modal input:not([type="checkbox"]):not([type="range"]):not([type="radio"]){background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:.3rem .6rem;font-size:.91rem;color:var(--text-1);outline:none;font-family:inherit;transition:border-color .2s}
   .aigen-modal input:focus{border-color:var(--accent-border)}
-  .aigen-modal select{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:.35rem .6rem;font-size:.78rem;color:var(--text-1);outline:none;font-family:inherit}
+  .aigen-modal select{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:.35rem .6rem;font-size:.94rem;color:var(--text-1);outline:none;font-family:inherit}
   .aigen-source-btn{display:flex;align-items:center;gap:.9rem;padding:1rem 1.1rem;border-radius:12px;cursor:pointer;text-align:left;width:100%;border:1.5px solid;transition:all .2s}
   .aigen-q-row{padding:.7rem .8rem;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--border);margin-bottom:.45rem}
   @keyframes spin{to{transform:rotate(360deg)}}
   .aigen-spinner{width:48px;height:48px;border-radius:50%;border:3px solid var(--accent-border);border-top-color:var(--accent);animation:spin 1s linear infinite;margin:0 auto 1.2rem}
 
-  .mobile-toc-toggle{display:none;align-items:center;gap:.35rem;padding:.35rem .75rem;margin-bottom:.85rem;border-radius:8px;background:var(--accent-dim);border:1px solid var(--accent-border);color:var(--accent);font-size:.76rem;font-weight:600;cursor:pointer;touch-action:manipulation}
+  .mobile-toc-toggle{display:none;align-items:center;gap:.35rem;padding:.35rem .75rem;margin-bottom:.85rem;border-radius:8px;background:var(--accent-dim);border:1px solid var(--accent-border);color:var(--accent);font-size:.91rem;font-weight:600;cursor:pointer;touch-action:manipulation}
   .sidebar-overlay{display:none;position:fixed;inset:0;z-index:49;background:rgba(0,0,0,.35)}
   @media(max-width:768px){
-    .study-reader{grid-template-columns:1fr}
+    .study-reader{grid-template-columns:minmax(0,1fr)}
+    /* 窄螢幕收斂左右留白，把版面寬度還給放大後的內文 */
+    .study-content{padding:1.25rem 1rem}
+    /* 寬表格改為可橫向捲動，避免撐破頁面 */
+    .md-sec table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
     .study-sidebar{display:none}
     .study-sidebar.show{display:block;position:fixed;top:calc(96px + env(safe-area-inset-top,0px));left:0;width:240px;z-index:50;box-shadow:4px 0 20px rgba(0,0,0,.5);height:calc(100svh - 96px - env(safe-area-inset-top,0px));overflow-y:auto}
     .mobile-toc-toggle{display:inline-flex}
@@ -432,7 +447,7 @@
       <span class="nav-logo-text">NeuroLearn</span>
     </div>
     <div id="nav-user-area" style="display:flex;align-items:center;gap:.3rem;flex-shrink:0;">
-      <button onclick="navigate('login')" class="btn btn-primary" style="font-size:.72rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>
+      <button onclick="navigate('login')" class="btn btn-primary" style="font-size:.86rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>
     </div>
   </div>
   <div class="zone-tabs">
@@ -448,7 +463,7 @@
 <!-- ════ AI 題目生成 Modal ════ -->
 <div class="smodal-bg" id="aiGenModal" onclick="event.target===this&&closeAIGenModal()"><div class="smodal aigen-modal" onclick="event.stopPropagation()"><div id="aiGenContent"></div></div></div>
 
-<div class="smodal-bg" id="stagModal"><div class="smodal"><h3 style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;margin-bottom:.6rem;">標記此段落</h3><p style="font-size:.78rem;color:var(--text-3);margin-bottom:.6rem;">選擇分類標籤：</p><div id="stagModalTags" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.8rem;"></div><textarea id="stagModalMemo" placeholder="加入個人備註（可選）..." rows="2"></textarea><div style="display:flex;gap:.5rem;margin-top:.8rem;justify-content:flex-end;"><button class="btn btn-ghost" style="font-size:.78rem;padding:.4rem .8rem;min-height:0;" onclick="closeStagModal()">取消</button><button class="btn btn-primary" style="font-size:.78rem;padding:.4rem .8rem;min-height:0;" onclick="saveSTag()">儲存</button></div></div></div>
+<div class="smodal-bg" id="stagModal"><div class="smodal"><h3 style="font-family:'Sora',sans-serif;font-size:1.2rem;font-weight:700;margin-bottom:.6rem;">標記此段落</h3><p style="font-size:.94rem;color:var(--text-3);margin-bottom:.6rem;">選擇分類標籤：</p><div id="stagModalTags" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.8rem;"></div><textarea id="stagModalMemo" placeholder="加入個人備註（可選）..." rows="2"></textarea><div style="display:flex;gap:.5rem;margin-top:.8rem;justify-content:flex-end;"><button class="btn btn-ghost" style="font-size:.94rem;padding:.4rem .8rem;min-height:0;" onclick="closeStagModal()">取消</button><button class="btn btn-primary" style="font-size:.94rem;padding:.4rem .8rem;min-height:0;" onclick="saveSTag()">儲存</button></div></div></div>
 
 <script>
 
@@ -850,10 +865,10 @@ function updateNavUser() {
   if (_currentUser) {
     const name = (_currentUser.email||'').split('@')[0];
     el.innerHTML =
-      '<span style="font-size:.74rem;color:var(--text-2);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + _currentUser.email + '">' + name + '</span>' +
-      '<button onclick="signOut()" class="btn btn-ghost" style="font-size:.72rem;padding:.28rem .55rem;min-height:0;touch-action:manipulation;">登出</button>';
+      '<span style="font-size:.89rem;color:var(--text-2);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + _currentUser.email + '">' + name + '</span>' +
+      '<button onclick="signOut()" class="btn btn-ghost" style="font-size:.86rem;padding:.28rem .55rem;min-height:0;touch-action:manipulation;">登出</button>';
   } else {
-    el.innerHTML = '<button onclick="navigate(\'login\')" class="btn btn-primary" style="font-size:.72rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>';
+    el.innerHTML = '<button onclick="navigate(\'login\')" class="btn btn-primary" style="font-size:.86rem;padding:.28rem .65rem;min-height:0;touch-action:manipulation;white-space:nowrap;">登入</button>';
   }
 }
 
@@ -925,7 +940,7 @@ async function doSignIn() {
       if (errMsg.includes('invalid-credential')||errMsg.includes('wrong-password')||errMsg.includes('user-not-found')) {
         msg.innerHTML = '登入失敗：帳號或密碼錯誤。';
       } else if (errMsg.includes('尚未驗證')) {
-        msg.innerHTML = e.message + '<br><span style="font-size:.78rem;color:var(--text-3);">請點下方「重寄驗證信」。</span>';
+        msg.innerHTML = e.message + '<br><span style="font-size:.94rem;color:var(--text-3);">請點下方「重寄驗證信」。</span>';
       } else { msg.textContent = e.message||'登入失敗'; }
       msg.style.color = '#F87171';
     }
@@ -998,7 +1013,7 @@ function loginPageHTML() {
   if (_currentUser) {
     return `<div class="page" style="max-width:480px;margin:0 auto;padding:clamp(1.5rem,5vw,3rem) clamp(1rem,4vw,1.5rem);">
       <div class="g-card" style="padding:1.75rem;">
-        <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:1rem;">帳號</p>
+        <p style="font-size:.86rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:1rem;">帳號</p>
         <p style="color:var(--text-1);margin-bottom:.5rem;">\${_currentUser.email}</p>
         <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.25rem;">
           <button onclick="syncAllToCloud().then(()=>{_lastSyncTime=new Date();}).catch(e=>alert('同步失敗：'+(e.message||e)))" class="btn btn-ghost" style="flex:1;">☁️ 立即同步</button>
@@ -1008,23 +1023,23 @@ function loginPageHTML() {
   }
   return `<div class="page" style="max-width:480px;margin:0 auto;padding:clamp(1.5rem,5vw,3rem) clamp(1rem,4vw,1.5rem);">
     <div class="g-card" style="padding:1.75rem;">
-      <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:1.25rem;">登入 / 註冊</p>
+      <p style="font-size:.86rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:1.25rem;">登入 / 註冊</p>
       <div style="display:flex;flex-direction:column;gap:.75rem;">
         <input id="auth-email" type="email" placeholder="Email" autocomplete="email"
-          style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;color:var(--text-1);font-size:.9rem;outline:none;width:100%;box-sizing:border-box;">
+          style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;color:var(--text-1);font-size:1.08rem;outline:none;width:100%;box-sizing:border-box;">
         <div id="pw-group">
           <input id="auth-pw" type="password" placeholder="密碼（至少 6 字元）"
-            style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;color:var(--text-1);font-size:.9rem;outline:none;width:100%;box-sizing:border-box;">
+            style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;color:var(--text-1);font-size:1.08rem;outline:none;width:100%;box-sizing:border-box;">
         </div>
-        <div id="auth-msg" style="font-size:.82rem;min-height:1.5em;"></div>
+        <div id="auth-msg" style="font-size:.98rem;min-height:1.5em;"></div>
         <div style="display:flex;gap:.6rem;">
           <button id="btn-signin" onclick="doSignIn()" class="btn btn-primary" style="flex:1;touch-action:manipulation;">登入</button>
           <button id="btn-signup" onclick="doSignUp()" class="btn btn-ghost" style="flex:1;touch-action:manipulation;">註冊</button>
         </div>
         <div style="text-align:center;border-top:1px solid var(--border);padding-top:.85rem;display:flex;justify-content:center;gap:1.2rem;flex-wrap:wrap;">
-          <button onclick="showResetForm()" style="font-size:.75rem;color:var(--text-3);background:none;border:none;cursor:pointer;touch-action:manipulation;">忘記密碼？</button>
+          <button onclick="showResetForm()" style="font-size:.9rem;color:var(--text-3);background:none;border:none;cursor:pointer;touch-action:manipulation;">忘記密碼？</button>
           <span style="color:var(--border);">|</span>
-          <button onclick="showResendForm()" style="font-size:.75rem;color:var(--text-3);background:none;border:none;cursor:pointer;touch-action:manipulation;">重寄驗證信？</button>
+          <button onclick="showResendForm()" style="font-size:.9rem;color:var(--text-3);background:none;border:none;cursor:pointer;touch-action:manipulation;">重寄驗證信？</button>
         </div>
       </div>
     </div></div>`;
@@ -1173,7 +1188,7 @@ function render() {
       try { c.innerHTML = quizHTML(); }
       catch(err) {
         console.error('[NeuroLearn] render error:', err);
-        c.innerHTML = '<div style="padding:2rem;color:#F87171;font-size:.85rem;"><b>Render error:</b><br>' + err.message + '</div>';
+        c.innerHTML = '<div style="padding:2rem;color:#F87171;font-size:1.02rem;"><b>Render error:</b><br>' + err.message + '</div>';
       }
       break;
     case 'login':     c.innerHTML = loginPageHTML();   break;
@@ -1213,11 +1228,11 @@ function homeHTML() {
         <div class="pulse-dot"></div>
         <span class="badge badge-v">Beta · AI 學習平台</span>
       </div>
-      <h1 style="font-size:clamp(2.6rem,7vw,4.1rem);font-weight:800;letter-spacing:-.045em;line-height:1.08;margin-bottom:1.3rem;">
+      <h1 style="font-size:clamp(2.76rem,7.4vw,4.35rem);font-weight:800;letter-spacing:-.045em;line-height:1.08;margin-bottom:1.3rem;">
         <span style="color:var(--text-1)">智能學習，</span><br>
         <span class="grad-text">從教材到考題</span>
       </h1>
-      <p style="font-size:1.05rem;color:var(--text-2);line-height:1.75;font-weight:300;max-width:500px;margin:0 auto;">
+      <p style="font-size:1.26rem;color:var(--text-2);line-height:1.75;font-weight:300;max-width:500px;margin:0 auto;">
         上傳您的學習教材，由 AI 智能萃取考題核心，<br>即時生成個人化測驗，精準追蹤學習成效。
       </p>
     </div>
@@ -1232,12 +1247,12 @@ function homeHTML() {
           </div>
           <div>
             <div class="badge badge-v" style="margin-bottom:.2rem">學習區</div>
-            <div style="font-size:.7rem;color:var(--text-3);letter-spacing:.04em">Study</div>
+            <div style="font-size:.84rem;color:var(--text-3);letter-spacing:.04em">Study</div>
           </div>
         </div>
-        <h3 style="font-size:1.25rem;font-weight:700;letter-spacing:-.025em;margin-bottom:.55rem;">教材＆筆記</h3>
-        <p style="color:var(--text-2);font-size:.86rem;line-height:1.68;">上傳 Markdown 備考教材，標記重點段落，跨文件整合筆記高效複習。</p>
-        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--accent);font-size:.83rem;font-weight:600;">
+        <h3 style="font-size:1.4rem;font-weight:700;letter-spacing:-.025em;margin-bottom:.55rem;">教材＆筆記</h3>
+        <p style="color:var(--text-2);font-size:1.03rem;line-height:1.68;">上傳 Markdown 備考教材，標記重點段落，跨文件整合筆記高效複習。</p>
+        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--accent);font-size:1rem;font-weight:600;">
           <span>前往學習</span>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
         </div>
@@ -1252,12 +1267,12 @@ function homeHTML() {
           </div>
           <div>
             <div class="badge badge-v" style="margin-bottom:.2rem">模考區</div>
-            <div style="font-size:.7rem;color:var(--text-3);letter-spacing:.04em">Datasets</div>
+            <div style="font-size:.84rem;color:var(--text-3);letter-spacing:.04em">Datasets</div>
           </div>
         </div>
-        <h3 style="font-size:1.25rem;font-weight:700;letter-spacing:-.025em;margin-bottom:.55rem;">訓練資料集</h3>
-        <p style="color:var(--text-2);font-size:.86rem;line-height:1.68;">上傳 PDF、Word 或 CSV 教材，AI 自動萃取知識架構與核心考點。</p>
-        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--accent);font-size:.83rem;font-weight:600;">
+        <h3 style="font-size:1.4rem;font-weight:700;letter-spacing:-.025em;margin-bottom:.55rem;">訓練資料集</h3>
+        <p style="color:var(--text-2);font-size:1.03rem;line-height:1.68;">上傳 PDF、Word 或 CSV 教材，AI 自動萃取知識架構與核心考點。</p>
+        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--accent);font-size:1rem;font-weight:600;">
           <span>前往上傳</span>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
         </div>
@@ -1272,12 +1287,12 @@ function homeHTML() {
           </div>
           <div>
             <div class="badge badge-g" style="margin-bottom:.2rem">模考區</div>
-            <div style="font-size:.7rem;color:var(--text-3);letter-spacing:.04em">Simulations</div>
+            <div style="font-size:.84rem;color:var(--text-3);letter-spacing:.04em">Simulations</div>
           </div>
         </div>
-        <h3 style="font-size:1.25rem;font-weight:700;letter-spacing:-.025em;margin-bottom:.55rem;">智能模擬考</h3>
-        <p style="color:var(--text-2);font-size:.86rem;line-height:1.68;">即時生成個人化選擇題，標記不確定題目，完成後提供詳細解析。</p>
-        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--gold);font-size:.83rem;font-weight:600;">
+        <h3 style="font-size:1.4rem;font-weight:700;letter-spacing:-.025em;margin-bottom:.55rem;">智能模擬考</h3>
+        <p style="color:var(--text-2);font-size:1.03rem;line-height:1.68;">即時生成個人化選擇題，標記不確定題目，完成後提供詳細解析。</p>
+        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--gold);font-size:1rem;font-weight:600;">
           <span>開始測驗</span>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
         </div>
@@ -1292,19 +1307,19 @@ function homeHTML() {
           </div>
           <div>
             <div class="badge badge-gr" style="margin-bottom:.2rem">總覽</div>
-            <div style="font-size:.7rem;color:var(--text-3);letter-spacing:.04em">Dashboard</div>
+            <div style="font-size:.84rem;color:var(--text-3);letter-spacing:.04em">Dashboard</div>
           </div>
         </div>
-        <h3 style="font-size:1.25rem;font-weight:700;letter-spacing:-.025em;margin-bottom:.55rem;">學習儀表板</h3>
-        <p style="color:var(--text-2);font-size:.86rem;line-height:1.68;">視覺化追蹤整體答對率、各次測驗成效與學習趨勢曲線。</p>
-        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--green);font-size:.83rem;font-weight:600;">
+        <h3 style="font-size:1.4rem;font-weight:700;letter-spacing:-.025em;margin-bottom:.55rem;">學習儀表板</h3>
+        <p style="color:var(--text-2);font-size:1.03rem;line-height:1.68;">視覺化追蹤整體答對率、各次測驗成效與學習趨勢曲線。</p>
+        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.35rem;color:var(--green);font-size:1rem;font-weight:600;">
           <span>查看成效</span>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
         </div>
       </div>
     </div>
 
-    <p style="margin-top:3.5rem;color:var(--text-3);font-size:.78rem;letter-spacing:.02em;">
+    <p style="margin-top:3.5rem;color:var(--text-3);font-size:.94rem;letter-spacing:.02em;">
       學習區 · ${S.materials.length} 份教材 · ${S.annotations.length} 則筆記 ｜ 模考區 · ${S.extraQs.length} 題 
     </p>
   </div>`;
@@ -1331,15 +1346,15 @@ function fileCardHTML(f) {
 
   const tagChips = (f.tags||[]).map(tag => {
     const tc = tagColor(tag);
-    return `<span style="display:inline-flex;align-items:center;gap:.22rem;background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .48rem .1rem .52rem;font-size:.68rem;font-weight:600;letter-spacing:.01em;">
+    return `<span style="display:inline-flex;align-items:center;gap:.22rem;background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .48rem .1rem .52rem;font-size:.82rem;font-weight:600;letter-spacing:.01em;">
       ${tag}
-      <span data-fid="${f.id}" data-tag="${tag.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();removeTag(+this.dataset.fid,this.dataset.tag)" style="cursor:pointer;opacity:.6;font-size:.75rem;line-height:1;margin-left:.05rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.6'">×</span>
+      <span data-fid="${f.id}" data-tag="${tag.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();removeTag(+this.dataset.fid,this.dataset.tag)" style="cursor:pointer;opacity:.6;font-size:.9rem;line-height:1;margin-left:.05rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.6'">×</span>
     </span>`;
   }).join('');
 
   const addBtn = (f.tags||[]).length < 5 ? `
     <button onclick="event.stopPropagation();toggleTagEdit(${f.id})"
-      style="background:transparent;border:1px dashed ${S.editingTagFid===f.id?'var(--accent)':'var(--border)'};color:${S.editingTagFid===f.id?'var(--accent)':'var(--text-3)'};border-radius:20px;padding:.1rem .42rem;font-size:.67rem;cursor:pointer;display:inline-flex;align-items:center;gap:.2rem;transition:all .15s;"
+      style="background:transparent;border:1px dashed ${S.editingTagFid===f.id?'var(--accent)':'var(--border)'};color:${S.editingTagFid===f.id?'var(--accent)':'var(--text-3)'};border-radius:20px;padding:.1rem .42rem;font-size:.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:.2rem;transition:all .15s;"
       onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
       onmouseout="this.style.borderColor='${S.editingTagFid===f.id?'var(--accent)':'var(--border)'}';this.style.color='${S.editingTagFid===f.id?'var(--accent)':'var(--text-3)'}'">
       <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1353,49 +1368,49 @@ function fileCardHTML(f) {
     <div style="margin-top:.65rem;padding:.75rem .85rem;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:10px;">
       <div style="display:flex;gap:.45rem;margin-bottom:.55rem;">
         <input id="tagInp-${f.id}" type="text" placeholder="輸入標籤名稱（最多10字）…" maxlength="10"
-          style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:.3rem .6rem;font-size:.78rem;color:var(--text-1);outline:none;font-family:inherit;transition:border-color .15s;"
+          style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:.3rem .6rem;font-size:.94rem;color:var(--text-1);outline:none;font-family:inherit;transition:border-color .15s;"
           onkeydown="if(event.key==='Enter'){addTag(${f.id},this.value)}"
           onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
         <button onclick="addTag(${f.id},document.getElementById('tagInp-${f.id}').value)"
-          style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.3rem .75rem;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;">確認</button>
+          style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.3rem .75rem;font-size:.94rem;font-weight:600;cursor:pointer;white-space:nowrap;">確認</button>
         <button onclick="toggleTagEdit(${f.id})"
-          style="background:transparent;border:1px solid var(--border);color:var(--text-3);border-radius:8px;padding:.3rem .55rem;font-size:.78rem;cursor:pointer;">取消</button>
+          style="background:transparent;border:1px solid var(--border);color:var(--text-3);border-radius:8px;padding:.3rem .55rem;font-size:.94rem;cursor:pointer;">取消</button>
       </div>
       ${unusedPresets.length > 0 ? `
       <div style="display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;">
-        <span style="font-size:.66rem;color:var(--text-3);margin-right:.15rem;">已用標籤：</span>
+        <span style="font-size:.79rem;color:var(--text-3);margin-right:.15rem;">已用標籤：</span>
         ${unusedPresets.map(p => {
           const tc = tagColor(p);
           return `<span onclick="addTag(${f.id},'${p}')"
-            style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;transition:opacity .15s;"
+            style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .5rem;font-size:.82rem;font-weight:600;cursor:pointer;transition:opacity .15s;"
             onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">${p}</span>`;
         }).join('')}
-      </div>` : `<span style="font-size:.7rem;color:var(--text-3);">輸入新標籤後按確認即可新增</span>`}
+      </div>` : `<span style="font-size:.84rem;color:var(--text-3);">輸入新標籤後按確認即可新增</span>`}
     </div>` : '';
 
   const _importedCount = f.imported != null
     ? f.imported
     : S.extraQs.filter(q => String(q._fileId) === String(f.id)).length;
   const actionArea = f.importing
-    ? `<span style="font-size:.72rem;color:var(--accent);">⏳ 解析中…</span>`
+    ? `<span style="font-size:.86rem;color:var(--accent);">⏳ 解析中…</span>`
     : _importedCount > 0
-      ? `<span style="font-size:.72rem;color:#4ADE80;font-weight:600;">✓ ${_importedCount} 題</span>`
+      ? `<span style="font-size:.86rem;color:#4ADE80;font-weight:600;">✓ ${_importedCount} 題</span>`
       : isImportable && f.status === 'ready'
-        ? `<span style="font-size:.7rem;color:var(--text-3);font-style:italic;">等待匯入…</span>`
+        ? `<span style="font-size:.84rem;color:var(--text-3);font-style:italic;">等待匯入…</span>`
         : isAIPending && f.status === 'ready'
-          ? `<span style="background:rgba(123,111,224,.12);color:var(--accent);border:1px solid var(--accent-border);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:600;">AI 待串接</span>`
+          ? `<span style="background:rgba(123,111,224,.12);color:var(--accent);border:1px solid var(--accent-border);border-radius:6px;padding:.15rem .5rem;font-size:.82rem;font-weight:600;">AI 待串接</span>`
           : '';
 
   return `
   <div class="g-card" id="fcard-${f.id}" style="padding:1rem 1.2rem;margin-bottom:.65rem;cursor:default;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
     <div style="display:flex;align-items:center;gap:1rem;">
-      <div style="width:38px;height:38px;border-radius:10px;background:${t.bg};border:1px solid ${t.border};display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">${t.emoji}</div>
+      <div style="width:38px;height:38px;border-radius:10px;background:${t.bg};border:1px solid ${t.border};display:flex;align-items:center;justify-content:center;font-size:1.32rem;flex-shrink:0;">${t.emoji}</div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:.9rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
+        <div style="font-size:1.08rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
         <div style="display:flex;gap:.6rem;margin-top:.2rem;">
-          <span style="font-size:.72rem;color:var(--text-3)">${f.size}</span>
+          <span style="font-size:.86rem;color:var(--text-3)">${f.size}</span>
           <span style="color:var(--text-3)">·</span>
-          <span style="font-size:.72rem;color:var(--text-3)">${f.date}</span>
+          <span style="font-size:.86rem;color:var(--text-3)">${f.date}</span>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:.55rem;flex-shrink:0;">
@@ -1437,9 +1452,9 @@ function refreshFilterBar() {
   if (!allTags.length) { fb.style.display='none'; return; }
   fb.style.display='flex';
   fb.innerHTML = `
-    <span style="font-size:.7rem;color:var(--text-3);font-weight:600;letter-spacing:.04em;margin-right:.1rem;">篩選：</span>
-    <span onclick="setTagFilter(null)" style="background:${!S.tagFilter?'var(--accent)':'rgba(255,255,255,.06)'};color:${!S.tagFilter?'#fff':'var(--text-2)'};border:1px solid ${!S.tagFilter?'var(--accent)':'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">全部</span>
-    ${allTags.map(tag=>{const tc=tagColor(tag);const active=S.tagFilter===tag;return `<span data-tag="${tag.replace(/"/g,'&quot;')}" onclick="setTagFilter(this.dataset.tag)" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`;}).join('')}`;
+    <span style="font-size:.84rem;color:var(--text-3);font-weight:600;letter-spacing:.04em;margin-right:.1rem;">篩選：</span>
+    <span onclick="setTagFilter(null)" style="background:${!S.tagFilter?'var(--accent)':'rgba(255,255,255,.06)'};color:${!S.tagFilter?'#fff':'var(--text-2)'};border:1px solid ${!S.tagFilter?'var(--accent)':'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.84rem;font-weight:600;cursor:pointer;transition:all .15s;">全部</span>
+    ${allTags.map(tag=>{const tc=tagColor(tag);const active=S.tagFilter===tag;return `<span data-tag="${tag.replace(/"/g,'&quot;')}" onclick="setTagFilter(this.dataset.tag)" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.84rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`;}).join('')}`;
 }
 
 
@@ -1524,34 +1539,34 @@ function datasetsHTML() {
   const filePageBtns = totalFilePages > 1 ? `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0 .1rem;margin-top:.25rem;border-top:1px solid var(--border);">
       <button onclick="_datasetFilePage=Math.max(0,_datasetFilePage-1);render()" class="btn-page" ${canFilePrev?'':'disabled'}>← 上一頁</button>
-      <span style="font-size:.75rem;color:var(--text-3);">第 ${_datasetFilePage+1} / ${totalFilePages} 頁 · 共 ${displayFiles.length} 份</span>
+      <span style="font-size:.9rem;color:var(--text-3);">第 ${_datasetFilePage+1} / ${totalFilePages} 頁 · 共 ${displayFiles.length} 份</span>
       <button onclick="_datasetFilePage=Math.min(${totalFilePages-1},_datasetFilePage+1);render()" class="btn-page" ${canFileNext?'':'disabled'}>下一頁 →</button>
     </div>` : '';
   const importedTotal = S.extraQs.length;
   const _datasetSyncInfo = (() => {
-    if (!_currentUser) return `<span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${importedTotal} 題</span>`;
+    if (!_currentUser) return `<span style="font-size:.78rem;color:var(--text-3);white-space:nowrap;">共 ${importedTotal} 題</span>`;
     const syncBtn = `<button id="dataset-sync-btn" class="btn-sync" onclick="datasetsSyncNow()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg><span>同步雲端</span></button>`;
     if (!_lastSyncTime) return `
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;">
-        <span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${importedTotal} 題</span>
-        <span style="display:flex;align-items:center;gap:.3rem;font-size:.65rem;color:#FBBF24;white-space:nowrap;">
+        <span style="font-size:.78rem;color:var(--text-3);white-space:nowrap;">共 ${importedTotal} 題</span>
+        <span style="display:flex;align-items:center;gap:.3rem;font-size:.78rem;color:#FBBF24;white-space:nowrap;">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>尚未同步雲端
         </span>
         ${syncBtn}
-        <div id="dataset-sync-msg" style="font-size:.63rem;min-height:.8em;text-align:right;"></div>
+        <div id="dataset-sync-msg" style="font-size:.76rem;min-height:.8em;text-align:right;"></div>
       </div>`;
     const d = _lastSyncTime;
     const ts = d.toLocaleDateString('zh-TW') + ' ' + d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false});
     return `
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;">
-        <span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${importedTotal} 題</span>
-        <span style="display:flex;align-items:center;gap:.3rem;font-size:.65rem;white-space:nowrap;">
+        <span style="font-size:.78rem;color:var(--text-3);white-space:nowrap;">共 ${importedTotal} 題</span>
+        <span style="display:flex;align-items:center;gap:.3rem;font-size:.78rem;white-space:nowrap;">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
           <span style="color:#4ADE80;">已同步</span>
           <span style="color:var(--text-3);">${ts}</span>
         </span>
         ${syncBtn}
-        <div id="dataset-sync-msg" style="font-size:.63rem;min-height:.8em;text-align:right;"></div>
+        <div id="dataset-sync-msg" style="font-size:.76rem;min-height:.8em;text-align:right;"></div>
       </div>`;
   })();
 
@@ -1563,8 +1578,8 @@ function datasetsHTML() {
       <!-- Row 1: badge + title + sync -->
       <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem;">
         <div>
-          <div class="badge badge-v" style="margin-bottom:.4rem;font-size:.6rem;">訓練資料集</div>
-          <h2 style="font-size:1.55rem;font-weight:700;letter-spacing:-.03em;white-space:nowrap;">上傳考古題題庫</h2>
+          <div class="badge badge-v" style="margin-bottom:.4rem;font-size:.72rem;">訓練資料集</div>
+          <h2 style="font-size:1.74rem;font-weight:700;letter-spacing:-.03em;white-space:nowrap;">上傳考古題題庫</h2>
         </div>
         ${_datasetSyncInfo}
       </div>
@@ -1578,19 +1593,19 @@ function datasetsHTML() {
         <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
         <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
       </svg>
-      <p style="font-size:.95rem;font-weight:500;margin-bottom:.3rem;">拖曳檔案至此，或點擊選取</p>
-      <p style="font-size:.76rem;color:var(--text-3)">CSV · XLSX 自動解析成題庫 &nbsp;|&nbsp; PDF · DOCX 保留 AI 串接端口</p>
+      <p style="font-size:1.14rem;font-weight:500;margin-bottom:.3rem;">拖曳檔案至此，或點擊選取</p>
+      <p style="font-size:.91rem;color:var(--text-3)">CSV · XLSX 自動解析成題庫 &nbsp;|&nbsp; PDF · DOCX 保留 AI 串接端口</p>
       <div style="display:flex;justify-content:center;gap:.4rem;margin-top:1rem;flex-wrap:wrap;">
-        <span style="background:rgba(74,222,128,.1);color:#4ADE80;border:1px solid rgba(74,222,128,.28);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:700">CSV ✓ 自動匯入</span>
-        <span style="background:rgba(96,165,250,.1);color:#60A5FA;border:1px solid rgba(96,165,250,.28);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:700">XLSX ✓ 自動匯入</span>
-        <span style="background:rgba(248,113,113,.08);color:#F87171;border:1px solid rgba(248,113,113,.22);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:700">PDF AI端口</span>
-        <span style="background:rgba(251,146,60,.08);color:#FB923C;border:1px solid rgba(251,146,60,.22);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:700">DOCX AI端口</span>
+        <span style="background:rgba(74,222,128,.1);color:#4ADE80;border:1px solid rgba(74,222,128,.28);border-radius:6px;padding:.15rem .5rem;font-size:.82rem;font-weight:700">CSV ✓ 自動匯入</span>
+        <span style="background:rgba(96,165,250,.1);color:#60A5FA;border:1px solid rgba(96,165,250,.28);border-radius:6px;padding:.15rem .5rem;font-size:.82rem;font-weight:700">XLSX ✓ 自動匯入</span>
+        <span style="background:rgba(248,113,113,.08);color:#F87171;border:1px solid rgba(248,113,113,.22);border-radius:6px;padding:.15rem .5rem;font-size:.82rem;font-weight:700">PDF AI端口</span>
+        <span style="background:rgba(251,146,60,.08);color:#FB923C;border:1px solid rgba(251,146,60,.22);border-radius:6px;padding:.15rem .5rem;font-size:.82rem;font-weight:700">DOCX AI端口</span>
       </div>
     </div>
 
     <!-- Download template button -->
     <div style="margin-top:.75rem;display:flex;justify-content:flex-end;">
-      <button onclick="downloadQuestionTemplate()" style="display:inline-flex;align-items:center;gap:.4rem;font-size:.82rem;padding:.38rem .9rem;border-radius:8px;cursor:pointer;border:1px solid var(--accent-border);background:rgba(123,111,224,.15);color:var(--accent);font-weight:600;transition:background .15s;" onmouseover="this.style.background='rgba(123,111,224,.28)'" onmouseout="this.style.background='rgba(123,111,224,.15)'">
+      <button onclick="downloadQuestionTemplate()" style="display:inline-flex;align-items:center;gap:.4rem;font-size:.98rem;padding:.38rem .9rem;border-radius:8px;cursor:pointer;border:1px solid var(--accent-border);background:rgba(123,111,224,.15);color:var(--accent);font-weight:600;transition:background .15s;" onmouseover="this.style.background='rgba(123,111,224,.28)'" onmouseout="this.style.background='rgba(123,111,224,.15)'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         下載題目匯入範本.xlsx
       </button>
@@ -1599,35 +1614,35 @@ function datasetsHTML() {
     <!-- Format guide -->
     <div style="margin-top:.6rem;padding:.85rem 1rem;border-radius:10px;background:rgba(123,111,224,.07);border:1px solid var(--accent-border);display:flex;gap:.65rem;align-items:flex-start;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <div style="font-size:.78rem;color:var(--accent);line-height:1.6;">
+      <div style="font-size:.94rem;color:var(--accent);line-height:1.6;">
         <strong>CSV / XLSX 欄位：</strong>
-        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">exam</code>（分類）·
-        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">question</code>·
-        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">option_a ~ option_f</code>·
-        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">answer</code>（A~E）·
-        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">explanation</code>
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.88rem;">exam</code>（分類）·
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.88rem;">question</code>·
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.88rem;">option_a ~ option_f</code>·
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.88rem;">answer</code>（A~E）·
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.88rem;">explanation</code>
       </div>
     </div>
 
     <!-- Import toast -->
-    <div id="import-toast" style="margin-top:.85rem;${S.importMsg?'':'display:none;'}padding:.75rem 1rem;border-radius:10px;background:${S.importMsg&&S.importMsg.startsWith('✅')?'rgba(74,222,128,.07)':'rgba(248,113,113,.07)'};border:1px solid ${S.importMsg&&S.importMsg.startsWith('✅')?'rgba(74,222,128,.25)':'rgba(248,113,113,.25)'};font-size:.82rem;color:${S.importMsg&&S.importMsg.startsWith('✅')?'#4ADE80':'#F87171'};">${S.importMsg||''}</div>
+    <div id="import-toast" style="margin-top:.85rem;${S.importMsg?'':'display:none;'}padding:.75rem 1rem;border-radius:10px;background:${S.importMsg&&S.importMsg.startsWith('✅')?'rgba(74,222,128,.07)':'rgba(248,113,113,.07)'};border:1px solid ${S.importMsg&&S.importMsg.startsWith('✅')?'rgba(74,222,128,.25)':'rgba(248,113,113,.25)'};font-size:.98rem;color:${S.importMsg&&S.importMsg.startsWith('✅')?'#4ADE80':'#F87171'};">${S.importMsg||''}</div>
 
     <!-- File List -->
     ${S.files.length > 0 ? `
     <div style="margin-top:2rem;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem;">
-        <p style="font-size:.78rem;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;">
+        <p style="font-size:.94rem;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;">
           已上傳檔案 <span style="color:var(--accent)">${S.files.length}</span>
         </p>
         <div style="display:flex;gap:.3rem;">
-          <button onclick="setFileSort(_fileSortOrder==='date-desc'?'date-asc':'date-desc')" style="display:inline-flex;align-items:center;gap:.25rem;font-size:.68rem;padding:.2rem .55rem;border-radius:6px;cursor:pointer;border:1px solid ${_fileSortOrder.startsWith('date')?'var(--accent-border)':'var(--border)'};background:${_fileSortOrder.startsWith('date')?'rgba(123,111,224,.12)':'transparent'};color:${_fileSortOrder.startsWith('date')?'var(--accent)':'var(--text-3)'};font-weight:600;">日期${_fileSortOrder==='date-desc'?' ↓':_fileSortOrder==='date-asc'?' ↑':''}</button>
-          <button onclick="setFileSort(_fileSortOrder==='name-asc'?'name-desc':'name-asc')" style="display:inline-flex;align-items:center;gap:.25rem;font-size:.68rem;padding:.2rem .55rem;border-radius:6px;cursor:pointer;border:1px solid ${_fileSortOrder.startsWith('name')?'var(--accent-border)':'var(--border)'};background:${_fileSortOrder.startsWith('name')?'rgba(123,111,224,.12)':'transparent'};color:${_fileSortOrder.startsWith('name')?'var(--accent)':'var(--text-3)'};font-weight:600;">名稱${_fileSortOrder==='name-asc'?' ↑':_fileSortOrder==='name-desc'?' ↓':''}</button>
+          <button onclick="setFileSort(_fileSortOrder==='date-desc'?'date-asc':'date-desc')" style="display:inline-flex;align-items:center;gap:.25rem;font-size:.82rem;padding:.2rem .55rem;border-radius:6px;cursor:pointer;border:1px solid ${_fileSortOrder.startsWith('date')?'var(--accent-border)':'var(--border)'};background:${_fileSortOrder.startsWith('date')?'rgba(123,111,224,.12)':'transparent'};color:${_fileSortOrder.startsWith('date')?'var(--accent)':'var(--text-3)'};font-weight:600;">日期${_fileSortOrder==='date-desc'?' ↓':_fileSortOrder==='date-asc'?' ↑':''}</button>
+          <button onclick="setFileSort(_fileSortOrder==='name-asc'?'name-desc':'name-asc')" style="display:inline-flex;align-items:center;gap:.25rem;font-size:.82rem;padding:.2rem .55rem;border-radius:6px;cursor:pointer;border:1px solid ${_fileSortOrder.startsWith('name')?'var(--accent-border)':'var(--border)'};background:${_fileSortOrder.startsWith('name')?'rgba(123,111,224,.12)':'transparent'};color:${_fileSortOrder.startsWith('name')?'var(--accent)':'var(--text-3)'};font-weight:600;">名稱${_fileSortOrder==='name-asc'?' ↑':_fileSortOrder==='name-desc'?' ↓':''}</button>
         </div>
       </div>
       <div id="tag-filter-bar" style="display:${allTags.length>0?'flex':'none'};flex-wrap:wrap;gap:.38rem;margin-bottom:1rem;align-items:center;">
-        <span style="font-size:.7rem;color:var(--text-3);font-weight:600;letter-spacing:.04em;margin-right:.1rem;">篩選：</span>
-        <span onclick="setTagFilter(null)" style="background:${!S.tagFilter?'var(--accent)':'rgba(255,255,255,.06)'};color:${!S.tagFilter?'#fff':'var(--text-2)'};border:1px solid ${!S.tagFilter?'var(--accent)':'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">全部</span>
-        ${allTags.map(tag => { const tc=tagColor(tag); const active=S.tagFilter===tag; return `<span data-tag="${tag.replace(/"/g,'&quot;')}" onclick="setTagFilter(this.dataset.tag)" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`; }).join('')}
+        <span style="font-size:.84rem;color:var(--text-3);font-weight:600;letter-spacing:.04em;margin-right:.1rem;">篩選：</span>
+        <span onclick="setTagFilter(null)" style="background:${!S.tagFilter?'var(--accent)':'rgba(255,255,255,.06)'};color:${!S.tagFilter?'#fff':'var(--text-2)'};border:1px solid ${!S.tagFilter?'var(--accent)':'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.84rem;font-weight:600;cursor:pointer;transition:all .15s;">全部</span>
+        ${allTags.map(tag => { const tc=tagColor(tag); const active=S.tagFilter===tag; return `<span data-tag="${tag.replace(/"/g,'&quot;')}" onclick="setTagFilter(this.dataset.tag)" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.84rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`; }).join('')}
       </div>
       ${filesHTML}
       ${displayFiles.length === 0 ? `<div class="empty-state">沒有符合「${S.tagFilter}」標籤的檔案</div>` : ''}
@@ -1929,8 +1944,8 @@ function _aiGenStep0() {
   return `
   <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.1rem;">
     <div>
-      <div class="badge badge-v" style="font-size:.6rem;margin-bottom:.3rem;">AI 題目生成</div>
-      <h3 style="font-family:'Sora',sans-serif;font-size:1.05rem;font-weight:700;">✨ 選擇生成來源</h3>
+      <div class="badge badge-v" style="font-size:.72rem;margin-bottom:.3rem;">AI 題目生成</div>
+      <h3 style="font-family:'Sora',sans-serif;font-size:1.26rem;font-weight:700;">✨ 選擇生成來源</h3>
     </div>
     <button onclick="closeAIGenModal()" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
@@ -1944,9 +1959,9 @@ function _aiGenStep0() {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
       </div>
       <div style="flex:1;text-align:left;">
-        <div style="font-size:.9rem;font-weight:600;color:var(--text-1);margin-bottom:.15rem;">📚 從教材庫生成</div>
-        <div style="font-size:.76rem;color:var(--text-2);">AI 閱讀你的 Markdown 教材，直接理解並出題</div>
-        <div style="font-size:.7rem;color:var(--accent);margin-top:.2rem;">共 ${S.materials.length} 份教材</div>
+        <div style="font-size:1.08rem;font-weight:600;color:var(--text-1);margin-bottom:.15rem;">📚 從教材庫生成</div>
+        <div style="font-size:.91rem;color:var(--text-2);">AI 閱讀你的 Markdown 教材，直接理解並出題</div>
+        <div style="font-size:.84rem;color:var(--accent);margin-top:.2rem;">共 ${S.materials.length} 份教材</div>
       </div>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
@@ -1959,9 +1974,9 @@ function _aiGenStep0() {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       </div>
       <div style="flex:1;text-align:left;">
-        <div style="font-size:.9rem;font-weight:600;color:var(--text-1);margin-bottom:.15rem;">📝 從考古題延伸</div>
-        <div style="font-size:.76rem;color:var(--text-2);">根據現有題庫主題，生成全新延伸題目</div>
-        <div style="font-size:.7rem;color:var(--gold);margin-top:.2rem;">共 ${S.extraQs.length} 題</div>
+        <div style="font-size:1.08rem;font-weight:600;color:var(--text-1);margin-bottom:.15rem;">📝 從考古題延伸</div>
+        <div style="font-size:.91rem;color:var(--text-2);">根據現有題庫主題，生成全新延伸題目</div>
+        <div style="font-size:.84rem;color:var(--gold);margin-top:.2rem;">共 ${S.extraQs.length} 題</div>
       </div>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
@@ -1972,13 +1987,13 @@ function _aiGenStep0() {
     <div style="display:flex;align-items:center;justify-content:space-between;gap:.6rem;">
       <div style="display:flex;align-items:center;gap:.5rem;">
         <div id="aiGenProxyDot" style="width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;"></div>
-        <span style="font-size:.72rem;color:var(--text-3);" id="aiGenProxyLabel">檢查 Proxy 狀態中…</span>
+        <span style="font-size:.86rem;color:var(--text-3);" id="aiGenProxyLabel">檢查 Proxy 狀態中…</span>
       </div>
-      <button id="aiGenConnBtn" onclick="aiGenTestConn()" style="font-size:.72rem;padding:.28rem .65rem;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-2);cursor:pointer;transition:all .2s;">重新測試</button>
+      <button id="aiGenConnBtn" onclick="aiGenTestConn()" style="font-size:.86rem;padding:.28rem .65rem;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-2);cursor:pointer;transition:all .2s;">重新測試</button>
     </div>
-    <p style="font-size:.67rem;color:var(--text-3);margin-top:.45rem;line-height:1.6;">
+    <p style="font-size:.8rem;color:var(--text-3);margin-top:.45rem;line-height:1.6;">
       若顯示離線，請在終端機執行：<br>
-      <code style="background:rgba(255,255,255,.07);padding:.15rem .4rem;border-radius:4px;font-size:.64rem;font-family:'JetBrains Mono','Courier New',monospace;">cd ~/NeuroLearn &amp;&amp; bash setup_proxy.sh</code>
+      <code style="background:rgba(255,255,255,.07);padding:.15rem .4rem;border-radius:4px;font-size:.77rem;font-family:'JetBrains Mono','Courier New',monospace;">cd ~/NeuroLearn &amp;&amp; bash setup_proxy.sh</code>
     </p>
   </div>`;
 }
@@ -2002,8 +2017,8 @@ function _aiGenStep1() {
           <input type="checkbox" ${on?'checked':''} style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;"
             onchange="if(this.checked)_aiGen.selMats.add('${safeId}');else _aiGen.selMats.delete('${safeId}');_aiGenRender()">
           <div style="flex:1;min-width:0;">
-            <div style="font-size:.84rem;font-weight:600;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.title}</div>
-            <div style="font-size:.7rem;color:var(--text-3);">${(m.sections||[]).length} 章節</div>
+            <div style="font-size:1.01rem;font-weight:600;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.title}</div>
+            <div style="font-size:.84rem;color:var(--text-3);">${(m.sections||[]).length} 章節</div>
           </div>
         </label>`;
       }).join('');
@@ -2024,8 +2039,8 @@ function _aiGenStep1() {
           <input type="checkbox" ${on?'checked':''} style="accent-color:var(--gold);width:14px;height:14px;flex-shrink:0;"
             onchange="if(this.checked)_aiGen.selCats.add('${safeId}');else _aiGen.selCats.delete('${safeId}');_aiGenRender()">
           <div style="flex:1;min-width:0;">
-            <div style="font-size:.84rem;font-weight:600;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}</div>
-            <div style="font-size:.7rem;color:var(--text-3);">${cnt} 題${tagStr?' · '+tagStr:''}</div>
+            <div style="font-size:1.01rem;font-weight:600;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}</div>
+            <div style="font-size:.84rem;color:var(--text-3);">${cnt} 題${tagStr?' · '+tagStr:''}</div>
           </div>
         </label>`;
       }).join('');
@@ -2047,8 +2062,8 @@ function _aiGenStep1() {
   <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;">
     <button onclick="_aiGen.step=0;_aiGenRender()" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div style="flex:1;">
-      <div class="badge badge-v" style="font-size:.6rem;margin-bottom:.2rem;">Step 2</div>
-      <h3 style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;">${isMat?'選擇教材':'選擇題目分類'}</h3>
+      <div class="badge badge-v" style="font-size:.72rem;margin-bottom:.2rem;">Step 2</div>
+      <h3 style="font-family:'Sora',sans-serif;font-size:1.2rem;font-weight:700;">${isMat?'選擇教材':'選擇題目分類'}</h3>
     </div>
     <button onclick="closeAIGenModal()" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
@@ -2056,16 +2071,16 @@ function _aiGenStep1() {
   <div style="max-height:200px;overflow-y:auto;margin-bottom:.85rem;">${itemsHTML}</div>
 
   <div style="border-top:1px solid var(--border);padding-top:.9rem;margin-bottom:1rem;">
-    <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.7rem;">生成設定</p>
+    <p style="font-size:.86rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.7rem;">生成設定</p>
     <div style="display:flex;flex-direction:column;gap:.65rem;">
       <div style="display:flex;align-items:center;gap:.75rem;">
-        <label style="font-size:.78rem;color:var(--text-2);width:56px;flex-shrink:0;">題數</label>
+        <label style="font-size:.94rem;color:var(--text-2);width:56px;flex-shrink:0;">題數</label>
         <input type="range" min="3" max="30" value="${_aiGen.count}" style="flex:1;accent-color:${accentC};"
           oninput="_aiGen.count=parseInt(this.value);this.nextElementSibling.textContent=this.value">
-        <span style="font-size:.88rem;font-weight:700;color:${accentC};width:26px;text-align:right;">${_aiGen.count}</span>
+        <span style="font-size:1.06rem;font-weight:700;color:${accentC};width:26px;text-align:right;">${_aiGen.count}</span>
       </div>
       <div style="display:flex;align-items:center;gap:.75rem;">
-        <label style="font-size:.78rem;color:var(--text-2);width:56px;flex-shrink:0;">難度</label>
+        <label style="font-size:.94rem;color:var(--text-2);width:56px;flex-shrink:0;">難度</label>
         <select onchange="_aiGen.difficulty=this.value" style="flex:1;">
           <option value="basic"  ${_aiGen.difficulty==='basic' ?'selected':''}>基礎記憶型（名詞定義）</option>
           <option value="apply"  ${_aiGen.difficulty==='apply' ?'selected':''}>應用理解型（觀念判斷）</option>
@@ -2073,14 +2088,14 @@ function _aiGenStep1() {
         </select>
       </div>
       <div style="display:flex;align-items:center;gap:.75rem;">
-        <label style="font-size:.78rem;color:var(--text-2);width:56px;flex-shrink:0;">標籤</label>
+        <label style="font-size:.94rem;color:var(--text-2);width:56px;flex-shrink:0;">標籤</label>
         <input id="aiGenTag" placeholder="${isMat?'沿用教材名稱':'沿用題目分類'}" value="${defTag}" style="flex:1;">
       </div>
     </div>
   </div>
 
   <button onclick="aiGenRun()" ${hasSel?'':'disabled'}
-    style="width:100%;padding:.7rem;border-radius:10px;font-size:.9rem;font-weight:700;border:none;
+    style="width:100%;padding:.7rem;border-radius:10px;font-size:1.08rem;font-weight:700;border:none;
            cursor:${hasSel?'pointer':'not-allowed'};transition:all .2s;
            background:${hasSel?accentC:'rgba(255,255,255,.08)'};
            color:${hasSel?'#fff':'var(--text-3)'};
@@ -2095,9 +2110,9 @@ function _aiGenStep2() {
   return `
   <div style="text-align:center;padding:2.2rem 1rem;">
     <div class="aigen-spinner"></div>
-    <h3 style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;margin-bottom:.5rem;">Claude Sonnet 4.6 思考中…</h3>
-    <p style="font-size:.82rem;color:var(--text-3);">正在生成 <strong style="color:var(--accent)">${_aiGen.count}</strong> 道題目，請稍候</p>
-    <p style="font-size:.72rem;color:var(--text-3);margin-top:.4rem;">依模型大小約需 15 秒 ~ 2 分鐘</p>
+    <h3 style="font-family:'Sora',sans-serif;font-size:1.2rem;font-weight:700;margin-bottom:.5rem;">Claude Sonnet 4.6 思考中…</h3>
+    <p style="font-size:.98rem;color:var(--text-3);">正在生成 <strong style="color:var(--accent)">${_aiGen.count}</strong> 道題目，請稍候</p>
+    <p style="font-size:.86rem;color:var(--text-3);margin-top:.4rem;">依模型大小約需 15 秒 ~ 2 分鐘</p>
   </div>`;
 }
 
@@ -2110,13 +2125,13 @@ function _aiGenStep3() {
     const ansUp = (q.answer||'').toUpperCase();
     return `<div class="aigen-q-row">
       <div style="display:flex;align-items:flex-start;gap:.5rem;">
-        <span style="font-size:.7rem;font-weight:700;color:var(--accent);flex-shrink:0;margin-top:.15rem;">Q${i+1}</span>
+        <span style="font-size:.84rem;font-weight:700;color:var(--accent);flex-shrink:0;margin-top:.15rem;">Q${i+1}</span>
         <div style="flex:1;min-width:0;">
-          <p style="font-size:.82rem;font-weight:600;color:var(--text-1);margin-bottom:.35rem;line-height:1.55;">${q.question||q.text||''}</p>
-          <div style="font-size:.75rem;line-height:1.8;">
+          <p style="font-size:.98rem;font-weight:600;color:var(--text-1);margin-bottom:.35rem;line-height:1.55;">${q.question||q.text||''}</p>
+          <div style="font-size:.9rem;line-height:1.8;">
             ${optLetters.map(k=>`<span style="color:${ansUp.includes(k.toUpperCase())?'var(--green)':'var(--text-2)'};">${k.toUpperCase()}. ${q['option_'+k]}</span><br>`).join('')}
           </div>
-          ${q.explanation?`<p style="font-size:.72rem;color:var(--text-3);margin-top:.35rem;line-height:1.5;">💡 ${q.explanation}</p>`:''}
+          ${q.explanation?`<p style="font-size:.86rem;color:var(--text-3);margin-top:.35rem;line-height:1.5;">💡 ${q.explanation}</p>`:''}
         </div>
         <button onclick="_aiGen.removedIdx.add(${i});_aiGenRender()" title="移除此題"
           style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:.1rem;flex-shrink:0;transition:color .2s;"
@@ -2130,16 +2145,16 @@ function _aiGenStep3() {
   return `
   <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.9rem;">
     <div style="flex:1;">
-      <div class="badge badge-gr" style="font-size:.6rem;margin-bottom:.2rem;">生成完成</div>
-      <h3 style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;">預覽題目</h3>
+      <div class="badge badge-gr" style="font-size:.72rem;margin-bottom:.2rem;">生成完成</div>
+      <h3 style="font-family:'Sora',sans-serif;font-size:1.2rem;font-weight:700;">預覽題目</h3>
     </div>
     <button onclick="closeAIGenModal()" style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:.15rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
-  <p style="font-size:.78rem;color:var(--text-2);margin-bottom:.75rem;">共 <strong style="color:var(--accent)">${visible.length}</strong> 題（點 ✕ 可移除不需要的）</p>
+  <p style="font-size:.94rem;color:var(--text-2);margin-bottom:.75rem;">共 <strong style="color:var(--accent)">${visible.length}</strong> 題（點 ✕ 可移除不需要的）</p>
   <div style="max-height:380px;overflow-y:auto;margin-bottom:1rem;">${rows}</div>
   <div style="display:flex;gap:.5rem;">
-    <button onclick="_aiGen.step=1;_aiGen.results=[];_aiGen.removedIdx=new Set();_aiGenRender()" class="btn btn-ghost" style="flex:1;font-size:.82rem;min-height:40px;">↩ 重新設定</button>
-    <button onclick="aiGenImport()" class="btn btn-primary" style="flex:2;font-size:.82rem;min-height:40px;" ${visible.length?'':'disabled'}>✅ 匯入 ${visible.length} 題</button>
+    <button onclick="_aiGen.step=1;_aiGen.results=[];_aiGen.removedIdx=new Set();_aiGenRender()" class="btn btn-ghost" style="flex:1;font-size:.98rem;min-height:40px;">↩ 重新設定</button>
+    <button onclick="aiGenImport()" class="btn btn-primary" style="flex:2;font-size:.98rem;min-height:40px;" ${visible.length?'':'disabled'}>✅ 匯入 ${visible.length} 題</button>
   </div>`;
 }
 
@@ -2271,7 +2286,7 @@ async function aiGenRun() {
     const el = document.getElementById('aiGenContent');
     if (el) {
       const d = document.createElement('div');
-      d.style.cssText = 'margin-top:.75rem;padding:.65rem .85rem;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);font-size:.78rem;color:var(--red);line-height:1.55;';
+      d.style.cssText = 'margin-top:.75rem;padding:.65rem .85rem;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);font-size:.94rem;color:var(--red);line-height:1.55;';
       d.textContent = '❌ ' + (err.message || '生成失敗，請確認 Proxy 正在執行（執行 setup_proxy.sh）');
       el.appendChild(d);
       setTimeout(() => d.remove(), 8000);
@@ -2556,19 +2571,19 @@ function quizMenuHTML_page() {
 
   // ── Category pills ──────────────────────────────────────────────────────
   const catPills = allCats.length === 0
-    ? `<p style="font-size:.83rem;color:var(--text-3);padding:.5rem 0;">請先至「資料集」上傳並貼標。</p>`
+    ? `<p style="font-size:1rem;color:var(--text-3);padding:.5rem 0;">請先至「資料集」上傳並貼標。</p>`
     : allCats.map(c => {
         const cnt  = allQ.filter(q => q.category === c || (q._fileTags && q._fileTags.includes(c))).length;
         const isOn = selCats.has(c);
         const tc   = tagColor(c);
         return `<button data-cat="${c}" onclick="qsToggleCat(this)"
-          style="display:inline-flex;align-items:center;gap:.38rem;padding:.42rem .8rem;border-radius:9px;font-size:.82rem;font-weight:${isOn?700:400};cursor:pointer;transition:all .18s;
+          style="display:inline-flex;align-items:center;gap:.38rem;padding:.42rem .8rem;border-radius:9px;font-size:.98rem;font-weight:${isOn?700:400};cursor:pointer;transition:all .18s;
                  background:${isOn?'rgba(200,150,62,.18)':'rgba(255,255,255,.04)'};
                  color:${isOn?'#D4A85C':'var(--text-2)'};border:none;
                  outline:1px solid ${isOn?'rgba(200,150,62,.42)':'var(--border)'};">
           ${isOn?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
           ${c}
-          <span style="font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.68rem;opacity:.6;">${cnt}</span>
+          <span style="font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.82rem;opacity:.6;">${cnt}</span>
         </button>`;
       }).join('');
 
@@ -2591,8 +2606,8 @@ function quizMenuHTML_page() {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2">${svgPath}</svg>
       </div>
       <div style="flex:1">
-        <div style="font-size:.9rem;font-weight:${selected?700:500};color:var(--text-1);margin-bottom:.15rem;">${label}</div>
-        <div style="font-size:.78rem;color:var(--text-2);">${sub}</div>
+        <div style="font-size:1.08rem;font-weight:${selected?700:500};color:var(--text-1);margin-bottom:.15rem;">${label}</div>
+        <div style="font-size:.94rem;color:var(--text-2);">${sub}</div>
       </div>
       ${selected?`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`:''}
     </div>`;
@@ -2607,17 +2622,17 @@ function quizMenuHTML_page() {
 
   const submodeRow = showSubmode ? `
     <div style="margin-top:.75rem;padding:.9rem 1rem;border-radius:11px;background:rgba(255,255,255,.02);border:1px solid var(--border);">
-      <p style="font-size:.72rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.65rem;">${subLabel}：選擇操作方式</p>
+      <p style="font-size:.86rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.65rem;">${subLabel}：選擇操作方式</p>
       <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
         <button onclick="qsSelectSubMode('browse')"
-          style="flex:1;min-width:120px;padding:.65rem .8rem;border-radius:9px;font-size:.82rem;font-weight:${setup.submode==='browse'?700:400};cursor:pointer;transition:all .18s;
+          style="flex:1;min-width:120px;padding:.65rem .8rem;border-radius:9px;font-size:.98rem;font-weight:${setup.submode==='browse'?700:400};cursor:pointer;transition:all .18s;
                  background:${setup.submode==='browse'?'rgba(123,111,224,.15)':'rgba(255,255,255,.04)'};
                  color:${setup.submode==='browse'?'var(--accent)':'var(--text-2)'};
                  border:none;outline:1px solid ${setup.submode==='browse'?'var(--accent)':'var(--border)'};">
           📖 呈現題目
         </button>
         <button onclick="qsSelectSubMode('retake')"
-          style="flex:1;min-width:120px;padding:.65rem .8rem;border-radius:9px;font-size:.82rem;font-weight:${setup.submode==='retake'?700:400};cursor:pointer;transition:all .18s;
+          style="flex:1;min-width:120px;padding:.65rem .8rem;border-radius:9px;font-size:.98rem;font-weight:${setup.submode==='retake'?700:400};cursor:pointer;transition:all .18s;
                  background:${setup.submode==='retake'?subAccentBg:'rgba(255,255,255,.04)'};
                  color:${setup.submode==='retake'?subColor:'var(--text-2)'};
                  border:none;outline:1px solid ${setup.submode==='retake'?subAccentBdr:'var(--border)'};">
@@ -2649,9 +2664,9 @@ function quizMenuHTML_page() {
     <div style="margin-bottom:2rem;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
       <div>
         <div class="badge badge-g" style="margin-bottom:.7rem">智能模擬考</div>
-        <h2 style="font-size:1.8rem;font-weight:700;letter-spacing:-.035em;">設定測驗</h2>
+        <h2 style="font-size:2.02rem;font-weight:700;letter-spacing:-.035em;">設定測驗</h2>
       </div>
-      <button onclick="openAIGenModal()" style="display:flex;align-items:center;gap:.5rem;padding:.6rem 1.1rem;border-radius:10px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .18s;background:linear-gradient(135deg,rgba(123,111,224,.18),rgba(200,150,62,.12));color:var(--accent);border:1.5px solid rgba(123,111,224,.35);white-space:nowrap;margin-top:.15rem;" onmouseover="this.style.background='linear-gradient(135deg,rgba(123,111,224,.28),rgba(200,150,62,.18))';" onmouseout="this.style.background='linear-gradient(135deg,rgba(123,111,224,.18),rgba(200,150,62,.12))';">
+      <button onclick="openAIGenModal()" style="display:flex;align-items:center;gap:.5rem;padding:.6rem 1.1rem;border-radius:10px;font-size:1.02rem;font-weight:600;cursor:pointer;transition:all .18s;background:linear-gradient(135deg,rgba(123,111,224,.18),rgba(200,150,62,.12));color:var(--accent);border:1.5px solid rgba(123,111,224,.35);white-space:nowrap;margin-top:.15rem;" onmouseover="this.style.background='linear-gradient(135deg,rgba(123,111,224,.28),rgba(200,150,62,.18))';" onmouseout="this.style.background='linear-gradient(135deg,rgba(123,111,224,.18),rgba(200,150,62,.12))';">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
         AI 生成題目
       </button>
@@ -2660,14 +2675,14 @@ function quizMenuHTML_page() {
     <!-- ① 選分類 -->
     <div class="g-card" style="padding:1.25rem;margin-bottom:1rem;cursor:default;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem;">
-        <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;">
+        <p style="font-size:.86rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;">
           ① 選擇題目分類
           ${selCats.size > 0 ? `<span style="color:var(--accent);margin-left:.4rem;">已選 ${selCats.size} 類</span>` : ''}
         </p>
         <div style="display:flex;flex-direction:row;align-items:center;gap:.3rem;">
-          <button onclick="qsSelectAllCats(true)" style="font-size:.7rem;color:var(--accent);background:transparent;border:none;cursor:pointer;padding:.1rem .3rem;">全選</button>
+          <button onclick="qsSelectAllCats(true)" style="font-size:.84rem;color:var(--accent);background:transparent;border:none;cursor:pointer;padding:.1rem .3rem;">全選</button>
           <span style="color:var(--border)">|</span>
-          <button onclick="qsSelectAllCats(false)" style="font-size:.7rem;color:var(--text-3);background:transparent;border:none;cursor:pointer;padding:.1rem .3rem;">清除</button>
+          <button onclick="qsSelectAllCats(false)" style="font-size:.84rem;color:var(--text-3);background:transparent;border:none;cursor:pointer;padding:.1rem .3rem;">清除</button>
         </div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:.45rem;">${catPills}</div>
@@ -2700,8 +2715,8 @@ function qsRenderModeSections() {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2">${svgPath}</svg>
       </div>
       <div style="flex:1">
-        <div style="font-size:.9rem;font-weight:${selected?700:500};color:var(--text-1);margin-bottom:.15rem;">${label}</div>
-        <div style="font-size:.78rem;color:var(--text-2);">${sub}</div>
+        <div style="font-size:1.08rem;font-weight:${selected?700:500};color:var(--text-1);margin-bottom:.15rem;">${label}</div>
+        <div style="font-size:.94rem;color:var(--text-2);">${sub}</div>
       </div>
       ${selected?`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`:''}
     </div>`;
@@ -2715,17 +2730,17 @@ function qsRenderModeSections() {
 
   const submodeRow = showSubmode ? `
     <div style="margin-top:.75rem;padding:.9rem 1rem;border-radius:11px;background:rgba(255,255,255,.02);border:1px solid var(--border);">
-      <p style="font-size:.72rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.65rem;">${subLabel}：選擇操作方式</p>
+      <p style="font-size:.86rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.65rem;">${subLabel}：選擇操作方式</p>
       <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
         <button onclick="qsSelectSubMode('browse')"
-          style="flex:1;min-width:120px;padding:.65rem .8rem;border-radius:9px;font-size:.82rem;font-weight:${setup.submode==='browse'?700:400};cursor:pointer;transition:all .18s;
+          style="flex:1;min-width:120px;padding:.65rem .8rem;border-radius:9px;font-size:.98rem;font-weight:${setup.submode==='browse'?700:400};cursor:pointer;transition:all .18s;
                  background:${setup.submode==='browse'?'rgba(123,111,224,.15)':'rgba(255,255,255,.04)'};
                  color:${setup.submode==='browse'?'var(--accent)':'var(--text-2)'};
                  border:none;outline:1px solid ${setup.submode==='browse'?'var(--accent)':'var(--border)'};">
           📖 呈現題目
         </button>
         <button onclick="qsSelectSubMode('retake')"
-          style="flex:1;min-width:120px;padding:.65rem .8rem;border-radius:9px;font-size:.82rem;font-weight:${setup.submode==='retake'?700:400};cursor:pointer;transition:all .18s;
+          style="flex:1;min-width:120px;padding:.65rem .8rem;border-radius:9px;font-size:.98rem;font-weight:${setup.submode==='retake'?700:400};cursor:pointer;transition:all .18s;
                  background:${setup.submode==='retake'?subAccentBg:'rgba(255,255,255,.04)'};
                  color:${setup.submode==='retake'?subColor:'var(--text-2)'};
                  border:none;outline:1px solid ${setup.submode==='retake'?subAccentBdr:'var(--border)'};">
@@ -2754,7 +2769,7 @@ function qsRenderModeSections() {
   return `
     <!-- ② 選模式 -->
     <div class="g-card" style="padding:1.25rem;margin-bottom:1rem;cursor:default;transition:opacity .2s;${!catsOk?'opacity:.38;pointer-events:none;':''}" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
-      <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.85rem;">② 選擇測驗模式</p>
+      <p style="font-size:.86rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.85rem;">② 選擇測驗模式</p>
       <div style="display:flex;flex-direction:column;gap:.5rem;">
         ${modeCard('new',    '<polygon points="5 3 19 12 5 21 5 3"/>',
           '開始新測驗', `${unusedNew} 題未考 / 共 ${poolNew} 題`,
@@ -2772,29 +2787,29 @@ function qsRenderModeSections() {
     <!-- ③ 設定題數 -->
     ${modeOk ? `
     <div class="g-card" style="padding:1.25rem;cursor:default;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'">
-      <p style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.85rem;">
+      <p style="font-size:.86rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.85rem;">
         ③ 設定題數
         <span style="color:var(--text-3);font-weight:400;margin-left:.4rem;">可用 ${maxCount} 題</span>
       </p>
       <div style="margin-bottom:1rem;">
-        <label style="font-size:.74rem;color:var(--text-3);display:block;margin-bottom:.4rem;">考卷名稱（選填）</label>
+        <label style="font-size:.89rem;color:var(--text-3);display:block;margin-bottom:.4rem;">考卷名稱（選填）</label>
         <input id="qs-name-inp" type="text" maxlength="40" placeholder="例：第一回合練習卷" value="${setup.name||''}"
           oninput="S.quizSetup.name=this.value"
-          style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:.45rem .7rem;font-size:.85rem;color:var(--text-1);outline:none;font-family:inherit;transition:border-color .15s;"
+          style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:.45rem .7rem;font-size:1.02rem;color:var(--text-1);outline:none;font-family:inherit;transition:border-color .15s;"
           onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.7rem;">
-        <label style="font-size:.74rem;color:var(--text-3);">題目數量</label>
+        <label style="font-size:.89rem;color:var(--text-3);">題目數量</label>
         <span style="display:flex;align-items:baseline;gap:.25rem;">
-          <span id="qs-count-display" class="mono" style="font-size:1.6rem;font-weight:600;color:var(--gold);">${count}</span>
-          <span style="font-size:.8rem;color:var(--text-3);">${setup.mode === 'new' ? '/ '+maxCount+' 未考'+(poolAll > maxCount ? ' (共 '+poolAll+' 題，已用 '+(poolAll-maxCount)+' 題)' : '') : '/ '+maxCount+' 題可用'}</span>
+          <span id="qs-count-display" class="mono" style="font-size:1.79rem;font-weight:600;color:var(--gold);">${count}</span>
+          <span style="font-size:.96rem;color:var(--text-3);">${setup.mode === 'new' ? '/ '+maxCount+' 未考'+(poolAll > maxCount ? ' (共 '+poolAll+' 題，已用 '+(poolAll-maxCount)+' 題)' : '') : '/ '+maxCount+' 題可用'}</span>
         </span>
       </div>
       <input type="range" min="1" max="${Math.max(maxCount,1)}" value="${count}" step="1"
         oninput="S.quizSetup.count=parseInt(this.value);const d=document.getElementById('qs-count-display');if(d)d.textContent=this.value;"
         style="width:100%;accent-color:var(--gold);cursor:pointer;margin-bottom:1rem;">
       <button onclick="launchQuiz()" ${!maxCount?'disabled':''} class="btn btn-primary"
-        style="width:100%;padding:.8rem;font-size:.97rem;font-weight:700;${!maxCount?'opacity:.4;cursor:not-allowed;':''}">
+        style="width:100%;padding:.8rem;font-size:1.16rem;font-weight:700;${!maxCount?'opacity:.4;cursor:not-allowed;':''}">
         ${launchIcon} ${launchWord}
       </button>
     </div>` : ''}`;
@@ -3038,16 +3053,16 @@ function quizActiveHTML() {
           ans.confirmed && correctSet.has(i) ? '#4ADE80'
           : (!ans.confirmed && selSet.has(i)) ? 'var(--accent)'
           : 'rgba(255,255,255,.25)'
-        };display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;flex-shrink:0;
+        };display:inline-flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;
           background:${!ans.confirmed && selSet.has(i) ? 'rgba(123,111,224,.2)' : 'transparent'};">${
           selSet.has(i) || (ans.confirmed && correctSet.has(i)) ? '✓' : ''
         }</span>`
-      : `<span style="width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.07);display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0;">${LT[i]}</span>`;
+      : `<span style="width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.07);display:inline-flex;align-items:center;justify-content:center;font-size:.86rem;font-weight:700;flex-shrink:0;">${LT[i]}</span>`;
 
     return `
     <button class="${cls}" style="${style}" onclick="${handler}">
       ${badge}
-      <span style="line-height:1.6;font-size:.92rem;min-width:0;overflow-wrap:break-word;word-break:break-word;">${LT[i]}. ${opt}</span>
+      <span style="line-height:1.6;font-size:1.1rem;min-width:0;overflow-wrap:break-word;word-break:break-word;">${LT[i]}. ${opt}</span>
     </button>`;
   }).join('');
 
@@ -3055,19 +3070,19 @@ function quizActiveHTML() {
   const src = questionSource(q);
   const explHTML = `
   <div id="expl-panel" style="margin-top:1.1rem;padding:.9rem 1rem;border-radius:12px;background:rgba(123,111,224,.07);border:1px solid var(--accent-border);display:${ans.confirmed?'block':'none'};">
-    <p style="font-size:.68rem;font-weight:700;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.4rem;">💡 詳細解析</p>
-    <p style="font-size:.85rem;line-height:1.72;color:var(--text-2);overflow-wrap:break-word;word-break:break-word;">${q.explanation}</p>
-    ${src?`<p style="margin-top:.5rem;font-size:.68rem;color:var(--text-3);border-top:1px solid rgba(255,255,255,.06);padding-top:.4rem;overflow-wrap:break-word;word-break:break-word;">📄 出處：${src}</p>`:''}
+    <p style="font-size:.82rem;font-weight:700;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.4rem;">💡 詳細解析</p>
+    <p style="font-size:1.02rem;line-height:1.72;color:var(--text-2);overflow-wrap:break-word;word-break:break-word;">${q.explanation}</p>
+    ${src?`<p style="margin-top:.5rem;font-size:.82rem;color:var(--text-3);border-top:1px solid rgba(255,255,255,.06);padding-top:.4rem;overflow-wrap:break-word;word-break:break-word;">📄 出處：${src}</p>`:''}
   </div>`;
 
   const hasPrev = S.currentQ > 0;
-  const prevBtn = hasPrev ? `<button class="btn btn-ghost" onclick="prevQuestion()" style="touch-action:manipulation;min-height:44px;padding:.6rem 1rem;font-size:.88rem;">← 上一題</button>` : '';
-  const editBtn = ans.confirmed ? `<button class="btn btn-ghost" onclick="unconfirmAns()" style="touch-action:manipulation;min-height:44px;padding:.6rem 1rem;font-size:.88rem;">✏️ 修改</button>` : '';
+  const prevBtn = hasPrev ? `<button class="btn btn-ghost" onclick="prevQuestion()" style="touch-action:manipulation;min-height:44px;padding:.6rem 1rem;font-size:1.06rem;">← 上一題</button>` : '';
+  const editBtn = ans.confirmed ? `<button class="btn btn-ghost" onclick="unconfirmAns()" style="touch-action:manipulation;min-height:44px;padding:.6rem 1rem;font-size:1.06rem;">✏️ 修改</button>` : '';
 
   const confirmDisabled = q.isMulti ? (ans.selected.length === 0 ? 'disabled' : '') : (ans.selected === null ? 'disabled' : '');
   const actionBtn = ans.confirmed
-    ? `<div style="display:flex;gap:.5rem;flex-wrap:wrap;">${prevBtn}${editBtn}<button class="btn btn-primary" onclick="nextQuestion()" style="touch-action:manipulation;flex:1;min-height:44px;padding:.6rem 1.5rem;font-size:.9rem;">${isLast?'完成測驗 →':'下一題 →'}</button></div>`
-    : `<div style="display:flex;gap:.5rem;align-items:center;">${prevBtn}<button id="confirm-btn" class="btn btn-primary" onclick="confirmAns()" style="touch-action:manipulation;min-height:44px;padding:.6rem 1.5rem;font-size:.9rem;" ${confirmDisabled}>確認答案</button></div>`;
+    ? `<div style="display:flex;gap:.5rem;flex-wrap:wrap;">${prevBtn}${editBtn}<button class="btn btn-primary" onclick="nextQuestion()" style="touch-action:manipulation;flex:1;min-height:44px;padding:.6rem 1.5rem;font-size:1.08rem;">${isLast?'完成測驗 →':'下一題 →'}</button></div>`
+    : `<div style="display:flex;gap:.5rem;align-items:center;">${prevBtn}<button id="confirm-btn" class="btn btn-primary" onclick="confirmAns()" style="touch-action:manipulation;min-height:44px;padding:.6rem 1.5rem;font-size:1.08rem;" ${confirmDisabled}>確認答案</button></div>`;
 
   return `
   <div class="page" style="max-width:660px;margin:0 auto;padding:clamp(.75rem,3vw,2rem) clamp(.75rem,4vw,1.5rem);">
@@ -3075,11 +3090,11 @@ function quizActiveHTML() {
     <!-- Progress -->
     <div style="margin-bottom:1.5rem;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem;">
-        <button class="btn btn-ghost" onclick="navigate('quiz')" style="padding:.35rem .75rem;font-size:.78rem;min-height:40px;">← 返回</button>
-        <span class="mono" style="font-size:.82rem;color:var(--text-2);">
+        <button class="btn btn-ghost" onclick="navigate('quiz')" style="padding:.35rem .75rem;font-size:.94rem;min-height:40px;">← 返回</button>
+        <span class="mono" style="font-size:.98rem;color:var(--text-2);">
           <span style="color:var(--text-1);font-weight:600;">${S.currentQ+1}</span> / ${S.activeQs.length}
         </span>
-        <span style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:7px;padding:.18rem .5rem;font-size:.72rem;color:var(--text-2);">${q.category}</span>
+        <span style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:7px;padding:.18rem .5rem;font-size:.86rem;color:var(--text-2);">${q.category}</span>
       </div>
       <div class="pb-bg"><div class="pb-fill" style="width:${pct}%"></div></div>
     </div>
@@ -3091,7 +3106,7 @@ function quizActiveHTML() {
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem;margin-bottom:1.1rem;">
         <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
           <span class="badge badge-n">Q.${S.currentQ+1}</span>
-          ${q.isMulti ? '<span class="badge" style="background:rgba(123,111,224,.15);color:var(--accent);border:1px solid var(--accent-border);font-size:.6rem;letter-spacing:.04em;">多選題</span>' : ''}
+          ${q.isMulti ? '<span class="badge" style="background:rgba(123,111,224,.15);color:var(--accent);border:1px solid var(--accent-border);font-size:.72rem;letter-spacing:.04em;">多選題</span>' : ''}
         </div>
         <button id="bk-btn" class="bk-btn ${bk?'on':''}" onclick="toggleBk('${q.id}')" title="${bk?'取消標記':'標記此題'}" style="min-width:36px;min-height:36px;touch-action:manipulation;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="${bk?'currentColor':'none'}" stroke="currentColor" stroke-width="2">
@@ -3100,9 +3115,9 @@ function quizActiveHTML() {
         </button>
       </div>
 
-      ${q.isMulti ? '<p style="font-size:.75rem;color:var(--accent);margin-bottom:.75rem;font-weight:600;">⬜ 可選多個答案，全選完再確認</p>' : ''}
+      ${q.isMulti ? '<p style="font-size:.9rem;color:var(--accent);margin-bottom:.75rem;font-weight:600;">⬜ 可選多個答案，全選完再確認</p>' : ''}
 
-      <p style="font-size:clamp(.9rem,2.5vw,1rem);line-height:1.78;font-weight:400;margin-bottom:1.2rem;word-break:break-word;">${q.text}</p>
+      <p style="font-size:clamp(1.08rem,3vw,1.2rem);line-height:1.8;font-weight:400;margin-bottom:1.2rem;word-break:break-word;">${q.text}</p>
 
       <div style="display:flex;flex-direction:column;gap:.45rem;">
         ${optHTML}
@@ -3206,7 +3221,7 @@ function confirmAns() {
   const actionDiv = document.getElementById('action-btn');
   if (actionDiv) {
     const isLast = S.currentQ === S.activeQs.length - 1;
-    actionDiv.innerHTML = `<button class="btn btn-primary" onclick="nextQuestion()" style="min-height:44px;padding:.6rem 1.5rem;font-size:.9rem;">${isLast ? '完成測驗 →' : '下一題 →'}</button>`;
+    actionDiv.innerHTML = `<button class="btn btn-primary" onclick="nextQuestion()" style="min-height:44px;padding:.6rem 1.5rem;font-size:1.08rem;">${isLast ? '完成測驗 →' : '下一題 →'}</button>`;
   }
 }
 
@@ -3328,10 +3343,10 @@ function quizResultHTML() {
     return `
     <div class="r-item ${ok?'ok':'bad'}">
       <div style="display:flex;align-items:flex-start;gap:.75rem;">
-        <span style="font-size:1rem;flex-shrink:0;margin-top:1px;">${ok?'✅':'❌'}</span>
+        <span style="font-size:1.2rem;flex-shrink:0;margin-top:1px;">${ok?'✅':'❌'}</span>
         <div style="flex:1;min-width:0;">
-          <p style="font-size:.86rem;line-height:1.62;color:var(--text-1);">${q.text}</p>
-          ${!ok?`<p style="margin-top:.35rem;font-size:.79rem;color:var(--green);">✓ 正確答案：${correctAnswerLabel(q)}</p>`:''}
+          <p style="font-size:1.03rem;line-height:1.62;color:var(--text-1);">${q.text}</p>
+          ${!ok?`<p style="margin-top:.35rem;font-size:.95rem;color:var(--green);">✓ 正確答案：${correctAnswerLabel(q)}</p>`:''}
         </div>
         ${bk?`<span title="已標記" style="color:var(--gold);flex-shrink:0;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
@@ -3345,40 +3360,40 @@ function quizResultHTML() {
 
   return `
   <div class="page" style="max-width:640px;margin:0 auto;padding:3rem 1.5rem;">
-    ${poolReset ? `<div style="margin-bottom:1.2rem;padding:.75rem 1rem;border-radius:10px;background:rgba(123,111,224,.09);border:1px solid var(--accent-border);font-size:.82rem;color:var(--accent);">
+    ${poolReset ? `<div style="margin-bottom:1.2rem;padding:.75rem 1rem;border-radius:10px;background:rgba(123,111,224,.09);border:1px solid var(--accent-border);font-size:.98rem;color:var(--accent);">
       ♻️ 此分類全部題目已出完一輪，已自動重置，重新從頭出題。
     </div>` : ''}
 
     <!-- Score -->
     <div style="background:rgba(20,20,32,.8);border:1px solid var(--border);border-radius:22px;padding:2.25rem;text-align:center;margin-bottom:1.85rem;">
-      <div class="mono" style="font-size:3.8rem;font-weight:500;color:${color};margin-bottom:.35rem;line-height:1;">
-        ${score}<span style="font-size:1.8rem;color:var(--text-3)">/${S.activeQs.length}</span>
+      <div class="mono" style="font-size:4.03rem;font-weight:500;color:${color};margin-bottom:.35rem;line-height:1;">
+        ${score}<span style="font-size:2.02rem;color:var(--text-3)">/${S.activeQs.length}</span>
       </div>
-      <div style="font-size:1rem;font-weight:600;color:${color};margin-bottom:.25rem;">${msg}</div>
-      <div style="color:var(--text-2);font-size:.84rem;">答對率 ${pct}%</div>
+      <div style="font-size:1.2rem;font-weight:600;color:${color};margin-bottom:.25rem;">${msg}</div>
+      <div style="color:var(--text-2);font-size:1.01rem;">答對率 ${pct}%</div>
 
       <div style="display:flex;justify-content:center;gap:2.5rem;margin-top:1.4rem;padding-top:1.4rem;border-top:1px solid var(--border);">
         <div>
-          <div class="mono" style="font-size:1.5rem;font-weight:600;color:#4ADE80;">${score}</div>
-          <div style="font-size:.72rem;color:var(--text-3);margin-top:.15rem;">答對</div>
+          <div class="mono" style="font-size:1.68rem;font-weight:600;color:#4ADE80;">${score}</div>
+          <div style="font-size:.86rem;color:var(--text-3);margin-top:.15rem;">答對</div>
         </div>
         <div>
-          <div class="mono" style="font-size:1.5rem;font-weight:600;color:#F87171;">${S.activeQs.length-score}</div>
-          <div style="font-size:.72rem;color:var(--text-3);margin-top:.15rem;">答錯</div>
+          <div class="mono" style="font-size:1.68rem;font-weight:600;color:#F87171;">${S.activeQs.length-score}</div>
+          <div style="font-size:.86rem;color:var(--text-3);margin-top:.15rem;">答錯</div>
         </div>
         <div>
-          <div class="mono" style="font-size:1.5rem;font-weight:600;color:var(--gold);">${S.bookmarks.size}</div>
-          <div style="font-size:.72rem;color:var(--text-3);margin-top:.15rem;">已標記</div>
+          <div class="mono" style="font-size:1.68rem;font-weight:600;color:var(--gold);">${S.bookmarks.size}</div>
+          <div style="font-size:.86rem;color:var(--text-3);margin-top:.15rem;">已標記</div>
         </div>
         <div>
-          <div class="mono" style="font-size:1.5rem;font-weight:600;color:#F87171;">${S.activeQs.filter((q,i)=>!isCorrectAnswer(q,S.answers[i].selected)).length}</div>
-          <div style="font-size:.72rem;color:var(--text-3);margin-top:.15rem;">錯誤</div>
+          <div class="mono" style="font-size:1.68rem;font-weight:600;color:#F87171;">${S.activeQs.filter((q,i)=>!isCorrectAnswer(q,S.answers[i].selected)).length}</div>
+          <div style="font-size:.86rem;color:var(--text-3);margin-top:.15rem;">錯誤</div>
         </div>
       </div>
     </div>
 
     <!-- Detail -->
-    <p style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.85rem;">答題明細</p>
+    <p style="font-size:.84rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.85rem;">答題明細</p>
     <div style="display:flex;flex-direction:column;gap:.55rem;margin-bottom:2rem;">${items}</div>
 
     <!-- Actions -->
@@ -3407,7 +3422,7 @@ function quizReviewHTML() {
     const borderColor = hasAns ? (ok ? 'rgba(74,222,128,.2)' : 'rgba(248,113,113,.2)') : 'var(--border)';
 
     const optRows = q.options.map((opt,oi) => `
-    <div style="padding:.65rem .9rem;border-radius:9px;font-size:.85rem;display:flex;align-items:center;gap:.5rem;
+    <div style="padding:.65rem .9rem;border-radius:9px;font-size:1.02rem;display:flex;align-items:center;gap:.5rem;
       background:${correctSet(q).has(oi)?'rgba(74,222,128,.07)':'rgba(255,255,255,.02)'};
       border:1px solid ${correctSet(q).has(oi)?'rgba(74,222,128,.3)':'var(--border)'};
       color:${correctSet(q).has(oi)?'#4ADE80':'var(--text-2)'};">
@@ -3422,10 +3437,10 @@ function quizReviewHTML() {
       <div class="rv-hdr" onclick="toggleRv(${idx})">
         <div style="display:flex;align-items:center;gap:.65rem;flex:1;min-width:0;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="#C8963E" style="flex-shrink:0;"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
-          <span style="font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${q.text.slice(0,58)}${q.text.length>58?'…':''}</span>
+          <span style="font-size:1.03rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${q.text.slice(0,58)}${q.text.length>58?'…':''}</span>
         </div>
         <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;margin-left:.75rem;">
-          <span style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:.15rem .45rem;font-size:.7rem;color:var(--text-2);">${q.category}</span>
+          <span style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:.15rem .45rem;font-size:.84rem;color:var(--text-2);">${q.category}</span>
           <svg id="ch-${idx}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" style="transition:transform .2s;flex-shrink:0;">
             <path d="m6 9 6 6 6-6"/>
           </svg>
@@ -3433,11 +3448,11 @@ function quizReviewHTML() {
       </div>
       <div class="rv-body" id="rv-${idx}">
         <div style="padding-top:1rem;">
-          <p style="font-size:.94rem;line-height:1.75;margin-bottom:1rem;">${q.text}</p>
+          <p style="font-size:1.13rem;line-height:1.75;margin-bottom:1rem;">${q.text}</p>
           <div style="display:flex;flex-direction:column;gap:.45rem;margin-bottom:.95rem;">${optRows}</div>
           <div style="padding:.9rem 1rem;border-radius:10px;background:var(--accent-dim);border:1px solid var(--accent-border);">
-            <p style="font-size:.68rem;font-weight:700;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.4rem;">💡 解析</p>
-            <p style="font-size:.84rem;line-height:1.68;color:var(--text-2);overflow-wrap:break-word;word-break:break-word;">${q.explanation}</p>
+            <p style="font-size:.82rem;font-weight:700;color:var(--accent);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.4rem;">💡 解析</p>
+            <p style="font-size:1.01rem;line-height:1.68;color:var(--text-2);overflow-wrap:break-word;word-break:break-word;">${q.explanation}</p>
           </div>
         </div>
       </div>
@@ -3449,9 +3464,9 @@ function quizReviewHTML() {
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;">
       <div>
         <div class="badge badge-g" style="margin-bottom:.5rem;">複習模式</div>
-        <h2 style="font-size:1.7rem;font-weight:700;letter-spacing:-.03em;">複習題目 <span style="color:var(--gold)">${bkQs.length}</span></h2>
+        <h2 style="font-size:1.9rem;font-weight:700;letter-spacing:-.03em;">複習題目 <span style="color:var(--gold)">${bkQs.length}</span></h2>
       </div>
-      <button class="btn btn-ghost" onclick="S.history.length?(S.quizMode='result',render()):navigate('quiz')" style="font-size:.83rem;">← 返回</button>
+      <button class="btn btn-ghost" onclick="S.history.length?(S.quizMode='result',render()):navigate('quiz')" style="font-size:1rem;">← 返回</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:.7rem;">${cards}</div>
   </div>`;
@@ -3488,9 +3503,9 @@ function quizBrowseHTML() {
       return `<div style="padding:.55rem .85rem;border-radius:8px;margin-bottom:.35rem;
         background:${isAns?'rgba(74,222,128,.07)':'rgba(255,255,255,.02)'};
         border:1px solid ${isAns?'rgba(74,222,128,.3)':'var(--border)'};
-        color:${isAns?'#4ADE80':'var(--text-2)'};font-size:.85rem;line-height:1.5;">
+        color:${isAns?'#4ADE80':'var(--text-2)'};font-size:1.02rem;line-height:1.5;">
         <span style="font-weight:700;margin-right:.35rem;">${ANS[oi]}.</span>${opt}
-        ${isAns?'<span style="margin-left:.3rem;font-size:.72rem;">✓</span>':''}
+        ${isAns?'<span style="margin-left:.3rem;font-size:.86rem;">✓</span>':''}
       </div>`;
     }).join('');
 
@@ -3500,8 +3515,8 @@ function quizBrowseHTML() {
       <div class="rv-hdr" onclick="toggleRv(${qi})" style="padding:.9rem 1.1rem;">
         <div style="display:flex;align-items:center;gap:.6rem;min-width:0;">
           <span class="badge badge-n" style="flex-shrink:0;">Q.${qi+1}</span>
-          ${q.isMulti?'<span class="badge" style="background:rgba(123,111,224,.15);color:var(--accent);border:1px solid var(--accent-border);font-size:.58rem;flex-shrink:0;">多選</span>':''}
-          <span style="font-size:.87rem;color:var(--text-1);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${q.text}</span>
+          ${q.isMulti?'<span class="badge" style="background:rgba(123,111,224,.15);color:var(--accent);border:1px solid var(--accent-border);font-size:.7rem;flex-shrink:0;">多選</span>':''}
+          <span style="font-size:1.04rem;color:var(--text-1);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${q.text}</span>
         </div>
         <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;margin-left:.5rem;">
           <button class="bk-btn ${bk?'on':''}" onclick="event.stopPropagation();toggleBk('${q.id}')" style="width:28px;height:28px;">
@@ -3517,19 +3532,19 @@ function quizBrowseHTML() {
       </div>
       <!-- Body — hidden by default, toggled by toggleRv() -->
       <div class="rv-body" id="rv-${qi}">
-        <p style="font-size:.9rem;line-height:1.75;margin-bottom:.85rem;color:var(--text-1);">${q.text}</p>
-        ${q.isMulti?'<p style="font-size:.72rem;color:var(--accent);margin-bottom:.6rem;">多選題 — 可選多個正確答案</p>':''}
+        <p style="font-size:1.08rem;line-height:1.75;margin-bottom:.85rem;color:var(--text-1);">${q.text}</p>
+        ${q.isMulti?'<p style="font-size:.86rem;color:var(--accent);margin-bottom:.6rem;">多選題 — 可選多個正確答案</p>':''}
         ${opts}
-        ${q.explanation?`<p style="margin-top:.75rem;font-size:.8rem;color:var(--text-3);border-top:1px solid var(--border);padding-top:.65rem;line-height:1.6;overflow-wrap:break-word;word-break:break-word;">${q.explanation}</p>`:''}
-      ${questionSource(q)?`<p style="margin-top:.4rem;font-size:.7rem;color:var(--text-3);overflow-wrap:break-word;word-break:break-word;">📄 出處：${questionSource(q)}</p>`:''}
+        ${q.explanation?`<p style="margin-top:.75rem;font-size:.96rem;color:var(--text-3);border-top:1px solid var(--border);padding-top:.65rem;line-height:1.6;overflow-wrap:break-word;word-break:break-word;">${q.explanation}</p>`:''}
+      ${questionSource(q)?`<p style="margin-top:.4rem;font-size:.84rem;color:var(--text-3);overflow-wrap:break-word;word-break:break-word;">📄 出處：${questionSource(q)}</p>`:''}
       </div>
     </div>`;
   }).join('');
 
   return `<div class="page" style="max-width:660px;margin:0 auto;padding:clamp(.75rem,3vw,1.5rem);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-      <button class="btn btn-ghost" onclick="goBackFromBrowse()" style="font-size:.85rem;">← 返回</button>
-      <span style="font-size:.82rem;color:var(--text-2);">${qs.length} 題・點題目展開</span>
+      <button class="btn btn-ghost" onclick="goBackFromBrowse()" style="font-size:1.02rem;">← 返回</button>
+      <span style="font-size:.98rem;color:var(--text-2);">${qs.length} 題・點題目展開</span>
     </div>
     ${cards}
   </div>`;
@@ -3608,29 +3623,29 @@ function dashHTML() {
   // ── Sync info (header top-right, matching 考古題題庫 style) ──────────
   const _dashSyncInfo = (() => {
     const tot = S.history.length;
-    if (!_currentUser) return `<span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${tot} 次測驗</span>`;
+    if (!_currentUser) return `<span style="font-size:.78rem;color:var(--text-3);white-space:nowrap;">共 ${tot} 次測驗</span>`;
     const syncBtn = `<button id="dash-sync-btn" class="btn-sync" onclick="dashSyncNow()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg><span>同步雲端</span></button>`;
     if (!_lastSyncTime) return `
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;">
-        <span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${tot} 次測驗</span>
-        <span style="display:flex;align-items:center;gap:.3rem;font-size:.65rem;color:#FBBF24;white-space:nowrap;">
+        <span style="font-size:.78rem;color:var(--text-3);white-space:nowrap;">共 ${tot} 次測驗</span>
+        <span style="display:flex;align-items:center;gap:.3rem;font-size:.78rem;color:#FBBF24;white-space:nowrap;">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>尚未同步雲端
         </span>
         ${syncBtn}
-        <div id="dash-sync-msg" style="font-size:.63rem;min-height:.8em;text-align:right;"></div>
+        <div id="dash-sync-msg" style="font-size:.76rem;min-height:.8em;text-align:right;"></div>
       </div>`;
     const d = _lastSyncTime;
     const ts = d.toLocaleDateString('zh-TW') + ' ' + d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false});
     return `
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;">
-        <span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${tot} 次測驗</span>
-        <span style="display:flex;align-items:center;gap:.3rem;font-size:.65rem;white-space:nowrap;">
+        <span style="font-size:.78rem;color:var(--text-3);white-space:nowrap;">共 ${tot} 次測驗</span>
+        <span style="display:flex;align-items:center;gap:.3rem;font-size:.78rem;white-space:nowrap;">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
           <span style="color:#4ADE80;">已同步</span>
           <span style="color:var(--text-3);">${ts}</span>
         </span>
         ${syncBtn}
-        <div id="dash-sync-msg" style="font-size:.63rem;min-height:.8em;text-align:right;"></div>
+        <div id="dash-sync-msg" style="font-size:.76rem;min-height:.8em;text-align:right;"></div>
       </div>`;
   })();
 
@@ -3649,7 +3664,7 @@ function dashHTML() {
         style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .85rem;border-radius:10px;cursor:pointer;border:none;transition:all .18s;
           background:${!dt?'var(--accent)':'rgba(255,255,255,.05)'};
           color:${!dt?'#fff':'var(--text-2)'};
-          outline:1px solid ${!dt?'var(--accent)':'var(--border)'};font-size:.8rem;font-weight:600;">
+          outline:1px solid ${!dt?'var(--accent)':'var(--border)'};font-size:.96rem;font-weight:600;">
         全部
       </button>`,
       ...fileTagStats.map(s => {
@@ -3658,22 +3673,22 @@ function dashHTML() {
         return `<button id="dash-pill-${s.tag.replace(/[^a-zA-Z0-9]/g,'_')}" data-tag="${s.tag.replace(/"/g,'&quot;')}" onclick="setDashTag(this.dataset.tag)"
           style="display:inline-flex;align-items:center;gap:.5rem;padding:.45rem .9rem;border-radius:10px;cursor:pointer;border:none;transition:all .18s;
             background:${on?tc.color:tc.bg};color:${on?'#111':tc.color};
-            outline:1px solid ${on?tc.color:tc.border};font-size:.8rem;font-weight:${on?700:500};">
+            outline:1px solid ${on?tc.color:tc.border};font-size:.96rem;font-weight:${on?700:500};">
           ${on?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><polyline points="20 6 9 17 4 12"/></svg>':''}
           ${s.tag}
-          <span style="font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.7rem;opacity:.75;">${s.qCount}題</span>
+          <span style="font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.84rem;opacity:.75;">${s.qCount}題</span>
         </button>`;
       })
     ].join('')
-    : `<p style="font-size:.84rem;color:var(--text-3);">尚未匯入題目，請至「資料集」上傳並貼標。</p>`;
+    : `<p style="font-size:1.01rem;color:var(--text-3);">尚未匯入題目，請至「資料集」上傳並貼標。</p>`;
 
   return `
   <div class="page" style="max-width:900px;margin:0 auto;padding:3rem 1.5rem;">
     <div style="margin-bottom:2rem;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.3rem;">
         <div>
-          <div class="badge badge-gr" style="margin-bottom:.4rem;font-size:.6rem;">學習儀表板</div>
-          <h2 style="font-size:1.55rem;font-weight:700;letter-spacing:-.03em;white-space:nowrap;">學習成效總覽</h2>
+          <div class="badge badge-gr" style="margin-bottom:.4rem;font-size:.72rem;">學習儀表板</div>
+          <h2 style="font-size:1.74rem;font-weight:700;letter-spacing:-.03em;white-space:nowrap;">學習成效總覽</h2>
         </div>
         ${_dashSyncInfo}
       </div>
@@ -3681,9 +3696,9 @@ function dashHTML() {
 
     <!-- Tag filter (static shell) -->
     <div style="margin-bottom:1.75rem;padding:1.2rem 1.4rem;border-radius:14px;background:rgba(20,20,32,.6);border:1px solid var(--border);">
-      <p style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.85rem;">
+      <p style="font-size:.84rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.85rem;">
         資料集來源標籤
-        <span id="dash-filter-label" style="font-size:.68rem;font-weight:400;color:var(--accent);margin-left:.6rem;">${dt?`· 篩選中：${dt}`:''}</span>
+        <span id="dash-filter-label" style="font-size:.82rem;font-weight:400;color:var(--accent);margin-left:.6rem;">${dt?`· 篩選中：${dt}`:''}</span>
       </p>
       <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;">${tagPills}</div>
     </div>
@@ -3733,8 +3748,8 @@ function dashStatsHTML() {
         const pc = p>=80?'#4ADE80':p>=60?'#FBBF24':'#F87171';
         return `<div style="margin-bottom:.95rem">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.38rem;">
-            <span style="font-size:.82rem;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;">${cat}</span>
-            <span class="mono" style="font-size:.75rem;color:var(--text-2);">${st.correct}/${st.total} <span style="color:${pc}">(${p}%)</span></span>
+            <span style="font-size:.98rem;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;">${cat}</span>
+            <span class="mono" style="font-size:.9rem;color:var(--text-2);">${st.correct}/${st.total} <span style="color:${pc}">(${p}%)</span></span>
           </div>
           <div class="pb-bg" style="height:5px;">
             <div style="height:100%;width:${p}%;background:${bc};border-radius:999px;transition:width .6s ease;"></div>
@@ -3757,11 +3772,11 @@ function dashStatsHTML() {
         const r = t>0 ? Math.round((c/t)*100) : 0;
         const rc = r>=80?'#4ADE80':r>=60?'#FBBF24':'#F87171';
         return `<div class="h-row" style="min-height:48px;">
-          <div style="font-size:.86rem;font-weight:500;">${h.name||('測驗 #'+h.id)}</div>
-          <div style="font-size:.82rem;color:var(--text-2);">${h.date}</div>
-          <div class="mono" style="font-size:.84rem;color:#4ADE80;">${c}/${t}</div>
-          <div class="mono" style="font-size:.84rem;color:${rc};font-weight:600;">${r}%</div>
-          <div style="font-size:.82rem;color:var(--gold);">${h.bk>0?`🔖 ${h.bk}`:'—'}</div>
+          <div style="font-size:1.03rem;font-weight:500;">${h.name||('測驗 #'+h.id)}</div>
+          <div style="font-size:.98rem;color:var(--text-2);">${h.date}</div>
+          <div class="mono" style="font-size:1.01rem;color:#4ADE80;">${c}/${t}</div>
+          <div class="mono" style="font-size:1.01rem;color:${rc};font-weight:600;">${r}%</div>
+          <div style="font-size:.98rem;color:var(--gold);">${h.bk>0?`🔖 ${h.bk}`:'—'}</div>
         </div>`;
       }).join('')
     : `<div class="empty-state">${dt?`「${dt}」尚無測驗紀錄。`:'尚無測驗紀錄，完成第一次測驗後將顯示於此。'}</div>`;
@@ -3771,7 +3786,7 @@ function dashStatsHTML() {
   const pageBtns = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.1rem .85rem;border-top:1px solid var(--border);margin-top:auto;">
       <button onclick="S._dashHistPage=Math.min(${totalPages-1},S._dashHistPage+1);var el=document.getElementById('dash-stats');if(el){el.innerHTML=dashStatsHTML();setTimeout(initChart,30);}" class="btn-page" ${canOlder?'':'disabled'}>← 較舊</button>
-      <span style="font-size:.75rem;color:var(--text-3);">${totalPages>1?'第 '+(safePage+1)+' / '+totalPages+' 頁 · ':''}共 ${reversed.length} 筆</span>
+      <span style="font-size:.9rem;color:var(--text-3);">${totalPages>1?'第 '+(safePage+1)+' / '+totalPages+' 頁 · ':''}共 ${reversed.length} 筆</span>
       <button onclick="S._dashHistPage=Math.max(0,S._dashHistPage-1);var el=document.getElementById('dash-stats');if(el){el.innerHTML=dashStatsHTML();setTimeout(initChart,30);}" class="btn-page" ${canNewer?'':'disabled'}>較新 →</button>
     </div>`;
 
@@ -3783,53 +3798,53 @@ function dashStatsHTML() {
   <!-- Stat Cards -->
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.9rem;margin-bottom:1.8rem;">
     <div class="s-card">
-      <p style="font-size:.68rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem;">測驗次數</p>
-      <div class="mono" style="font-size:2.3rem;font-weight:500;color:var(--accent);line-height:1.1;">${tot||'—'}</div>
-      <p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">${tot>0?'次':'尚無紀錄'}</p>
+      <p style="font-size:.82rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem;">測驗次數</p>
+      <div class="mono" style="font-size:2.44rem;font-weight:500;color:var(--accent);line-height:1.1;">${tot||'—'}</div>
+      <p style="font-size:.86rem;color:var(--text-3);margin-top:.2rem;">${tot>0?'次':'尚無紀錄'}</p>
     </div>
     <div class="s-card">
-      <p style="font-size:.68rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem;">答對率</p>
-      <div class="mono" style="font-size:2.3rem;font-weight:500;color:${emptyState?'var(--text-3)':rateColor};line-height:1.1;">${emptyState?'—':rate+'%'}</div>
-      <p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">${emptyState?'尚無紀錄':totC+'/'+totQ+' 題'}</p>
+      <p style="font-size:.82rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem;">答對率</p>
+      <div class="mono" style="font-size:2.44rem;font-weight:500;color:${emptyState?'var(--text-3)':rateColor};line-height:1.1;">${emptyState?'—':rate+'%'}</div>
+      <p style="font-size:.86rem;color:var(--text-3);margin-top:.2rem;">${emptyState?'尚無紀錄':totC+'/'+totQ+' 題'}</p>
     </div>
     <div class="s-card" style="position:relative;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
-        <p style="font-size:.68rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">累計錯誤題</p>
+        <p style="font-size:.82rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">累計錯誤題</p>
         ${dlWrong}
       </div>
-      <div class="mono" style="font-size:2.3rem;font-weight:500;color:${totW>0?'#F87171':'var(--text-3)'};line-height:1.1;">${totW||'—'}</div>
-      <p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">待加強</p>
+      <div class="mono" style="font-size:2.44rem;font-weight:500;color:${totW>0?'#F87171':'var(--text-3)'};line-height:1.1;">${totW||'—'}</div>
+      <p style="font-size:.86rem;color:var(--text-3);margin-top:.2rem;">待加強</p>
     </div>
     <div class="s-card" style="position:relative;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
-        <p style="font-size:.68rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">已標記題目</p>
+        <p style="font-size:.82rem;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">已標記題目</p>
         ${dlBk}
       </div>
-      <div class="mono" style="font-size:2.3rem;font-weight:500;color:${totBk>0?'var(--gold)':'var(--text-3)'};line-height:1.1;">${totBk||'—'}</div>
-      <p style="font-size:.72rem;color:var(--text-3);margin-top:.2rem;">待複習</p>
+      <div class="mono" style="font-size:2.44rem;font-weight:500;color:${totBk>0?'var(--gold)':'var(--text-3)'};line-height:1.1;">${totBk||'—'}</div>
+      <p style="font-size:.86rem;color:var(--text-3);margin-top:.2rem;">待複習</p>
     </div>
   </div>
 
   <!-- Charts row -->
   <div class="s-card" style="margin-bottom:1.5rem;overflow:hidden;">
-    <p style="font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:1rem;">測驗分數趨勢${dt?` · ${dt}`:''}</p>
+    <p style="font-size:.84rem;font-weight:700;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:1rem;">測驗分數趨勢${dt?` · ${dt}`:''}</p>
     ${emptyState
-      ? `<div style="height:160px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.82rem;">完成測驗後顯示趨勢圖</div>`
+      ? `<div style="height:160px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.98rem;">完成測驗後顯示趨勢圖</div>`
       : `<div style="width:100%;overflow:hidden;"><canvas id="scoreChart" style="max-width:100%;display:block;"></canvas></div>`}
   </div>
 
   <!-- History Table -->
   <div style="background:rgba(20,20,32,.7);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:16px;overflow:hidden;min-height:540px;display:flex;flex-direction:column;justify-content:space-between;">
     <div style="padding:1.1rem 1.1rem .9rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-      <p style="font-size:.7rem;font-weight:700;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">測驗歷史紀錄${dt?` · ${dt}`:''}</p>
-      ${S.history.length>0?`<button onclick="clearQuizHistory()" style="font-size:.68rem;padding:.22rem .58rem;border-radius:6px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:#F87171;cursor:pointer;font-weight:600;">清除紀錄</button>`:''}
+      <p style="font-size:.84rem;font-weight:700;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;">測驗歷史紀錄${dt?` · ${dt}`:''}</p>
+      ${S.history.length>0?`<button onclick="clearQuizHistory()" style="font-size:.82rem;padding:.22rem .58rem;border-radius:6px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:#F87171;cursor:pointer;font-weight:600;">清除紀錄</button>`:''}
     </div>
     ${filtHist.length>0?`<div class="h-row" style="background:rgba(255,255,255,.015);">
-      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">考卷名稱</div>
-      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">日期</div>
-      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">答題</div>
-      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">答對率</div>
-      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">標記</div>
+      <div style="font-size:.82rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">考卷名稱</div>
+      <div style="font-size:.82rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">日期</div>
+      <div style="font-size:.82rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">答題</div>
+      <div style="font-size:.82rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">答對率</div>
+      <div style="font-size:.82rem;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase">標記</div>
     </div>`:''}
     <div style="flex:1;">${histRows}</div>
     ${pageBtns}
@@ -3955,7 +3970,7 @@ function initChart() {
   // Grid lines + Y labels
   ctx.strokeStyle = 'rgba(255,255,255,.07)';
   ctx.fillStyle   = 'rgba(255,255,255,.28)';
-  ctx.font        = `${Math.max(8, Math.round(10 * Math.min(1, W/300)))}px monospace`;
+  ctx.font        = `${Math.max(10, Math.round(12 * Math.min(1, W/300)))}px monospace`;
   ctx.textAlign   = 'right';
   [0, 25, 50, 75, 100].forEach(pct => {
     const y = PAD.top + cH * (1 - pct / 100);
@@ -4003,7 +4018,7 @@ function initChart() {
   ctx.stroke();
 
   // Points + labels
-  const fontSize = Math.max(8, Math.round(9 * Math.min(1, W / 280)));
+  const fontSize = Math.max(10, Math.round(11 * Math.min(1, W / 280)));
   data.forEach((v, i) => {
     const col = v >= 80 ? '#4ADE80' : v >= 60 ? '#FBBF24' : '#F87171';
     // Dot
@@ -4202,7 +4217,7 @@ async function librarySyncNow() {
 }
 function deleteStudyMat(id){if(!confirm('確定刪除此教材及其所有筆記？'))return;S.materials=S.materials.filter(m=>m.id!==id);S.annotations=S.annotations.filter(a=>a.matId!==id);if(S.currentMat===id)S.currentMat=null;saveToStorage();render();}
 
-function matCardHTML(m){const nc=S.annotations.filter(a=>a.matId===m.id).length;const badge=`<span class="badge badge-gr" style="font-size:.58rem;">${m.sections.length} 段</span>`;const notesBadge=nc>0?`<span class="badge badge-v" style="font-size:.58rem;">${nc} 筆記</span>`:'';const tagChips=(m.matTags||[]).map(tag=>{const tc=tagColor(tag);return`<span style="display:inline-flex;align-items:center;gap:.22rem;background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .48rem .1rem .52rem;font-size:.68rem;font-weight:600;">${tag}<span data-mid="${m.id}" data-tag="${tag.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();removeMatTag(this.dataset.mid,this.dataset.tag)" style="cursor:pointer;opacity:.6;font-size:.75rem;line-height:1;margin-left:.05rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.6'">×</span></span>`;}).join('');const addBtn=(m.matTags||[]).length<5?`<button onclick="event.stopPropagation();toggleMatTagEdit('${m.id}')" style="background:transparent;border:1px dashed var(--border);color:var(--text-3);border-radius:20px;padding:.1rem .42rem;font-size:.67rem;cursor:pointer;display:inline-flex;align-items:center;gap:.2rem;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>貼標</button>`:'';const allUsed=[...new Set(S.materials.flatMap(x=>x.matTags||[]))];const unused=allUsed.filter(p=>!(m.matTags||[]).includes(p));const editPanel=S._editingMatTag===m.id?`<div style="margin-top:.65rem;padding:.75rem .85rem;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:10px;" onclick="event.stopPropagation()"><div style="display:flex;gap:.45rem;margin-bottom:.55rem;"><input id="matTagInp-${m.id}" type="text" placeholder="輸入標籤名稱…" maxlength="10" style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:.3rem .6rem;font-size:.78rem;color:var(--text-1);outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter'){addMatTagFromInput('${m.id}')}"><button onclick="event.stopPropagation();addMatTagFromInput('${m.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.3rem .75rem;font-size:.78rem;font-weight:600;cursor:pointer;">確認</button><button onclick="toggleMatTagEdit('${m.id}')" style="background:transparent;border:1px solid var(--border);color:var(--text-3);border-radius:8px;padding:.3rem .55rem;font-size:.78rem;cursor:pointer;">取消</button></div>${unused.length?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;"><span style="font-size:.66rem;color:var(--text-3);">已用：</span>${unused.map(p=>{const tc=tagColor(p);return`<span data-mid="${m.id}" data-tag="${p.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();addMatTag(this.dataset.mid,this.dataset.tag)" style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .5rem;font-size:.68rem;font-weight:600;cursor:pointer;">${p.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;}).join('')}</div>`:''}</div>`:'';return`<div class="g-card" id="mcard-${m.id}" style="padding:1rem 1.2rem;margin-bottom:.65rem;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'"><div style="display:flex;align-items:center;gap:1rem;"><div style="display:flex;align-items:center;gap:1rem;flex:1;min-width:0;cursor:pointer;" onclick="S.currentMat='${m.id}';navigate('reader')"><div style="width:38px;height:38px;border-radius:10px;background:var(--accent-dim);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div style="flex:1;min-width:0;"><div style="font-size:.9rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.title}</div><div style="display:flex;gap:.6rem;margin-top:.2rem;"><span style="font-size:.72rem;color:var(--text-3)">${new Date(m.uploadedAt).toLocaleDateString('zh-TW')}</span></div></div></div><div style="display:flex;align-items:center;gap:.55rem;flex-shrink:0;">${badge} ${notesBadge}<button onclick="event.stopPropagation();event.preventDefault();deleteStudyMat('${m.id}');return false;" style="background:transparent;border:none;color:var(--text-3);cursor:pointer;display:flex;align-items:center;padding:.35rem;border-radius:6px;min-width:28px;min-height:28px;justify-content:center;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-3)'" title="移除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div><div style="display:flex;flex-wrap:wrap;gap:.32rem;margin-top:.6rem;align-items:center;min-height:1.5rem;" onclick="event.stopPropagation()">${tagChips} ${addBtn}</div>${editPanel}</div>`;}
+function matCardHTML(m){const nc=S.annotations.filter(a=>a.matId===m.id).length;const badge=`<span class="badge badge-gr" style="font-size:.7rem;">${m.sections.length} 段</span>`;const notesBadge=nc>0?`<span class="badge badge-v" style="font-size:.7rem;">${nc} 筆記</span>`:'';const tagChips=(m.matTags||[]).map(tag=>{const tc=tagColor(tag);return`<span style="display:inline-flex;align-items:center;gap:.22rem;background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .48rem .1rem .52rem;font-size:.82rem;font-weight:600;">${tag}<span data-mid="${m.id}" data-tag="${tag.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();removeMatTag(this.dataset.mid,this.dataset.tag)" style="cursor:pointer;opacity:.6;font-size:.9rem;line-height:1;margin-left:.05rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.6'">×</span></span>`;}).join('');const addBtn=(m.matTags||[]).length<5?`<button onclick="event.stopPropagation();toggleMatTagEdit('${m.id}')" style="background:transparent;border:1px dashed var(--border);color:var(--text-3);border-radius:20px;padding:.1rem .42rem;font-size:.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:.2rem;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>貼標</button>`:'';const allUsed=[...new Set(S.materials.flatMap(x=>x.matTags||[]))];const unused=allUsed.filter(p=>!(m.matTags||[]).includes(p));const editPanel=S._editingMatTag===m.id?`<div style="margin-top:.65rem;padding:.75rem .85rem;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:10px;" onclick="event.stopPropagation()"><div style="display:flex;gap:.45rem;margin-bottom:.55rem;"><input id="matTagInp-${m.id}" type="text" placeholder="輸入標籤名稱…" maxlength="10" style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:.3rem .6rem;font-size:.94rem;color:var(--text-1);outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter'){addMatTagFromInput('${m.id}')}"><button onclick="event.stopPropagation();addMatTagFromInput('${m.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.3rem .75rem;font-size:.94rem;font-weight:600;cursor:pointer;">確認</button><button onclick="toggleMatTagEdit('${m.id}')" style="background:transparent;border:1px solid var(--border);color:var(--text-3);border-radius:8px;padding:.3rem .55rem;font-size:.94rem;cursor:pointer;">取消</button></div>${unused.length?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;"><span style="font-size:.79rem;color:var(--text-3);">已用：</span>${unused.map(p=>{const tc=tagColor(p);return`<span data-mid="${m.id}" data-tag="${p.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();addMatTag(this.dataset.mid,this.dataset.tag)" style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.border};border-radius:20px;padding:.1rem .5rem;font-size:.82rem;font-weight:600;cursor:pointer;">${p.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;}).join('')}</div>`:''}</div>`:'';return`<div class="g-card" id="mcard-${m.id}" style="padding:1rem 1.2rem;margin-bottom:.65rem;" onmouseenter="this.style.transform='none'" onmouseleave="this.style.transform='none'"><div style="display:flex;align-items:center;gap:1rem;"><div style="display:flex;align-items:center;gap:1rem;flex:1;min-width:0;cursor:pointer;" onclick="S.currentMat='${m.id}';navigate('reader')"><div style="width:38px;height:38px;border-radius:10px;background:var(--accent-dim);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div style="flex:1;min-width:0;"><div style="font-size:1.08rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.title}</div><div style="display:flex;gap:.6rem;margin-top:.2rem;"><span style="font-size:.86rem;color:var(--text-3)">${new Date(m.uploadedAt).toLocaleDateString('zh-TW')}</span></div></div></div><div style="display:flex;align-items:center;gap:.55rem;flex-shrink:0;">${badge} ${notesBadge}<button onclick="event.stopPropagation();event.preventDefault();deleteStudyMat('${m.id}');return false;" style="background:transparent;border:none;color:var(--text-3);cursor:pointer;display:flex;align-items:center;padding:.35rem;border-radius:6px;min-width:28px;min-height:28px;justify-content:center;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-3)'" title="移除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div><div style="display:flex;flex-wrap:wrap;gap:.32rem;margin-top:.6rem;align-items:center;min-height:1.5rem;" onclick="event.stopPropagation()">${tagChips} ${addBtn}</div>${editPanel}</div>`;}
 function refreshMatCard(mid){const el=document.getElementById('mcard-'+mid);const m=S.materials.find(x=>x.id===mid);if(!el||!m){render();return;}const tmp=document.createElement('div');tmp.innerHTML=matCardHTML(m);el.replaceWith(tmp.firstElementChild);}
 function toggleMatTagEdit(mid){S._editingMatTag=S._editingMatTag===mid?null:mid;refreshMatCard(mid);if(S._editingMatTag===mid){const inp=document.getElementById('matTagInp-'+mid);if(inp)inp.focus();}}
 function addMatTagFromInput(mid){
@@ -4252,33 +4267,33 @@ function libraryHTML() {
   const matPageBtns = totalMatPages > 1 ? `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0 .1rem;margin-top:.25rem;border-top:1px solid var(--border);">
       <button onclick="_libMatPage=Math.max(0,_libMatPage-1);render()" class="btn-page" ${canPrev?'':'disabled'}>← 上一頁</button>
-      <span style="font-size:.75rem;color:var(--text-3);">第 ${_libMatPage+1} / ${totalMatPages} 頁 · 共 ${displayMats.length} 份</span>
+      <span style="font-size:.9rem;color:var(--text-3);">第 ${_libMatPage+1} / ${totalMatPages} 頁 · 共 ${displayMats.length} 份</span>
       <button onclick="_libMatPage=Math.min(${totalMatPages-1},_libMatPage+1);render()" class="btn-page" ${canNext?'':'disabled'}>下一頁 →</button>
     </div>` : '';
   const _libSyncInfo = (() => {
-    if (!_currentUser) return `<span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>`;
+    if (!_currentUser) return `<span style="font-size:.78rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>`;
     const syncBtn = `<button id="lib-sync-btn" class="btn-sync" onclick="librarySyncNow()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg><span>同步雲端</span></button>`;
     if (!_lastSyncTime) return `
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;">
-        <span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>
-        <span style="display:flex;align-items:center;gap:.3rem;font-size:.65rem;color:#FBBF24;white-space:nowrap;">
+        <span style="font-size:.78rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>
+        <span style="display:flex;align-items:center;gap:.3rem;font-size:.78rem;color:#FBBF24;white-space:nowrap;">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>尚未同步雲端
         </span>
         ${syncBtn}
-        <div id="lib-sync-msg" style="font-size:.63rem;min-height:.8em;text-align:right;"></div>
+        <div id="lib-sync-msg" style="font-size:.76rem;min-height:.8em;text-align:right;"></div>
       </div>`;
     const d = _lastSyncTime;
     const ts = d.toLocaleDateString('zh-TW') + ' ' + d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false});
     return `
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;">
-        <span style="font-size:.65rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>
-        <span style="display:flex;align-items:center;gap:.3rem;font-size:.65rem;white-space:nowrap;">
+        <span style="font-size:.78rem;color:var(--text-3);white-space:nowrap;">共 ${S.materials.length} 份教材</span>
+        <span style="display:flex;align-items:center;gap:.3rem;font-size:.78rem;white-space:nowrap;">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
           <span style="color:#4ADE80;">已同步</span>
           <span style="color:var(--text-3);">${ts}</span>
         </span>
         ${syncBtn}
-        <div id="lib-sync-msg" style="font-size:.63rem;min-height:.8em;text-align:right;"></div>
+        <div id="lib-sync-msg" style="font-size:.76rem;min-height:.8em;text-align:right;"></div>
       </div>`;
   })();
   return `
@@ -4288,8 +4303,8 @@ function libraryHTML() {
     <div style="margin-bottom:1.5rem;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-bottom:.85rem;">
         <div>
-          <div class="badge badge-v" style="margin-bottom:.4rem;font-size:.6rem;">學習教材庫</div>
-          <h2 style="font-size:1.55rem;font-weight:700;letter-spacing:-.03em;white-space:nowrap;">上傳備考教材</h2>
+          <div class="badge badge-v" style="margin-bottom:.4rem;font-size:.72rem;">學習教材庫</div>
+          <h2 style="font-size:1.74rem;font-weight:700;letter-spacing:-.03em;white-space:nowrap;">上傳備考教材</h2>
         </div>
         ${_libSyncInfo}
       </div>
@@ -4302,23 +4317,23 @@ function libraryHTML() {
         <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
         <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
       </svg>
-      <p style="font-size:.95rem;font-weight:500;margin-bottom:.3rem;">拖曳檔案至此，或點擊選取</p>
-      <p style="font-size:.76rem;color:var(--text-3)">支援 Markdown（.md）格式</p>
+      <p style="font-size:1.14rem;font-weight:500;margin-bottom:.3rem;">拖曳檔案至此，或點擊選取</p>
+      <p style="font-size:.91rem;color:var(--text-3)">支援 Markdown（.md）格式</p>
       <div style="display:flex;justify-content:center;gap:.4rem;margin-top:1rem;flex-wrap:wrap;">
-        <span style="background:rgba(74,222,128,.1);color:#4ADE80;border:1px solid rgba(74,222,128,.28);border-radius:6px;padding:.15rem .5rem;font-size:.68rem;font-weight:700">Markdown ✓ 自動解析</span>
+        <span style="background:rgba(74,222,128,.1);color:#4ADE80;border:1px solid rgba(74,222,128,.28);border-radius:6px;padding:.15rem .5rem;font-size:.82rem;font-weight:700">Markdown ✓ 自動解析</span>
       </div>
     </div>
 
     <!-- Upload feedback message -->
-    <div id="lib-upload-msg" style="display:none;margin-top:.85rem;padding:.75rem 1rem;border-radius:10px;font-size:.82rem;"></div>
+    <div id="lib-upload-msg" style="display:none;margin-top:.85rem;padding:.75rem 1rem;border-radius:10px;font-size:.98rem;"></div>
 
     <!-- Format guide -->
     <div style="margin-top:.85rem;padding:.85rem 1rem;border-radius:10px;background:rgba(123,111,224,.07);border:1px solid var(--accent-border);display:flex;gap:.65rem;align-items:flex-start;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <div style="font-size:.78rem;color:var(--accent);line-height:1.6;">
+      <div style="font-size:.94rem;color:var(--accent);line-height:1.6;">
         <strong>教材格式：</strong>
-        以 <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">#</code> /
-        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.73rem;">##</code>
+        以 <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.88rem;">#</code> /
+        <code style="background:rgba(123,111,224,.2);padding:.05rem .3rem;border-radius:4px;font-family:'JetBrains Mono','Courier New',Consolas,monospace;font-size:.88rem;">##</code>
         分段，上傳後可對每段落獨立標記筆記分類（必考重點 / 易混淆 / 已理解 / 待複習 / 重要概念）。
         XLSX / CSV 考古題請至「<span style="cursor:pointer;text-decoration:underline;" onclick="navigate('datasets')">上傳考古題題庫</span>」頁面。
       </div>
@@ -4328,19 +4343,19 @@ function libraryHTML() {
     ${S.materials.length > 0 ? `
     <div style="margin-top:2rem;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem;">
-        <p style="font-size:.78rem;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;">
+        <p style="font-size:.94rem;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;">
           已上傳教材 <span style="color:var(--accent)">${S.materials.length}</span>
         </p>
         <div style="display:flex;gap:.3rem;">
-          <button onclick="setMatSort(_matSortOrder==='date-desc'?'date-asc':'date-desc')" style="display:inline-flex;align-items:center;gap:.25rem;font-size:.68rem;padding:.2rem .55rem;border-radius:6px;cursor:pointer;border:1px solid ${_matSortOrder.startsWith('date')?'var(--accent-border)':'var(--border)'};background:${_matSortOrder.startsWith('date')?'rgba(123,111,224,.12)':'transparent'};color:${_matSortOrder.startsWith('date')?'var(--accent)':'var(--text-3)'};font-weight:600;">日期${_matSortOrder==='date-desc'?' ↓':_matSortOrder==='date-asc'?' ↑':''}</button>
-          <button onclick="setMatSort(_matSortOrder==='name-asc'?'name-desc':'name-asc')" style="display:inline-flex;align-items:center;gap:.25rem;font-size:.68rem;padding:.2rem .55rem;border-radius:6px;cursor:pointer;border:1px solid ${_matSortOrder.startsWith('name')?'var(--accent-border)':'var(--border)'};background:${_matSortOrder.startsWith('name')?'rgba(123,111,224,.12)':'transparent'};color:${_matSortOrder.startsWith('name')?'var(--accent)':'var(--text-3)'};font-weight:600;">名稱${_matSortOrder==='name-asc'?' ↑':_matSortOrder==='name-desc'?' ↓':''}</button>
+          <button onclick="setMatSort(_matSortOrder==='date-desc'?'date-asc':'date-desc')" style="display:inline-flex;align-items:center;gap:.25rem;font-size:.82rem;padding:.2rem .55rem;border-radius:6px;cursor:pointer;border:1px solid ${_matSortOrder.startsWith('date')?'var(--accent-border)':'var(--border)'};background:${_matSortOrder.startsWith('date')?'rgba(123,111,224,.12)':'transparent'};color:${_matSortOrder.startsWith('date')?'var(--accent)':'var(--text-3)'};font-weight:600;">日期${_matSortOrder==='date-desc'?' ↓':_matSortOrder==='date-asc'?' ↑':''}</button>
+          <button onclick="setMatSort(_matSortOrder==='name-asc'?'name-desc':'name-asc')" style="display:inline-flex;align-items:center;gap:.25rem;font-size:.82rem;padding:.2rem .55rem;border-radius:6px;cursor:pointer;border:1px solid ${_matSortOrder.startsWith('name')?'var(--accent-border)':'var(--border)'};background:${_matSortOrder.startsWith('name')?'rgba(123,111,224,.12)':'transparent'};color:${_matSortOrder.startsWith('name')?'var(--accent)':'var(--text-3)'};font-weight:600;">名稱${_matSortOrder==='name-asc'?' ↑':_matSortOrder==='name-desc'?' ↓':''}</button>
         </div>
       </div>
       ${allMatTags.length > 0 ? `
       <div id="mat-tag-filter-bar" style="display:flex;flex-wrap:wrap;gap:.38rem;margin-bottom:1rem;align-items:center;">
-        <span style="font-size:.7rem;color:var(--text-3);font-weight:600;letter-spacing:.04em;margin-right:.1rem;">篩選：</span>
-        <span onclick="setMatTagFilter(null)" style="background:${!_matTagFilter?'var(--accent)':'rgba(255,255,255,.06)'};color:${!_matTagFilter?'#fff':'var(--text-2)'};border:1px solid ${!_matTagFilter?'var(--accent)':'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">全部</span>
-        ${allMatTags.map(tag => { const tc=tagColor(tag); const active=_matTagFilter===tag; return `<span onclick="setMatTagFilter(${active?'null':"'"+tag+"'"})" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`; }).join('')}
+        <span style="font-size:.84rem;color:var(--text-3);font-weight:600;letter-spacing:.04em;margin-right:.1rem;">篩選：</span>
+        <span onclick="setMatTagFilter(null)" style="background:${!_matTagFilter?'var(--accent)':'rgba(255,255,255,.06)'};color:${!_matTagFilter?'#fff':'var(--text-2)'};border:1px solid ${!_matTagFilter?'var(--accent)':'var(--border)'};border-radius:20px;padding:.13rem .58rem;font-size:.84rem;font-weight:600;cursor:pointer;transition:all .15s;">全部</span>
+        ${allMatTags.map(tag => { const tc=tagColor(tag); const active=_matTagFilter===tag; return `<span onclick="setMatTagFilter(${active?'null':"'"+tag+"'"})" style="background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};border:1px solid ${active?tc.color:tc.border};border-radius:20px;padding:.13rem .58rem;font-size:.84rem;font-weight:600;cursor:pointer;transition:all .15s;">${tag}</span>`; }).join('')}
       </div>` : ''}
       ${matsHTML}
       ${displayMats.length === 0 ? `<div class="empty-state">沒有符合「${_matTagFilter}」標籤的教材</div>` : ''}
@@ -4349,7 +4364,7 @@ function libraryHTML() {
   </div>`;
 }
 
-function readerHTML(){const mat=S.materials.find(m=>m.id===S.currentMat);if(!mat)return`<div class="page" style="max-width:680px;margin:0 auto;padding:3rem 1.5rem;text-align:center;"><div style="margin-bottom:.8rem;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div><h3 style="font-family:'Sora',sans-serif;font-size:1rem;margin-bottom:.4rem;">請先選擇教材</h3><p style="color:var(--text-3);font-size:.85rem;">到教材庫上傳或選擇一份教材</p><button class="btn btn-primary" style="margin-top:1rem;" onclick="navigate('library')">前往教材庫</button></div>`;const lastSec=S.readProgress?.[mat.id];const resumeBar=lastSec?`<div class="g-card" id="resume-bar" style="padding:.7rem 1rem;margin-bottom:.8rem;display:flex;align-items:center;gap:.6rem;background:var(--accent-dim);border-color:var(--accent-border);cursor:default;" onmouseenter="this.style.transform='none'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span style="font-size:.78rem;color:var(--accent);flex:1;">上次讀到：<b>${mat.sections.find(s=>s.id===lastSec)?.heading||lastSec}</b></span><button class="btn btn-primary" style="font-size:.68rem;padding:.25rem .6rem;min-height:0;" onclick="document.getElementById('${lastSec}')?.scrollIntoView({behavior:'smooth',block:'start'});document.getElementById('resume-bar')?.remove();">繼續閱讀</button><button class="btn btn-ghost" style="font-size:.68rem;padding:.25rem .5rem;min-height:0;" onclick="document.getElementById('resume-bar')?.remove();">從頭開始</button></div>`:'';const tocH=mat.toc.map(t=>`<a class="toc-item toc-h${t.level}" onclick="document.getElementById('${t.secId}')?.scrollIntoView({behavior:'smooth',block:'start'});closeSidebar();">${t.heading}</a>`).join('');const secsH=mat.sections.map(sec=>{const ann=S.annotations.find(a=>a.matId===mat.id&&a.secId===sec.id);const tcls=ann?' tagged tagged-'+STAGS.find(t=>t.id===ann.tag)?.cls.replace('stag-',''):'';const ti=ann?STAGS.find(t=>t.id===ann.tag):null;return`<div class="md-sec${tcls}" id="${sec.id}" data-sec="${sec.id}"><div class="stag-bar">${ann?`<span class="stag ${ti.cls}" style="font-size:.62rem">${ti.label}</span><button class="btn btn-ghost" onclick="removeSTag('${mat.id}','${sec.id}')" style="font-size:.6rem;padding:1px 5px;min-height:0;color:var(--red);">✕</button>`:`<button class="btn btn-ghost" onclick="openSTagModal('${mat.id}','${sec.id}')" style="font-size:.62rem;padding:2px 7px;min-height:0;background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg> 標記</button>`}</div>${sec.html}</div>`;}).join('');setTimeout(()=>{const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){if(!S.readProgress)S.readProgress={};S.readProgress[mat.id]=e.target.dataset.sec;clearTimeout(window._rpSave);window._rpSave=setTimeout(saveToStorage,2000);}});},{rootMargin:'-40% 0px -55% 0px'});document.querySelectorAll('.md-sec[data-sec]').forEach(el=>obs.observe(el));},500);return`<div class="page"><div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()" style="display:none;"></div><div class="study-reader"><div class="study-sidebar" id="studySidebar"><div style="font-size:.68rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;padding:0 4px;">${mat.title}</div>${tocH}<div style="margin-top:.8rem;padding-top:.6rem;border-top:1px solid var(--border);"><button class="btn btn-ghost" style="width:100%;font-size:.7rem;min-height:0;padding:.4rem;" onclick="navigate('library')">← 返回教材庫</button></div></div><div class="study-content"><button class="mobile-toc-toggle" onclick="toggleSidebar()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="12" y2="18"/></svg>目錄</button>${resumeBar}${secsH}</div></div></div>`;}
+function readerHTML(){const mat=S.materials.find(m=>m.id===S.currentMat);if(!mat)return`<div class="page" style="max-width:680px;margin:0 auto;padding:3rem 1.5rem;text-align:center;"><div style="margin-bottom:.8rem;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div><h3 style="font-family:'Sora',sans-serif;font-size:1.2rem;margin-bottom:.4rem;">請先選擇教材</h3><p style="color:var(--text-3);font-size:1.02rem;">到教材庫上傳或選擇一份教材</p><button class="btn btn-primary" style="margin-top:1rem;" onclick="navigate('library')">前往教材庫</button></div>`;const lastSec=S.readProgress?.[mat.id];const resumeBar=lastSec?`<div class="g-card" id="resume-bar" style="padding:.7rem 1rem;margin-bottom:.8rem;display:flex;align-items:center;gap:.6rem;background:var(--accent-dim);border-color:var(--accent-border);cursor:default;" onmouseenter="this.style.transform='none'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span style="font-size:.94rem;color:var(--accent);flex:1;">上次讀到：<b>${mat.sections.find(s=>s.id===lastSec)?.heading||lastSec}</b></span><button class="btn btn-primary" style="font-size:.82rem;padding:.25rem .6rem;min-height:0;" onclick="document.getElementById('${lastSec}')?.scrollIntoView({behavior:'smooth',block:'start'});document.getElementById('resume-bar')?.remove();">繼續閱讀</button><button class="btn btn-ghost" style="font-size:.82rem;padding:.25rem .5rem;min-height:0;" onclick="document.getElementById('resume-bar')?.remove();">從頭開始</button></div>`:'';const tocH=mat.toc.map(t=>`<a class="toc-item toc-h${t.level}" onclick="document.getElementById('${t.secId}')?.scrollIntoView({behavior:'smooth',block:'start'});closeSidebar();">${t.heading}</a>`).join('');const secsH=mat.sections.map(sec=>{const ann=S.annotations.find(a=>a.matId===mat.id&&a.secId===sec.id);const tcls=ann?' tagged tagged-'+STAGS.find(t=>t.id===ann.tag)?.cls.replace('stag-',''):'';const ti=ann?STAGS.find(t=>t.id===ann.tag):null;return`<div class="md-sec${tcls}" id="${sec.id}" data-sec="${sec.id}"><div class="stag-bar">${ann?`<span class="stag ${ti.cls}" style="font-size:.74rem">${ti.label}</span><button class="btn btn-ghost" onclick="removeSTag('${mat.id}','${sec.id}')" style="font-size:.72rem;padding:1px 5px;min-height:0;color:var(--red);">✕</button>`:`<button class="btn btn-ghost" onclick="openSTagModal('${mat.id}','${sec.id}')" style="font-size:.74rem;padding:2px 7px;min-height:0;background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg> 標記</button>`}</div>${sec.html}</div>`;}).join('');setTimeout(()=>{const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){if(!S.readProgress)S.readProgress={};S.readProgress[mat.id]=e.target.dataset.sec;clearTimeout(window._rpSave);window._rpSave=setTimeout(saveToStorage,2000);}});},{rootMargin:'-40% 0px -55% 0px'});document.querySelectorAll('.md-sec[data-sec]').forEach(el=>obs.observe(el));},500);return`<div class="page"><div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()" style="display:none;"></div><div class="study-reader"><div class="study-sidebar" id="studySidebar"><div style="font-size:.82rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;padding:0 4px;">${mat.title}</div>${tocH}<div style="margin-top:.8rem;padding-top:.6rem;border-top:1px solid var(--border);"><button class="btn btn-ghost" style="width:100%;font-size:.84rem;min-height:0;padding:.4rem;" onclick="navigate('library')">← 返回教材庫</button></div></div><div class="study-content"><button class="mobile-toc-toggle" onclick="toggleSidebar()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="12" y2="18"/></svg>目錄</button>${resumeBar}${secsH}</div></div></div>`;}
 
 let _stagMatId='',_stagSecId='',_stagSel='';
 function openSTagModal(matId,secId){_stagMatId=matId;_stagSecId=secId;_stagSel='';const existing=S.annotations.find(a=>a.matId===matId&&a.secId===secId);document.getElementById('stagModalMemo').value=existing?.memo||'';document.getElementById('stagModalTags').innerHTML=STAGS.map(t=>`<div class="stag ${t.cls}${existing?.tag===t.id?' active':''}" onclick="selectSTag(this,'${t.id}')">${t.label}</div>`).join('');if(existing)_stagSel=existing.tag;document.getElementById('stagModal').classList.add('show');}
@@ -4361,10 +4376,10 @@ function saveSTag(){if(!_stagSel){alert('請選擇一個標籤');return;}const m
 function removeSTag(matId,secId){S.annotations=S.annotations.filter(a=>!(a.matId===matId&&a.secId===secId));saveToStorage();render();}
 
 let _noteFilter='all',_noteTopicFilter='all';
-function notesHTML(){const totalN=S.annotations.length;const filterTags=STAGS.map(t=>{const c=S.annotations.filter(a=>a.tag===t.id).length;return c?`<div class="stag ${t.cls}${_noteFilter===t.id?' active':''}" onclick="_noteFilter='${t.id}';render()">${t.label} (${c})</div>`:'';}).join('');const allTopics=[...new Set(S.materials.flatMap(m=>m.matTags||[]))];const topicChips=allTopics.length?allTopics.map(t=>{const tc=tagColor(t);const active=_noteTopicFilter===t;const matsIn=S.materials.filter(m=>(m.matTags||[]).includes(t)).map(m=>m.id);const cnt=S.annotations.filter(a=>matsIn.includes(a.matId)).length;return cnt?`<div style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;font-size:.66rem;font-weight:600;cursor:pointer;border:1px solid ${active?tc.color:tc.border};background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};" onclick="_noteTopicFilter=${active?"'all'":"'"+t+"'"};render()">${t} (${cnt})</div>`:'';}).join(''):'';const topicMatIds=_noteTopicFilter!=='all'?new Set(S.materials.filter(m=>(m.matTags||[]).includes(_noteTopicFilter)).map(m=>m.id)):null;let notes=S.annotations.filter(a=>{if(_noteFilter!=='all'&&a.tag!==_noteFilter)return false;if(topicMatIds&&!topicMatIds.has(a.matId))return false;return true;});let groupedHTML='';if(!notes.length){groupedHTML='<div style="text-align:center;padding:2rem;color:var(--text-3);font-size:.85rem;">尚無筆記</div>';}else{const grouped={};notes.forEach(n=>{if(!grouped[n.tag])grouped[n.tag]=[];grouped[n.tag].push(n);});for(const tagId of Object.keys(grouped)){const ti=STAGS.find(t=>t.id===tagId);if(!ti)continue;groupedHTML+=`<div style="display:flex;align-items:center;gap:.5rem;margin:1rem 0 .4rem;"><span class="stag ${ti.cls}">${ti.label}</span><span style="font-size:.72rem;color:var(--text-3);">${grouped[tagId].length} 則</span></div>`;grouped[tagId].forEach(n=>{groupedHTML+=`<div class="note-card"><div style="display:flex;align-items:center;gap:.5rem;padding:.7rem .9rem;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'"><span style="font-size:.84rem;font-weight:600;flex:1;">${n.sectionHeading||'(無標題)'}</span><span style="font-size:.66rem;color:var(--text-3);">${n.matTitle}</span></div><div style="display:none;padding:0 .9rem .7rem;font-size:.82rem;color:var(--text-2);line-height:1.6;">${n.html||''}${n.memo?`<div style="margin-top:.5rem;padding:.4rem .6rem;background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:8px;font-size:.76rem;color:var(--gold);"><b>備註：</b>${n.memo}</div>`:''}<div style="display:flex;gap:.3rem;margin-top:.5rem;"><button class="btn btn-ghost" style="font-size:.68rem;padding:.25rem .5rem;min-height:0;" onclick="S.currentMat='${n.matId}';navigate('reader');setTimeout(()=>document.getElementById('${n.secId}')?.scrollIntoView({behavior:'smooth'}),300)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> 原文</button><button class="btn btn-ghost" style="font-size:.68rem;padding:.25rem .5rem;min-height:0;" onclick="openSTagModal('${n.matId}','${n.secId}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg> 編輯</button><button class="btn btn-ghost" style="font-size:.68rem;padding:.25rem .5rem;min-height:0;color:var(--red);" onclick="removeSTag('${n.matId}','${n.secId}');render()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div></div></div>`;});}}return`<div class="page" style="max-width:680px;margin:0 auto;padding:clamp(1.5rem,5vw,2.5rem) clamp(1rem,4vw,1.5rem);"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><h2 style="font-size:1.15rem;font-weight:800;">筆記中心</h2><span class="badge badge-v">${totalN} 則</span></div>${allTopics.length?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.6rem;align-items:center;padding:.5rem .7rem;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:10px;"><span style="font-size:.66rem;color:var(--text-3);font-weight:700;margin-right:.2rem;">主題分類：</span><div style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;font-size:.66rem;font-weight:600;cursor:pointer;border:1px solid ${_noteTopicFilter==='all'?'var(--accent-border)':'var(--border)'};background:${_noteTopicFilter==='all'?'var(--accent-dim)':'transparent'};color:${_noteTopicFilter==='all'?'var(--accent)':'var(--text-3)'};" onclick="_noteTopicFilter='all';render()">全部</div>${topicChips}</div>`:''}<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.8rem;"><div class="stag stag-purple${_noteFilter==='all'?' active':''}" onclick="_noteFilter='all';render()">全部 (${totalN})</div>${filterTags}</div>${groupedHTML}</div>`;}
+function notesHTML(){const totalN=S.annotations.length;const filterTags=STAGS.map(t=>{const c=S.annotations.filter(a=>a.tag===t.id).length;return c?`<div class="stag ${t.cls}${_noteFilter===t.id?' active':''}" onclick="_noteFilter='${t.id}';render()">${t.label} (${c})</div>`:'';}).join('');const allTopics=[...new Set(S.materials.flatMap(m=>m.matTags||[]))];const topicChips=allTopics.length?allTopics.map(t=>{const tc=tagColor(t);const active=_noteTopicFilter===t;const matsIn=S.materials.filter(m=>(m.matTags||[]).includes(t)).map(m=>m.id);const cnt=S.annotations.filter(a=>matsIn.includes(a.matId)).length;return cnt?`<div style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;font-size:.79rem;font-weight:600;cursor:pointer;border:1px solid ${active?tc.color:tc.border};background:${active?tc.color:tc.bg};color:${active?'#111':tc.color};" onclick="_noteTopicFilter=${active?"'all'":"'"+t+"'"};render()">${t} (${cnt})</div>`:'';}).join(''):'';const topicMatIds=_noteTopicFilter!=='all'?new Set(S.materials.filter(m=>(m.matTags||[]).includes(_noteTopicFilter)).map(m=>m.id)):null;let notes=S.annotations.filter(a=>{if(_noteFilter!=='all'&&a.tag!==_noteFilter)return false;if(topicMatIds&&!topicMatIds.has(a.matId))return false;return true;});let groupedHTML='';if(!notes.length){groupedHTML='<div style="text-align:center;padding:2rem;color:var(--text-3);font-size:1.02rem;">尚無筆記</div>';}else{const grouped={};notes.forEach(n=>{if(!grouped[n.tag])grouped[n.tag]=[];grouped[n.tag].push(n);});for(const tagId of Object.keys(grouped)){const ti=STAGS.find(t=>t.id===tagId);if(!ti)continue;groupedHTML+=`<div style="display:flex;align-items:center;gap:.5rem;margin:1rem 0 .4rem;"><span class="stag ${ti.cls}">${ti.label}</span><span style="font-size:.86rem;color:var(--text-3);">${grouped[tagId].length} 則</span></div>`;grouped[tagId].forEach(n=>{groupedHTML+=`<div class="note-card"><div style="display:flex;align-items:center;gap:.5rem;padding:.7rem .9rem;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'"><span style="font-size:1.01rem;font-weight:600;flex:1;">${n.sectionHeading||'(無標題)'}</span><span style="font-size:.79rem;color:var(--text-3);">${n.matTitle}</span></div><div style="display:none;padding:0 .9rem .7rem;font-size:.98rem;color:var(--text-2);line-height:1.6;">${n.html||''}${n.memo?`<div style="margin-top:.5rem;padding:.4rem .6rem;background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:8px;font-size:.91rem;color:var(--gold);"><b>備註：</b>${n.memo}</div>`:''}<div style="display:flex;gap:.3rem;margin-top:.5rem;"><button class="btn btn-ghost" style="font-size:.82rem;padding:.25rem .5rem;min-height:0;" onclick="S.currentMat='${n.matId}';navigate('reader');setTimeout(()=>document.getElementById('${n.secId}')?.scrollIntoView({behavior:'smooth'}),300)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> 原文</button><button class="btn btn-ghost" style="font-size:.82rem;padding:.25rem .5rem;min-height:0;" onclick="openSTagModal('${n.matId}','${n.secId}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg> 編輯</button><button class="btn btn-ghost" style="font-size:.82rem;padding:.25rem .5rem;min-height:0;color:var(--red);" onclick="removeSTag('${n.matId}','${n.secId}');render()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div></div></div>`;});}}return`<div class="page" style="max-width:680px;margin:0 auto;padding:clamp(1.5rem,5vw,2.5rem) clamp(1rem,4vw,1.5rem);"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><h2 style="font-size:1.38rem;font-weight:800;">筆記中心</h2><span class="badge badge-v">${totalN} 則</span></div>${allTopics.length?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.6rem;align-items:center;padding:.5rem .7rem;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:10px;"><span style="font-size:.79rem;color:var(--text-3);font-weight:700;margin-right:.2rem;">主題分類：</span><div style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;font-size:.79rem;font-weight:600;cursor:pointer;border:1px solid ${_noteTopicFilter==='all'?'var(--accent-border)':'var(--border)'};background:${_noteTopicFilter==='all'?'var(--accent-dim)':'transparent'};color:${_noteTopicFilter==='all'?'var(--accent)':'var(--text-3)'};" onclick="_noteTopicFilter='all';render()">全部</div>${topicChips}</div>`:''}<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.8rem;"><div class="stag stag-purple${_noteFilter==='all'?' active':''}" onclick="_noteFilter='all';render()">全部 (${totalN})</div>${filterTags}</div>${groupedHTML}</div>`;}
 
 
-function studyStatsHTML(){const allTopics=[...new Set(S.materials.flatMap(m=>m.matTags||[]))];const totalMats=S.materials.length;const totalAnns=S.annotations.length;const tagStats=STAGS.map(t=>({...t,count:S.annotations.filter(a=>a.tag===t.id).length}));const topicStats=allTopics.map(topic=>{const mats=S.materials.filter(m=>(m.matTags||[]).includes(topic));const matIds=new Set(mats.map(m=>m.id));const anns=S.annotations.filter(a=>matIds.has(a.matId));return{topic,matCount:mats.length,annCount:anns.length,tags:STAGS.map(t=>({...t,count:anns.filter(a=>a.tag===t.id).length}))};});const untaggedMats=S.materials.filter(m=>!(m.matTags||[]).length);return`<div class="page" style="max-width:680px;margin:0 auto;padding:clamp(1.5rem,5vw,2.5rem) clamp(1rem,4vw,1.5rem);"><h2 style="font-size:1.15rem;font-weight:800;margin-bottom:1rem;font-family:'Sora',sans-serif;">教材統計總覽</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.5rem;margin-bottom:1.5rem;"><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">教材總數</div><div style="font-size:1.6rem;font-weight:800;color:var(--accent);margin-top:.2rem;">${totalMats}</div></div><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">筆記總數</div><div style="font-size:1.6rem;font-weight:800;color:var(--gold);margin-top:.2rem;">${totalAnns}</div></div><div class="s-card"><div style="font-size:.65rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">分類數</div><div style="font-size:1.6rem;font-weight:800;color:var(--green);margin-top:.2rem;">${allTopics.length}</div></div></div>${tagStats.some(t=>t.count>0)?`<div class="g-card" style="padding:1rem;margin-bottom:1rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem;">筆記標籤分佈</div><div style="display:flex;flex-wrap:wrap;gap:.4rem;">${tagStats.map(t=>t.count?`<span class="stag ${t.cls}">${t.label} ${t.count}</span>`:'').join('')}</div></div>`:''} ${topicStats.map(ts=>`<div class="g-card" style="padding:1rem;margin-bottom:.6rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><span style="font-size:.88rem;font-weight:700;">${ts.topic}</span><span style="font-size:.7rem;color:var(--text-3);">${ts.matCount} 教材 · ${ts.annCount} 筆記</span></div>${ts.tags.some(t=>t.count>0)?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;">${ts.tags.map(t=>t.count?`<span class="stag ${t.cls}" style="font-size:.6rem">${t.label} ${t.count}</span>`:'').join('')}</div>`:'<span style="font-size:.76rem;color:var(--text-3);">尚無筆記</span>'}</div>`).join('')}${untaggedMats.length?`<div class="g-card" style="padding:1rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><span style="font-size:.88rem;font-weight:700;color:var(--text-3);">未分類</span><span style="font-size:.7rem;color:var(--text-3);">${untaggedMats.length} 教材</span></div></div>`:''}</div>`;}
+function studyStatsHTML(){const allTopics=[...new Set(S.materials.flatMap(m=>m.matTags||[]))];const totalMats=S.materials.length;const totalAnns=S.annotations.length;const tagStats=STAGS.map(t=>({...t,count:S.annotations.filter(a=>a.tag===t.id).length}));const topicStats=allTopics.map(topic=>{const mats=S.materials.filter(m=>(m.matTags||[]).includes(topic));const matIds=new Set(mats.map(m=>m.id));const anns=S.annotations.filter(a=>matIds.has(a.matId));return{topic,matCount:mats.length,annCount:anns.length,tags:STAGS.map(t=>({...t,count:anns.filter(a=>a.tag===t.id).length}))};});const untaggedMats=S.materials.filter(m=>!(m.matTags||[]).length);return`<div class="page" style="max-width:680px;margin:0 auto;padding:clamp(1.5rem,5vw,2.5rem) clamp(1rem,4vw,1.5rem);"><h2 style="font-size:1.38rem;font-weight:800;margin-bottom:1rem;font-family:'Sora',sans-serif;">教材統計總覽</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.5rem;margin-bottom:1.5rem;"><div class="s-card"><div style="font-size:.78rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">教材總數</div><div style="font-size:1.79rem;font-weight:800;color:var(--accent);margin-top:.2rem;">${totalMats}</div></div><div class="s-card"><div style="font-size:.78rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">筆記總數</div><div style="font-size:1.79rem;font-weight:800;color:var(--gold);margin-top:.2rem;">${totalAnns}</div></div><div class="s-card"><div style="font-size:.78rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">分類數</div><div style="font-size:1.79rem;font-weight:800;color:var(--green);margin-top:.2rem;">${allTopics.length}</div></div></div>${tagStats.some(t=>t.count>0)?`<div class="g-card" style="padding:1rem;margin-bottom:1rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="font-size:.84rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem;">筆記標籤分佈</div><div style="display:flex;flex-wrap:wrap;gap:.4rem;">${tagStats.map(t=>t.count?`<span class="stag ${t.cls}">${t.label} ${t.count}</span>`:'').join('')}</div></div>`:''} ${topicStats.map(ts=>`<div class="g-card" style="padding:1rem;margin-bottom:.6rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><span style="font-size:1.06rem;font-weight:700;">${ts.topic}</span><span style="font-size:.84rem;color:var(--text-3);">${ts.matCount} 教材 · ${ts.annCount} 筆記</span></div>${ts.tags.some(t=>t.count>0)?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;">${ts.tags.map(t=>t.count?`<span class="stag ${t.cls}" style="font-size:.72rem">${t.label} ${t.count}</span>`:'').join('')}</div>`:'<span style="font-size:.91rem;color:var(--text-3);">尚無筆記</span>'}</div>`).join('')}${untaggedMats.length?`<div class="g-card" style="padding:1rem;cursor:default;" onmouseenter="this.style.transform='none'"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><span style="font-size:1.06rem;font-weight:700;color:var(--text-3);">未分類</span><span style="font-size:.84rem;color:var(--text-3);">${untaggedMats.length} 教材</span></div></div>`:''}</div>`;}
 
 async function syncStudyToCloud(){
   if(!_db||!_currentUser)return;
