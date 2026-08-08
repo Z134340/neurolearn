@@ -2,13 +2,13 @@
 
 > **智能模擬考平台** — 單一 HTML 檔案，完全離線可用，Firebase 雲端帳號同步，支援 AI 本機生成題目
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-z134340.github.io-brightgreen?style=flat-square)](https://z134340.github.io/neurolearn/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-neurolearn--48v.pages.dev-brightgreen?style=flat-square)](https://neurolearn-48v.pages.dev)
 [![Single File](https://img.shields.io/badge/架構-Single%20HTML-blueviolet?style=flat-square)](public/index.html)
 [![No Framework](https://img.shields.io/badge/框架-Vanilla%20JS-orange?style=flat-square)](public/index.html)
 [![Firebase](https://img.shields.io/badge/雲端-Firebase-FFCA28?style=flat-square&logo=firebase&logoColor=black)](https://firebase.google.com)
-[![PWA](https://img.shields.io/badge/PWA-iOS%20%2F%20Android-blue?style=flat-square)](https://z134340.github.io/neurolearn/)
+[![PWA](https://img.shields.io/badge/PWA-iOS%20%2F%20Android-blue?style=flat-square)](https://neurolearn-48v.pages.dev)
 
-**🌐 立即使用：https://z134340.github.io/neurolearn/**
+**🌐 立即使用：https://neurolearn-48v.pages.dev**
 
 ---
 
@@ -183,7 +183,10 @@ NeuroLearn
 
 ### 直接使用
 
-🌐 **https://z134340.github.io/neurolearn/**
+🌐 **https://neurolearn-48v.pages.dev**（Cloudflare Pages）
+
+> 舊站 <https://z134340.github.io/neurolearn/> 仍在運作，兩者發布同一份 `public/`。
+> 待觀察期結束後將關閉，屆時請改用上方網址。
 
 下載 `public/index.html` → 用任何瀏覽器開啟，進度自動存於 localStorage。
 
@@ -445,5 +448,5 @@ MIT © NeuroLearn
 ---
 
 <p align="center">
-  <sub>單一 HTML · 零安裝 · 離線可用 · <a href="https://z134340.github.io/neurolearn/">立即試用</a></sub>
+  <sub>單一 HTML · 零安裝 · 離線可用 · <a href="https://neurolearn-48v.pages.dev">立即試用</a></sub>
 </p>

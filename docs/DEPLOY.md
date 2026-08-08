@@ -144,6 +144,13 @@ Cloudflare 免費方案對本站綽綽有餘：無限請求與頻寬、每月 50
 
 ## 4. 驗證清單（在 Cloudflare 新網域上逐項確認）
 
+> **驗證進度（2026-08-08）**
+> - [x] 首頁載入正常
+> - [x] 發布邊界正確（`/AGENTS.md` 無內容；部署 log `Uploaded 1 files`）
+> - [x] **登入成功** —— 同時證明 Firebase 白名單生效與 Firestore 跨網域同步正常
+> - [ ] 註冊新帳號 → 驗證信回跳網址為新網域（唯一無法從程式碼確認的項目）
+> - [ ] 手機開啟版面確認
+>
 > 目前實際狀態（2026-08-08）：
 > - Cloudflare 專案 `neurolearn`，正式網域 **https://neurolearn-48v.pages.dev**
 > - 走方案 A，由 `.github/workflows/cloudflare.yml` 以 wrangler 部署
