@@ -34,9 +34,39 @@
 
 ## 2. 建立 Cloudflare Pages 專案
 
-有兩條路，**擇一**即可。方案 A 手動操作最少，建議優先。
+有三條路，**擇一**即可。
 
-### 方案 A（建議）— GitHub Actions 用 wrangler 推送
+| 方案 | 誰執行 | 你要做的事 | 適用 |
+|------|--------|-----------|------|
+| **C 本機腳本** | 你的電腦 | 跑兩支腳本，瀏覽器登入一次 | 手上就有電腦、想一次做完 |
+| **A GitHub Actions** | GitHub runner | 產一個 API Token、貼兩個 secret | 想要往後全自動 |
+| **B Dashboard 連 Git** | Cloudflare | 授權 GitHub、填四個 build 欄位 | 偏好圖形介面 |
+
+> 遠端沙箱（Claude Code on the web）的網路政策擋掉 `dash.cloudflare.com`、
+> `api.cloudflare.com`、`console.firebase.google.com`，因此方案 B、C 無法由
+> 遠端 session 代為執行；方案 A 的部署動作跑在 GitHub runner 上，不受此限。
+
+### 方案 C — 在自己的電腦上跑腳本（最快做完）
+
+若你在本機執行 Claude Code，可直接請它跑這兩支：
+
+```bash
+git pull                                              # 取得含 public/ 的版本
+bash scripts/deploy_cloudflare.sh                     # 首次會開瀏覽器登入 Cloudflare
+bash scripts/add_firebase_domain.sh <配發的網域>       # 例：neurolearn.pages.dev
+```
+
+- `deploy_cloudflare.sh`：確認 `public/` 內容 → 建立 Pages 專案（已存在則略過）→ 部署。
+  加 `--preview` 可先發到 preview 分支，不影響正式站。
+- `add_firebase_domain.sh`：**先讀取現有 Authorized domains，合併後只增不減再寫回**。
+  Identity Toolkit 的 API 是整個陣列覆寫，直接 PATCH 會把 `localhost` 與既有網域
+  全部刪掉導致線上站無法登入，故必須走這支腳本或手動在 Console 操作。
+  支援 `--dry-run` 先看結果，實際寫入前也會要求確認。
+  前置：`gcloud auth login`（需為該 Firebase 專案的 Owner/Editor）與 `jq`。
+
+
+
+### 方案 A — GitHub Actions 用 wrangler 推送
 
 部署由 `.github/workflows/cloudflare.yml` 執行，你只需要提供兩個值。
 好處：不必在 Cloudflare 授權 GitHub、不必設定 build 參數，部署邏輯留在版控裡。

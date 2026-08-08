@@ -68,10 +68,12 @@ NeuroLearn/
 ├── BACKLOG.md                 # 維運/優化待辦（優先序）
 ├── LICENSE                    # MIT
 ├── .gitignore / .editorconfig
-├── scripts/                   # 本機 Claude Proxy（不參與網站部署）
-│   ├── claude_proxy.py        #   port 7734，轉送至 claude CLI
+├── scripts/                   # 本機工具（皆不參與網站部署）
+│   ├── claude_proxy.py        #   AI 生成用 proxy，port 7734，轉送至 claude CLI
 │   ├── setup_proxy.sh         #   一鍵安裝（動態產生 plist）
-│   └── com.neurolearn.proxy.plist  # launchd 參考模板
+│   ├── com.neurolearn.proxy.plist  # launchd 參考模板
+│   ├── deploy_cloudflare.sh   #   本機部署 public/ 至 Cloudflare Pages
+│   └── add_firebase_domain.sh #   安全新增 Firebase Auth 授權網域（只增不減）
 └── docs/
     ├── DEPLOY.md              # 部署與 Cloudflare 移轉 SOP
     └── 題目匯入範本.xlsx       # 參考用（範本實際由瀏覽器端 SheetJS 即時產生）
