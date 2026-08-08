@@ -13,7 +13,7 @@
 | B1 | localStorage 大宗資料改存 IndexedDB（`extraQs`/`materials` 出 blob） | 效能/穩定 | 🟡 | M | CC | 上傳 >5MB 不再觸發三段降級 warning；離線重開資料完整 |
 | B2 | 模組化 build step（`src/` 合併→單一 `index.html`），維持單檔部署 | 可維護 | 🟡 | L | CC | `npm run build` 產出與現行 index.html 行為一致的單檔；deploy 不變 |
 | B3 | **131 處** inline `onclick` → 事件委派（event delegation） | 可維護/可測 | 🟡 | M | CC | 移除 inline handler，行為不變，可被測試掛載 |
-| B4 | 30 處 `innerHTML=` 注入點 XSS 稽核（使用者上傳內容渲染；含 marked 輸出 passthrough HTML） | 安全 | 🟡 | M | CC | 高風險注入點改用 textContent/escape + DOMPurify；附稽核清單 |
+| ~~B4~~ | ✅ **已完成** innerHTML 注入點 XSS 稽核與修補 | 安全 | 🟡 | M | — | 實證稽核 6 個檢測面 → 4 個可注入 → 修補後歸零，並固化為 smoke test 第 7 段。**未採用 DOMPurify**：純文字欄位以自寫 `esc()` 轉義（24 處），Markdown 改覆寫 `marked` 的 `renderer.html` 把 raw HTML token 降級為純文字，效果等同 sanitize 但零新依賴 |
 | ~~B5~~ | ✅ **已完成（P0）** 35 處 `console.*` 收斂到 debug flag（`?debug=1`） | 整潔 | ⚪ | S | — | public/index.html:501 單點攔截，預設靜默、可開關 |
 | B6 | 7×`alert()` + 2×`confirm()` → 站內 toast/modal | UX | ⚪ | S | CC | 阻斷式對話框移除，UX 一致 |
 | ~~B7~~ | ✅ **已完成** 端到端 smoke test（Playwright）— `tests/smoke.mjs`，36 項斷言，CI 自動執行 | 品質 | 🟡 | M | — | 涵蓋各頁渲染／六斷點無溢出／CSV 匯入→測驗→儀表板／教材→閱讀頁／漸進式揭露與空狀態／設計基準。**驗收條件較原案縮小**：登入・同步・AI 生成需外部服務（真實 Firebase 憑證、本機 proxy 7734），CI 無法且不該涵蓋，維持人工驗證 |
@@ -44,7 +44,7 @@
 ## 給 Claude Code 的建議切入順序
 
 1. ~~**先建護網**：B7（smoke test）+ B8（CI）~~ → ✅ 已完成，之後任何重構皆有迴歸保護。
-2. **再清技術債**：B3（inline handler）→ 解鎖可測性 → B4（XSS）→ B5/B6（log/UX）。
+2. **再清技術債**：~~B4（XSS）~~ ✅ → B3（inline handler，解鎖可測性、亦為 B12 CSP 前置）→ B6（阻斷式對話框）。
 3. **架構升級**：B2（build step 模組化）為大決策，需先與使用者確認；完成後 B1（IndexedDB）與後續維運都更容易。
 
 ## B1 IndexedDB 實作方案（Cowork 已備，待瀏覽器測試後 apply）

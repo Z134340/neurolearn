@@ -292,6 +292,60 @@ try {
     await ctx.close();
   }
 
+  // ══ 7. XSS 注入面（BACKLOG B4 的迴歸保護）══
+  //   對使用者可控欄位注入無害標記，確認未經轉義即進入 DOM 的位置為零。
+  //   payload 只寫一個全域陣列，不做任何實際危害。
+  section('7. XSS 注入面');
+  {
+    const P = t => `<img src=x onerror="window.__hit=(window.__hit||[]);window.__hit.push('${t}')">`;
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await freshPage(ctx);
+    const hits = () => page.evaluate(() => { const h = window.__hit || []; window.__hit = []; return h; });
+
+    await page.evaluate((p) => {
+      S.files = [{ id: 1, name: 'x.csv', type: 'csv', size: '1 KB', status: 'ready', date: '2026/01/01', tags: ['t'] }];
+      S.extraQs = [{ id: 9001, text: '題目' + p.q, options: ['選項' + p.o, 'B', 'C', 'D'], answer: 0, isMulti: false,
+                     explanation: '解析' + p.e, category: 't', difficulty: '中等', _fileId: 1, _fileTags: ['t'] }];
+      window._currentZone = 'exam'; navigate('quiz');
+      S.quizSetup = { cats: new Set(['t']), mode: 'new', submode: null, count: 1, name: '' };
+      render(); launchQuiz();
+    }, { q: P('題目'), o: P('選項'), e: P('解析') });
+    await page.waitForTimeout(700);
+    check((await hits()).length === 0, '作答頁：題目／選項未執行注入');
+
+    await page.evaluate((p) => {
+      S.files = [{ id: 1, name: '檔名' + p + '.csv', type: 'csv', size: '1 KB', status: 'ready', date: '2026/01/01', tags: ['標籤' + p] }];
+      navigate('datasets');
+    }, P('檔名標籤'));
+    await page.waitForTimeout(600);
+    check((await hits()).length === 0, '題庫卡片：檔名／標籤未執行注入');
+
+    await page.evaluate((p) => {
+      S.materials = [{ id: 'm1', title: '教材' + p, sections: [], toc: [], raw: '', uploadedAt: new Date().toISOString(), matTags: ['標籤' + p] }];
+      window._currentZone = 'study'; navigate('library');
+    }, P('教材標題'));
+    await page.waitForTimeout(600);
+    check((await hits()).length === 0, '教材庫卡片：標題／標籤未執行注入');
+
+    // Markdown 需 marked 就緒；離線環境跳過並註記
+    const hasMarked = await page.evaluate(() => typeof marked !== 'undefined');
+    if (hasMarked) {
+      await page.evaluate((p) => {
+        const raw = '# 標題\n\n內文 ' + p + '\n';
+        const r = parseMD(raw);
+        S.materials = [{ id: 'm2', title: 'md', sections: r.sections, toc: r.toc, raw, uploadedAt: new Date().toISOString(), matTags: [] }];
+        S.currentMat = 'm2'; navigate('reader');
+      }, P('Markdown'));
+      await page.waitForTimeout(800);
+      check((await hits()).length === 0, '閱讀頁：Markdown raw HTML 未執行注入');
+      check(await page.evaluate(() => document.querySelectorAll('.md-sec script').length === 0),
+            '閱讀頁：Markdown 內無 script 標籤殘留');
+    } else {
+      console.log('  ⓘ marked 未載入，Markdown 注入面略過（離線環境屬正常）');
+    }
+    await ctx.close();
+  }
+
 } finally {
   await browser.close();
   fs.rmSync(tmp, { recursive: true, force: true });

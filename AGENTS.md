@@ -96,6 +96,11 @@ NeuroLearn/
 ## 7. 慣例速查
 
 - 語言：UI 與註解繁體中文；變數/函式英文。
-- JS：Vanilla、ES6、無模組系統；大量 inline `onclick`（**131 處**）+ `innerHTML`（30 處）為現況技術債（見 BACKLOG B3/B4）。CI 有 ratchet 守門，數量不得超過此基準。
+- JS：Vanilla、ES6、無模組系統；大量 inline `onclick`（**131 處**）+ `innerHTML`（30 處）為現況技術債（見 BACKLOG B3）。CI 有 ratchet 守門，數量不得超過此基準。
+- **使用者可控字串一律經 `esc()` 才進模板**（題目／選項／解析／檔名／教材標題／標籤）。
+  Markdown 走 `parseMD` → `hardenMarked()`，raw HTML token 會被降級為純文字。
+  新增任何渲染使用者輸入的位置，請一併補 `esc()`；smoke test 第 7 段會擋未轉義的注入面。
+- ⚠️ 註解或字串中避免出現 `<`+`script`／`<`+`style` 的字面組合 —— CI 的標籤配對檢查以
+  grep 計數，會把它算成未閉合標籤而失敗。
 - console：預設靜默（log/warn/info/debug），`?debug=1` 或 `localStorage.neurolearn_debug='1'` 開啟（public/index.html:493 單點攔截，B5 已落地）。
 - 同步觸發：60s（輕量）/ 5min（全量）debounce；quota 超限自動暫停 30 分鐘。
