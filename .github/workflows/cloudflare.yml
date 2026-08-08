@@ -1,0 +1,84 @@
+name: deploy-cloudflare-pages
+
+# 以 wrangler 從 GitHub Actions 推送 public/ 至 Cloudflare Pages。
+#
+# 為什麼不用 Cloudflare 的 Git 連接？
+#   Git 連接需在 Cloudflare Dashboard 授權 GitHub 並設定 build 參數；
+#   改用本 workflow 後，只需在 GitHub 設定兩個 secret 即可，部署邏輯也留在版控裡。
+#
+# 啟用方式（兩個 secret 都設好才會實際部署，否則本 workflow 會標記為 skipped 並成功結束）：
+#   GitHub → Settings → Secrets and variables → Actions → New repository secret
+#     CLOUDFLARE_API_TOKEN   權限只需 Account → Cloudflare Pages → Edit
+#     CLOUDFLARE_ACCOUNT_ID  Cloudflare Dashboard 右側欄的 Account ID
+#
+# ⚠️ 首次部署完成後，務必把配發的 *.pages.dev 網域加入
+#    Firebase Console → Authentication → Settings → Authorized domains，
+#    否則新站無法登入（auth/unauthorized-domain）。詳見 docs/DEPLOY.md。
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-pages
+  cancel-in-progress: false
+
+env:
+  CF_PROJECT_NAME: neurolearn
+
+jobs:
+  deploy:
+    name: 部署 public/ 至 Cloudflare Pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 檢查憑證是否已設定
+        id: guard
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$ACCOUNT" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=略過 Cloudflare 部署::尚未設定 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID，本次不部署。設定方式見本檔頂部註解。"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 確認發布目錄存在
+        if: steps.guard.outputs.enabled == 'true'
+        run: test -f public/index.html
+
+      # 專案已存在時 create 會回非零，故以 || true 吞掉；真正的失敗會在 deploy 階段顯現
+      - name: 建立 Pages 專案（若尚未存在）
+        if: steps.guard.outputs.enabled == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@3 pages project create "$CF_PROJECT_NAME" \
+            --production-branch=main 2>&1 | tee /tmp/create.log || true
+          grep -qiE "already exists|created" /tmp/create.log \
+            && echo "專案狀態確認完成" \
+            || echo "::warning::專案建立結果未知，將直接嘗試部署"
+
+      - name: 部署
+        if: steps.guard.outputs.enabled == 'true'
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@3 pages deploy public \
+            --project-name="$CF_PROJECT_NAME" \
+            --branch=main \
+            --commit-dirty=true
+
+      - name: 提醒 Firebase 白名單
+        if: steps.guard.outputs.enabled == 'true'
+        run: |
+          echo "::notice title=別忘了 Firebase::若這是首次部署，請將配發的 *.pages.dev 網域加入 Firebase Console → Authentication → Settings → Authorized domains，否則新站無法登入。"

@@ -34,6 +34,42 @@
 
 ## 2. 建立 Cloudflare Pages 專案
 
+有兩條路，**擇一**即可。方案 A 手動操作最少，建議優先。
+
+### 方案 A（建議）— GitHub Actions 用 wrangler 推送
+
+部署由 `.github/workflows/cloudflare.yml` 執行，你只需要提供兩個值。
+好處：不必在 Cloudflare 授權 GitHub、不必設定 build 參數，部署邏輯留在版控裡。
+
+1. **取得 Account ID**
+   <https://dash.cloudflare.com> → 進入任一 Workers & Pages 頁面 → 右側欄 **Account ID**，複製。
+
+2. **建立 API Token**
+   右上角頭像 → **My Profile** → **API Tokens** → **Create Token** → **Create Custom Token**
+   - Token name：`neurolearn-pages-deploy`（隨意）
+   - Permissions：**Account** → **Cloudflare Pages** → **Edit**（只要這一項）
+   - Account Resources：選你的帳號
+   - 建立後**立刻複製**，離開頁面就看不到了
+
+3. **放進 GitHub Secrets**
+   GitHub repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+
+   | Name | Value |
+   |------|-------|
+   | `CLOUDFLARE_API_TOKEN` | 上一步的 token |
+   | `CLOUDFLARE_ACCOUNT_ID` | 第 1 步的 Account ID |
+
+4. **觸發部署**
+   Actions → `deploy-cloudflare-pages` → **Run workflow**（或直接推一個 commit 到 `main`）。
+   兩個 secret 未設定時，此 workflow 會標記 skipped 並成功結束，不會擋 CI。
+
+5. 從 workflow log 取得配發的網域，形如 `https://neurolearn.pages.dev`
+
+> Token 權限僅限 Cloudflare Pages 編輯，無法讀取 DNS、帳單或其他資源。
+> 日後要撤銷，回到 My Profile → API Tokens 直接 Revoke 即可。
+
+### 方案 B — Cloudflare Dashboard 連接 Git
+
 Cloudflare 免費方案對本站綽綽有餘：無限請求與頻寬、每月 500 次建置、自訂網域免費。
 
 1. 登入 <https://dash.cloudflare.com> → 左側 **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
@@ -50,6 +86,9 @@ Cloudflare 免費方案對本站綽綽有餘：無限請求與頻寬、每月 50
 
 4. **Save and Deploy**
 5. 記下配發的網域，形如 `https://neurolearn.pages.dev`（實際名稱以 Cloudflare 顯示為準）
+
+> 選了方案 B 的話，`.github/workflows/cloudflare.yml` 就不需要，可以刪除或不設 secret 讓它保持 skipped。
+> 兩者並用會造成同一專案被兩套流程部署，請擇一。
 
 > 設成 `public` 之後，`scripts/`、`AGENTS.md`、`BACKLOG.md`、`README.md` 都不會上 CDN。
 > 這正是把 `index.html` 移進 `public/` 的目的。
