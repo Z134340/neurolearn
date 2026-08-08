@@ -94,6 +94,9 @@ NeuroLearn/
 │   ├── com.neurolearn.proxy.plist  # launchd 參考模板
 │   ├── deploy_cloudflare.sh   #   本機部署 public/ 至 Cloudflare Pages（方案 A 之外的後備路徑）
 │   └── add_firebase_domain.sh #   安全新增 Firebase Auth 授權網域（只增不減）
+├── .claude/
+│   └── skills/                # 專案層級 Agent Skills（隨 repo 走，不參與部署）
+│       └── frontend-design/   #   Anthropic 官方：UI 視覺方向與字體搭配
 ├── tests/
 │   └── smoke.mjs              # 端到端 smoke test（Playwright，不入 package.json）
 └── docs/
