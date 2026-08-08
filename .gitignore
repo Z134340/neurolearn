@@ -25,3 +25,8 @@ venv/
 
 # ── Node（如未來引入建構工具）──────────────────────────
 node_modules/
+
+# ── 測試產物（tests/smoke.mjs 以 Playwright 執行；刻意不建 package.json）──
+test-results/
+playwright-report/
+.playwright/

@@ -11,7 +11,7 @@ NeuroLearn 是**單一 HTML 檔**的智能模擬考平台（Vanilla JS、零建�
   - Cloudflare Pages：https://neurolearn-48v.pages.dev ← 新，將成為正式站
   - GitHub Pages：https://z134340.github.io/neurolearn/ ← 舊，驗證通過後關閉
 - Repo：https://github.com/Z134340/neurolearn （branch：`main`）
-- 入口：`public/index.html`（約 4503 行；CSS 內嵌 21–460、JS 內嵌 490 起，行號為約值）
+- 入口：`public/index.html`（單一檔，約 4.5k 行；CSS 內嵌於 `<style>`、JS 內嵌於其後的 `<script>`）
 - 部署：GitHub Pages 與 Cloudflare Pages **並行**，兩者皆發布 `public/`（見 `docs/DEPLOY.md`）
 
 ## 2. Golden Rules（動手前必讀，違反會破壞產品）
@@ -22,29 +22,37 @@ NeuroLearn 是**單一 HTML 檔**的智能模擬考平台（Vanilla JS、零建�
 2. **不可拆成多檔後直接部署** — 「單一檔、零建構、離線可下載」是核心設計。若要模組化，必須引入「build step（src/ 合併 → 單一 index.html）」並維持產出仍是單檔；這是架構決策，需先與使用者確認（見 BACKLOG B2）。
 3. **不可擅自加 npm/bundler/框架** — 目前零自製依賴；任何 `package.json`/建構鏈都是架構決策，先確認。
 4. **CDN 依賴版本鎖定（皆已鎖，含 SRI）** — Firebase compat `10.13.2`（gstatic，第一方，無 SRI）、`marked@4.3.0/marked.min.js`、`xlsx@0.18.5/dist/xlsx.full.min.js`（後兩者 jsDelivr，帶 `integrity` sha256 + `crossorigin`）。改 URL／升版必同步更新 `integrity`，否則 SRI 不符會整檔不載入；CI 有守門（見 validate.yml）。注意 `marked@18` 已移除 root `/marked.min.js`，4.3.0 是最後含該檔且 UMD 全域 `marked.parse` 的版本，升 marked 需改走 `lib/marked.umd*.js` 並驗證 API。
-5. **不可破壞 Firestore Security Rules 模型** — 隔離靠 `users/{uid}` rules（見 README）。`FIREBASE_CONFIG.apiKey`（public/index.html:507）是 client-side 公開值、非機密，安全性由 rules 保證，**不要**當成洩漏處理。
+5. **不可破壞 Firestore Security Rules 模型** — 隔離靠 `users/{uid}` rules（見 README）。`FIREBASE_CONFIG.apiKey`（grep `const FIREBASE_CONFIG`）是 client-side 公開值、非機密，安全性由 rules 保證，**不要**當成洩漏處理。
 6. **儲存有兩層、命名不同** — localStorage（單機 blob）vs Firestore（6 個 subcollection）。改任一層先讀 README「資料儲存說明」，避免重演 v2.4 的 onSnapshot 覆蓋資料遺失 bug。
 7. **diff sync 優先** — 使用者偏好小步 diff，最後再給完整檔；改動前說明連動範圍。
 8. **commit message 用繁體中文**，沿用現有風格（如「修正…」「新增…」「優化…」）。
 
 ## 3. Code Map（`public/index.html` 內部）
 
-| 區段 | 行號(約) | 內容 |
-|------|---------|------|
-| `<style>` | 21–460 | 全站 CSS（含 iOS safe-area、共用 btn 類別、字級與容器尺度 token） |
-| `FIREBASE_CONFIG` | 507 | Firebase 設定（公開值） |
-| Firebase 同步層 | 523–894 | `syncUserState` / `syncExamFileToCloud` / `loadCloudData` / `syncStudyToCloud` / `loadStudyFromCloud` / onSnapshot / `_syncPausedUntil` / `_localOnlyFiles` |
-| `initFirebase()` | 897 |（`appBaseUrl()` 940：部署位置偵測） Auth + Firestore 初始化 |
-| STATE | 1110 | 全域 `S` 狀態物件 |
-| NAVIGATION | 1143 | 切頁 |
-| MASTER RENDER `render()` | 1204 | 總渲染入口 |
-| HOME / DATASETS PAGE | 1254 / 1555 | 首頁、考古題題庫（CSV/XLSX 匯入：1923 / 2410） |
-| AI 題目生成 | 1944–2390 | `aiGenTestConn` / `aiGenRun` / `aiGenImport`（呼叫本機 proxy） |
-| QUIZ PAGE | 2571 | `launchQuiz()` 2978、作答流程 |
-| DASHBOARD PAGE | 3652 | 趨勢圖（純 Canvas）、匯出 |
-| PERSISTENT STORAGE | 4085 | `saveToStorage()` 4090、`loadFromStorage()` 4133（localStorage 三段降級） |
-| STUDY AREA | 4168 | 教材庫 `handleMDFiles()` 4184、筆記 |
-| BOOT | 4471 | `loadFromStorage()` → `render()` → `initFirebase()` |
+> **以錨點而非行號定位**——行號每次改動都會偏移（歷次已失準三次），錨點欄可直接
+> `grep -n '<錨點>' public/index.html` 取得當前位置，永不過時。
+
+| 區段 | 錨點（可直接 grep） | 內容 |
+|------|--------------------|------|
+| 全站 CSS | `<style>` … `</style>` | iOS safe-area、共用 btn 類別、字級與容器尺度 token（`--w-read` / `--w-list` / `--w-mid` / `--w-dash`） |
+| Firebase 設定 | `const FIREBASE_CONFIG` | 公開值，非機密（安全性由 Firestore rules 保證） |
+| Firebase 同步層 | `async function syncUserState` | 另含 `syncExamFileToCloud` / `loadCloudData` / `syncStudyToCloud` / `loadStudyFromCloud` / onSnapshot / `_syncPausedUntil` / `_localOnlyFiles` |
+| 初始化 | `function initFirebase` | Auth + Firestore |
+| 部署位置偵測 | `function appBaseUrl` | Auth action URL 依當前網域自動組出（GitHub Pages 子路徑／Cloudflare 根路徑皆正確） |
+| **HTML 轉義** | `function esc` | 使用者可控字串進模板前必經；見 §7 慣例 |
+| 全域狀態 | `const S = {` | |
+| 切頁 | `function navigate` | |
+| 總渲染入口 | `function render()` | 各頁 `innerHTML` 指派與 render 後的事件綁定都在此 |
+| 首頁 | `function homeHTML` | |
+| 考古題題庫 | `function datasetsHTML` | CSV／XLSX 匯入見 `function importCSVQuestions` / `function importXLSXQuestions` |
+| AI 題目生成 | `async function aiGenRun` | 另含 `aiGenTestConn` / `aiGenImport`（呼叫本機 proxy 7734） |
+| 測驗 | `function quizMenuHTML` | 作答流程見 `function launchQuiz` |
+| 儀表板 | `function dashHTML` | 趨勢圖為純 Canvas，見 `function initChart` |
+| localStorage | `function saveToStorage` | 讀取見 `function loadFromStorage`（三段降級） |
+| 教材庫／閱讀 | `function libraryHTML` | 匯入 `function handleMDFiles`、解析 `function parseMD`（前置 `hardenMarked`） |
+| 筆記 | `function notesHTML` | |
+| 漸進式揭露 | `function uploaderToggleHTML` | 上傳區收合／展開，綁定見 `function bindUploaderToggle` |
+| BOOT | `loadFromStorage();` （檔尾） | `loadFromStorage()` → `render()` → `initFirebase()` |
 
 ## 4. 本機開發 / 執行 / 測試
 
@@ -102,5 +110,5 @@ NeuroLearn/
   新增任何渲染使用者輸入的位置，請一併補 `esc()`；smoke test 第 7 段會擋未轉義的注入面。
 - ⚠️ 註解或字串中避免出現 `<`+`script`／`<`+`style` 的字面組合 —— CI 的標籤配對檢查以
   grep 計數，會把它算成未閉合標籤而失敗。
-- console：預設靜默（log/warn/info/debug），`?debug=1` 或 `localStorage.neurolearn_debug='1'` 開啟（public/index.html:493 單點攔截，B5 已落地）。
+- console：預設靜默（log/warn/info/debug），`?debug=1` 或 `localStorage.neurolearn_debug='1'` 開啟（grep `預設靜默 console` 單點攔截，B5 已落地）。
 - 同步觸發：60s（輕量）/ 5min（全量）debounce；quota 超限自動暫停 30 分鐘。
