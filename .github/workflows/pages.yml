@@ -1,0 +1,46 @@
+name: deploy-github-pages
+
+# index.html 已移入 public/，而 GitHub Pages 的「資料夾部署」只支援 root 或 /docs，
+# 因此改用 Actions 部署，才能指定 public/ 為發布目錄。
+# ⚠️ 需於 GitHub → Settings → Pages → Source 選擇「GitHub Actions」，此 workflow 才會生效。
+# 移轉至 Cloudflare Pages 期間兩者並行；確認 Cloudflare 一切正常後可停用本 workflow。
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# 允許 Actions 取得部署 Pages 所需的 OIDC token
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時只跑一個部署；不取消進行中的部署，避免線上站中斷
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: 部署 public/ 至 GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 確認發布目錄存在
+        run: test -f public/index.html
+
+      - uses: actions/configure-pages@v5
+
+      - name: 上傳 public/ 作為 Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: 部署
+        id: deployment
+        uses: actions/deploy-pages@v4

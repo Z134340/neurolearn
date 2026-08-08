@@ -13,8 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: index.html 必須在 repo root（GitHub Pages 部署入口）
-        run: test -f index.html
+      - name: 網站入口必須在 public/（Cloudflare Pages 與 GitHub Pages 共同發布目錄）
+        run: |
+          test -f public/index.html
+          # root 不得殘留舊入口，避免兩份 index.html 分歧
+          test ! -f index.html
 
       - name: 無 merge conflict 殘留標記
         run: |
@@ -25,23 +28,23 @@ jobs:
 
       - name: script / style 標籤配對（防單檔結構破損）
         run: |
-          so=$(grep -c '<script' index.html); sc=$(grep -c '</script>' index.html)
-          to=$(grep -c '<style'  index.html); tc=$(grep -c '</style>'  index.html)
+          so=$(grep -c '<script' public/index.html); sc=$(grep -c '</script>' public/index.html)
+          to=$(grep -c '<style'  public/index.html); tc=$(grep -c '</style>'  public/index.html)
           echo "script open/close = $so/$sc ; style open/close = $to/$tc"
           test "$so" -eq "$sc" && test "$to" -eq "$tc"
 
       - name: 第三方 CDN 須鎖版 + SRI（防 F1 floating 回升）
         run: |
-          grep -q 'marked@4.3.0/marked.min.js' index.html
-          grep -q 'xlsx@0.18.5/dist/xlsx.full.min.js' index.html
-          n=$(grep -cE 'cdn\.jsdelivr\.net/npm/.*integrity=' index.html)
+          grep -q 'marked@4.3.0/marked.min.js' public/index.html
+          grep -q 'xlsx@0.18.5/dist/xlsx.full.min.js' public/index.html
+          n=$(grep -cE 'cdn\.jsdelivr\.net/npm/.*integrity=' public/index.html)
           echo "jsdelivr 帶 integrity 的 script 數 = $n（需 ≥2）"
           test "$n" -ge 2
 
       - name: 技術債 ratchet（inline handler / innerHTML 不得超過基準）
         run: |
-          oc=$(grep -o 'onclick=' index.html | wc -l | tr -d ' ')
-          ih=$(grep -o 'innerHTML' index.html | wc -l | tr -d ' ')
+          oc=$(grep -o 'onclick=' public/index.html | wc -l | tr -d ' ')
+          ih=$(grep -o 'innerHTML' public/index.html | wc -l | tr -d ' ')
           echo "onclick=$oc（上限 131）; innerHTML=$ih（上限 30）"
           fail=0
           if [ "$oc" -gt 131 ]; then echo "::error::inline onclick 由 131 增至 $oc，請改事件委派（BACKLOG B3）"; fail=1; fi
@@ -64,4 +67,4 @@ jobs:
         with:
           node-version: '20'
       - name: html-validate（顧問性質）
-        run: npx -y html-validate index.html
+        run: npx -y html-validate public/index.html

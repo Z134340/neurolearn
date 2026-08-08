@@ -3,8 +3,8 @@
 > **智能模擬考平台** — 單一 HTML 檔案，完全離線可用，Firebase 雲端帳號同步，支援 AI 本機生成題目
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-z134340.github.io-brightgreen?style=flat-square)](https://z134340.github.io/neurolearn/)
-[![Single File](https://img.shields.io/badge/架構-Single%20HTML-blueviolet?style=flat-square)](index.html)
-[![No Framework](https://img.shields.io/badge/框架-Vanilla%20JS-orange?style=flat-square)](index.html)
+[![Single File](https://img.shields.io/badge/架構-Single%20HTML-blueviolet?style=flat-square)](public/index.html)
+[![No Framework](https://img.shields.io/badge/框架-Vanilla%20JS-orange?style=flat-square)](public/index.html)
 [![Firebase](https://img.shields.io/badge/雲端-Firebase-FFCA28?style=flat-square&logo=firebase&logoColor=black)](https://firebase.google.com)
 [![PWA](https://img.shields.io/badge/PWA-iOS%20%2F%20Android-blue?style=flat-square)](https://z134340.github.io/neurolearn/)
 
@@ -185,7 +185,7 @@ NeuroLearn
 
 🌐 **https://z134340.github.io/neurolearn/**
 
-下載 `index.html` → 用任何瀏覽器開啟，進度自動存於 localStorage。
+下載 `public/index.html` → 用任何瀏覽器開啟，進度自動存於 localStorage。
 
 ### 加到 iPhone 主畫面（PWA）
 
@@ -243,7 +243,7 @@ service cloud.firestore {
 }
 ```
 
-### Step 3 — 填入 index.html
+### Step 3 — 填入 public/index.html
 
 ```javascript
 const FIREBASE_CONFIG = {
@@ -269,7 +269,7 @@ AI 生成功能透過本機 Proxy 呼叫你已登入的 Claude Code CLI，**不�
 ### 架構
 
 ```
-瀏覽器（index.html）
+瀏覽器（public/index.html）
   → http://127.0.0.1:7734
   → claude_proxy.py（本機 Python）
   → claude CLI（使用你的 Claude Code Max 訂閱）

@@ -932,16 +932,27 @@ async function authSignIn(email, pw) {
   _currentUser = user; // 立即設定，不等 onAuthStateChanged
 }
 
+/* 部署位置自動偵測 —— 同一份 index.html 需能在 GitHub Pages、Cloudflare Pages
+   與自訂網域下運作，故 Firebase Auth 的 action URL 不可寫死網域。
+   注意：回傳的網域必須同時列在 Firebase Console → Authentication →
+   Settings → Authorized domains，否則寄信會被拒絕。 */
+const _FALLBACK_APP_URL = 'https://z134340.github.io/neurolearn/';
+function appBaseUrl() {
+  const loc = window.location;
+  if (loc.protocol !== 'http:' && loc.protocol !== 'https:') return _FALLBACK_APP_URL; // file:// 離線開檔
+  return loc.origin + loc.pathname.replace(/[^/]*$/, '');
+}
+
 async function authSignUp(email, pw) {
   if (!_auth) throw new Error('Firebase 未連線');
   const { user } = await _auth.createUserWithEmailAndPassword(email, pw);
-  await user.sendEmailVerification({ url: 'https://z134340.github.io/neurolearn/' });
+  await user.sendEmailVerification({ url: appBaseUrl() });
   await _auth.signOut(); // sign out until user verifies email
 }
 
 async function sendPasswordReset(email) {
   if (!_auth) throw new Error('Firebase 未初始化。');
-  await _auth.sendPasswordResetEmail(email, { url: 'https://z134340.github.io/neurolearn/' });
+  await _auth.sendPasswordResetEmail(email, { url: appBaseUrl() });
 }
 
 async function doSignIn() {
@@ -1015,7 +1026,7 @@ async function doResend() {
   try {
     const { user } = await _auth.signInWithEmailAndPassword(email, pw);
     if (!user.emailVerified) {
-      await user.sendEmailVerification({ url: 'https://z134340.github.io/neurolearn/' });
+      await user.sendEmailVerification({ url: appBaseUrl() });
       await _auth.signOut();
       if(msg){ msg.style.color='#4ADE80'; msg.textContent='✅ 驗證信已重寄，請查收信箱。'; }
     } else {
